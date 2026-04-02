@@ -1,0 +1,7 @@
+.cache/
+node_modules/
+.claude.ison
+CFUserTextEncoding
+*.sha256
+*.gz
+.DS_Store
