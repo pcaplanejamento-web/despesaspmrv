@@ -1,82 +1,81 @@
 /**
- * app.js
- * Ponto de entrada da aplicação.
- * Orquestra a inicialização dos módulos e reage a mudanças de estado.
- * Não contém regras de negócio — apenas coordena os outros módulos.
+ * app.js — corrigido v1.1
+ * Orquestra inicialização e fluxo de dados entre API e módulos de UI.
  */
 
 const App = (() => {
 
-  /**
-   * Exibe ou oculta o indicador de carregamento global.
-   * @param {boolean} visivel
-   */
   function _setLoading(visivel) {
     const el = document.getElementById('loading-overlay');
     if (el) el.style.display = visivel ? 'flex' : 'none';
   }
 
-  /**
-   * Exibe uma mensagem de erro na interface.
-   * @param {string|null} mensagem
-   */
   function _setErro(mensagem) {
     const el = document.getElementById('erro-global');
     if (!el) return;
-    if (mensagem) {
-      el.textContent = mensagem;
-      el.style.display = 'block';
-    } else {
-      el.style.display = 'none';
-    }
+    if (mensagem) { el.textContent = mensagem; el.style.display = 'block'; }
+    else { el.style.display = 'none'; }
   }
 
-  /**
-   * Carrega os filtros disponíveis e popula os seletores.
-   */
   async function _carregarFiltros() {
     try {
       const dados = await Api.getFiltros();
       State.setDados('filtrosDisponiveis', dados);
       Filters.popular(dados);
     } catch (err) {
-      console.error('[App] Erro ao carregar filtros:', err);
+      console.error('[App] Erro filtros:', err);
     }
   }
 
-  /**
-   * Carrega e renderiza todos os dados do painel com os filtros ativos.
-   */
   async function _renderizar() {
     const filtros = State.getFiltros();
     State.setCarregando(true);
     State.setErro(null);
 
     try {
-      // KPIs e dados em paralelo para economizar tempo
-      const [kpis, dados] = await Promise.all([
+      // Busca KPIs e dados em paralelo
+      const [kpis, respDados] = await Promise.all([
         Api.getKpis(filtros),
         Api.getDados(filtros),
       ]);
 
       State.setDados('kpis', kpis);
-      State.setDados('dados', dados);
+      State.setDados('dados', respDados);
 
+      // Normaliza registros — API retorna { registros: [...], paginacao: {} }
+      const registros = Array.isArray(respDados)
+        ? respDados
+        : (respDados && respDados.registros ? respDados.registros : []);
+
+      // Renderiza KPIs
       Kpis.renderizar(kpis);
-      Charts.renderizar(dados);
-      Tables.renderizar(dados);
+
+      // Monta agregados a partir dos KPIs (mais eficiente que processar registros brutos)
+      const porDespesa = {};
+      (kpis.rankingDespesas || []).forEach(i => { porDespesa[i.chave] = i.valor; });
+
+      const porTipo = {};
+      (kpis.rankingTipos || []).forEach(i => { porTipo[i.chave] = i.valor; });
+
+      const porSigla = {};
+      (kpis.rankingSecretarias || []).forEach(i => { porSigla[i.chave] = i.valor; });
+
+      const porMesAno = kpis.porMes || {};
+
+      // Renderiza gráficos com dados agregados
+      Charts._renderizarComAgregados({ porDespesa, porTipo, porSigla, porMesAno });
+
+      // Renderiza tabela com registros brutos
+      Tables.renderizar(registros);
 
     } catch (err) {
-      State.setErro(err.message);
-      console.error('[App] Erro ao renderizar:', err);
+      State.setErro('Erro ao carregar dados: ' + err.message);
+      console.error('[App] Erro renderizar:', err);
     } finally {
       State.setCarregando(false);
     }
   }
 
-  /**
-   * Registra reações a mudanças de estado.
-   */
   function _registrarListeners() {
     State.subscribe((chave, estado) => {
       if (chave === 'carregando') _setLoading(estado.carregando);
@@ -85,21 +84,13 @@ const App = (() => {
     });
   }
 
-  /**
-   * Inicializa os ícones Lucide (se disponível).
-   */
   function _iniciarIcones() {
-    if (typeof lucide !== 'undefined') {
-      lucide.createIcons();
-    }
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
-  /**
-   * Ponto de entrada público — chamado pelo HTML após carregar todos os scripts.
-   */
   async function init() {
     _iniciarIcones();
-    Filters.registrarListeners(); // registra listeners dos <select> e botão reset
+    Filters.registrarListeners();
     _registrarListeners();
     await _carregarFiltros();
     await _renderizar();
@@ -109,5 +100,4 @@ const App = (() => {
 
 })();
 
-// Inicializa quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', App.init);
