@@ -8,7 +8,7 @@ const CONFIG = {
 
   // URL publicada do Google Apps Script (Web App)
   // Substitua após publicar o script — veja docs/apps-script-deploy.md
-  API_URL: 'https://script.google.com/macros/s/COLE_SUA_URL_AQUI/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbwhScEiKoEAPGQ-VaQNfse1XUpswEaQxcfXEBjf-wQN4e1He99nhi78cD-OpTwclEXQ/exec',
 
   // Timeout máximo para chamadas à API (ms)
   API_TIMEOUT: 15000,
