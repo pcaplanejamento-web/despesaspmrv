@@ -1,0 +1,116 @@
+/* main.css — variáveis globais, reset e tipografia */
+
+:root {
+  /* Cores principais */
+  --cor-primaria:     #185FA5;
+  --cor-primaria-bg:  #E6F1FB;
+  --cor-secundaria:   #1D9E75;
+  --cor-alerta:       #D85A30;
+  --cor-aviso:        #BA7517;
+  --cor-roxo:         #534AB7;
+
+  /* Superfícies */
+  --bg-pagina:        #F4F5F7;
+  --bg-card:          #FFFFFF;
+  --bg-sidebar:       #FFFFFF;
+  --bg-header:        #FFFFFF;
+  --bg-hover:         #F0F4F8;
+
+  /* Texto */
+  --texto-primario:   #1A1A2E;
+  --texto-secundario: #5F6B7A;
+  --texto-terciario:  #9AA3AD;
+  --texto-invertido:  #FFFFFF;
+
+  /* Bordas */
+  --borda:            rgba(0,0,0,0.08);
+  --borda-forte:      rgba(0,0,0,0.15);
+
+  /* Dimensões de layout */
+  --sidebar-width:     240px;
+  --sidebar-collapsed: 60px;
+  --header-height:     60px;
+
+  /* Espaçamento */
+  --gap-sm:  8px;
+  --gap-md:  16px;
+  --gap-lg:  24px;
+
+  /* Bordas arredondadas */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+
+  /* Tipografia — idêntico ao PCA */
+  --fonte: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Sombra */
+  --sombra-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--fonte);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--texto-primario);
+  background: var(--bg-pagina);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hierarquia tipográfica */
+h1 { font-size: 20px; font-weight: 800; color: var(--texto-primario); }
+h2 { font-size: 17px; font-weight: 700; color: var(--texto-primario); }
+h3 { font-size: 14px; font-weight: 700; color: var(--texto-primario); }
+h4 { font-size: 12px; font-weight: 700; color: var(--texto-secundario); letter-spacing: 0.05em; text-transform: uppercase; }
+
+p  { color: var(--texto-secundario); }
+a  { color: var(--cor-primaria); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Scrollbar discreta */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--borda-forte); border-radius: 99px; }
+
+/* Loading overlay global */
+#loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,255,255,0.75);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  font-size: 14px;
+  color: var(--texto-secundario);
+  gap: var(--gap-sm);
+}
+
+/* Erro global */
+#erro-global {
+  display: none;
+  margin: var(--gap-md);
+  padding: var(--gap-md);
+  background: #FCEBEB;
+  border: 1px solid #F7C1C1;
+  border-radius: var(--radius-md);
+  color: #A32D2D;
+  font-size: 13px;
+}
+
+/* Utilitários */
+.oculto    { display: none !important; }
+.visivel   { display: block !important; }
+.text-muted { color: var(--texto-terciario); }
+.text-sm   { font-size: 12px; }
+.text-xs   { font-size: 11px; }
+.fw-500    { font-weight: 500; }
+.fw-700    { font-weight: 700; }
