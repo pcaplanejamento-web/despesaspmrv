@@ -259,7 +259,7 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 
-<!-- Scripts — ordem importa -->
+<!-- Scripts — ordem importa: config → state → api → módulos → app -->
 <script src="assets/js/config.js"></script>
 <script src="assets/js/state.js"></script>
 <script src="assets/js/api.js"></script>
@@ -269,6 +269,8 @@
 <script src="assets/js/charts.js"></script>
 <script src="assets/js/tables.js"></script>
 <script src="assets/js/app.js"></script>
+<!-- Lucide icons (opcional — carregado por último para não bloquear) -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
 
 <script>
   // Toggle sidebar
