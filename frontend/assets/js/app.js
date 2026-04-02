@@ -99,6 +99,7 @@ const App = (() => {
    */
   async function init() {
     _iniciarIcones();
+    Filters.registrarListeners(); // registra listeners dos <select> e botão reset
     _registrarListeners();
     await _carregarFiltros();
     await _renderizar();
