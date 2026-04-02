@@ -447,8 +447,22 @@ const Charts = (() => {
     return `${Number(v || 0).toFixed(1)}%`;
   }
 
+
+  /**
+   * Renderiza todos os gráficos usando dados já agregados (vindos dos KPIs).
+   * Mais eficiente que processar registros brutos no frontend.
+   * Chamado pelo app.js quando a API retorna KPIs com rankingSecretarias/porMes.
+   */
+  function _renderizarComAgregados(agregados) {
+    _graficoRoscaDespesa(agregados.porDespesa || {});
+    _graficoRoscaTipo(agregados.porTipo || {});
+    _graficoEvolucaoMensal(agregados.porMesAno || {});
+    _rankingSecretarias(agregados.porSigla || {});
+  }
+
   return {
     renderizar,
+    _renderizarComAgregados,
     destruirTodos,
     renderizarComparacao,
     renderizarBarrasHorizontais,
