@@ -1,133 +1,113 @@
 /**
- * kpis.js — Cálculo e renderização dos cards de KPI
- * v1.2.0
- *
- * BUGS CORRIGIDOS NESTA VERSÃO:
- *
- * [B8] KPI "Total Liquidado" — sub-label exibia o desconto calculado sobre
- *      o totalGeral (combustível + manutenção), quando o desconto de 5,01%
- *      se aplica APENAS sobre o valor de combustível. A base correta é
- *      totalComb. Corrigido: pct(totalComb - totalLiquid, totalComb).
- *      Também adicionada guarda para quando totalComb = 0 (evita "NaN%").
+ * kpis.js — KPI cards estilo PCA v2.0
+ * Cards gradiente com ícone, label, valor e sub-label.
  */
 
 const Kpis = (() => {
-  // ----- Formatação -----
 
-  function formatBRL(value) {
-    if (value >= 1_000_000_000) {
-      return `R$ ${(value / 1_000_000_000).toFixed(1).replace('.', ',')}B`;
-    }
-    if (value >= 1_000_000) {
-      return `R$ ${(value / 1_000_000).toFixed(1).replace('.', ',')}M`;
-    }
-    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  }
-
-  function formatBRLFull(value) {
-    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  function fmt(v) {
+    if (v >= 1_000_000_000) return `R$ ${(v/1_000_000_000).toFixed(1).replace('.',',')}B`;
+    if (v >= 1_000_000)     return `R$ ${(v/1_000_000).toFixed(1).replace('.',',')}M`;
+    return v.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
   }
 
   function pct(part, total) {
     if (!total) return '0,0%';
-    return `${((part / total) * 100).toFixed(1).replace('.', ',')}%`;
+    return `${((part/total)*100).toFixed(1).replace('.',',')}%`;
   }
 
-  // ----- Atualização de um card -----
-
-  function setKpi(valueId, subId, value, sub) {
-    const valEl = document.getElementById(valueId);
-    const subEl = document.getElementById(subId);
-    if (valEl) valEl.textContent = value;
-    if (subEl) subEl.textContent = sub;
+  function set(valueId, subId, value, sub) {
+    const v = document.getElementById(valueId);
+    const s = document.getElementById(subId);
+    if (v) v.textContent = value;
+    if (s) s.textContent = sub;
   }
-
-  // ----- Renderização principal -----
 
   function render() {
     const data = State.getFilteredData();
     const raw  = State.getRawData();
 
+    // Atualiza badge da sidebar
+    const badge = document.getElementById('sidebarRecordCount');
+    if (badge) badge.textContent = data.length.toLocaleString('pt-BR');
+
     if (!data.length) {
-      setKpi('kpiTotalGeralValue',      'kpiTotalGeralSub',      'R$ 0', '0 registros');
-      setKpi('kpiManutencaoValue',      'kpiManutencaoSub',      'R$ 0', '0,0% do total');
-      setKpi('kpiCombustivelValue',     'kpiCombustivelSub',     'R$ 0', '0,0% do total');
-      setKpi('kpiMediaValue',           'kpiMediaSub',           'R$ 0', 'por mês com dados');
-      setKpi('kpiMaiorSecretariaValue', 'kpiMaiorSecretariaSub', '—',    '—');
-      setKpi('kpiLiquidadoValue',       'kpiLiquidadoSub',       'R$ 0', 'Desconto: 5,01%');
+      set('kpiTotalGeralValue',      'kpiTotalGeralSub',      'R$ 0',  '0 registros');
+      set('kpiLiquidadoValue',       'kpiLiquidadoSub',       'R$ 0',  'Desconto: 5,01%');
+      set('kpiManutencaoValue',      'kpiManutencaoSub',      'R$ 0',  '0,0% do total');
+      set('kpiCombustivelValue',     'kpiCombustivelSub',     'R$ 0',  '0,0% do total');
+      set('kpiMediaValue',           'kpiMediaSub',           'R$ 0',  'por mes com dados');
+      set('kpiMaiorSecretariaValue', 'kpiMaiorSecretariaSub', '--',    '--');
       return;
     }
 
-    const totalGeral  = data.reduce((s, r) => s + r.Valor, 0);
-    const totalManut  = data.filter(r => r.Despesa === 'Manutenção').reduce((s, r) => s + r.Valor, 0);
-    const totalComb   = data.filter(r => r.Despesa === 'Combustível').reduce((s, r) => s + r.Valor, 0);
-    const totalLiquid = data.filter(r => r.Despesa === 'Combustível').reduce((s, r) => s + r.Liquidado, 0);
+    const totalGeral  = data.reduce((s,r) => s + r.Valor, 0);
+    const totalManut  = data.filter(r => r.Despesa === 'Manutencao').reduce((s,r) => s + r.Valor, 0);
+    const totalComb   = data.filter(r => r.Despesa === 'Combustivel').reduce((s,r) => s + r.Valor, 0);
+    const totalLiquid = data.filter(r => r.Despesa === 'Combustivel').reduce((s,r) => s + r.Liquidado, 0);
 
-    // Média mensal
-    const mesesComDados = new Set(data.map(r => `${r.Ano}-${r.Mes}`));
-    const mediaMensal   = mesesComDados.size ? totalGeral / mesesComDados.size : 0;
+    // Suporte a grafias com acento
+    const totalManutA  = totalManut  || data.filter(r => r.Despesa === 'Manutenção').reduce((s,r) => s + r.Valor, 0);
+    const totalCombA   = totalComb   || data.filter(r => r.Despesa === 'Combustível').reduce((s,r) => s + r.Valor, 0);
+    const totalLiquidA = totalLiquid || data.filter(r => r.Despesa === 'Combustível').reduce((s,r) => s + r.Liquidado, 0);
+
+    const totalManutFinal  = totalManutA;
+    const totalCombFinal   = totalCombA;
+    const totalLiquidFinal = totalLiquidA;
+
+    // Media mensal
+    const meses       = new Set(data.map(r => `${r.Ano}-${r.Mes}`));
+    const mediaMensal = meses.size ? totalGeral / meses.size : 0;
 
     // Maior secretaria
-    const porSigla = data.reduce((acc, r) => {
-      acc[r.Sigla] = (acc[r.Sigla] || 0) + r.Valor;
-      return acc;
-    }, {});
-    const maiorSigla = Object.entries(porSigla).sort((a, b) => b[1] - a[1])[0] || ['—', 0];
-    const maiorPct   = pct(maiorSigla[1], totalGeral);
+    const porSigla   = data.reduce((acc,r) => { acc[r.Sigla]=(acc[r.Sigla]||0)+r.Valor; return acc; }, {});
+    const maiorSigla = Object.entries(porSigla).sort((a,b) => b[1]-a[1])[0] || ['--', 0];
 
-    // Variação vs mês anterior
+    // Variacao vs mes anterior
     const filtros = State.getFilters();
-    let variacaoLabel = '';
+    let varLabel = '';
     if (filtros.mes && filtros.ano) {
       const mesAnt = parseInt(filtros.mes) - 1;
-      const anoAnt = mesAnt === 0 ? parseInt(filtros.ano) - 1 : parseInt(filtros.ano);
+      const anoAnt = mesAnt === 0 ? parseInt(filtros.ano)-1 : parseInt(filtros.ano);
       const mesRef = mesAnt === 0 ? 12 : mesAnt;
-      const anterior = raw
-        .filter(r => r.Mes === mesRef && r.Ano === anoAnt)
-        .reduce((s, r) => s + r.Valor, 0);
+      const anterior = raw.filter(r => r.Mes===mesRef && r.Ano===anoAnt).reduce((s,r)=>s+r.Valor,0);
       if (anterior > 0) {
         const delta = ((totalGeral - anterior) / anterior) * 100;
         const sinal = delta >= 0 ? '+' : '';
-        variacaoLabel = `${sinal}${delta.toFixed(1).replace('.', ',')}% vs ${CONFIG.MESES[mesRef]}/${anoAnt}`;
+        varLabel = ` · ${sinal}${delta.toFixed(1).replace('.',',')}% vs ${CONFIG.MESES[mesRef]}/${anoAnt}`;
       }
     }
 
-    setKpi('kpiTotalGeralValue', 'kpiTotalGeralSub',
-      formatBRL(totalGeral),
-      `${data.length.toLocaleString('pt-BR')} registros${variacaoLabel ? ' · ' + variacaoLabel : ''}`
+    set('kpiTotalGeralValue', 'kpiTotalGeralSub',
+      fmt(totalGeral),
+      `${data.length.toLocaleString('pt-BR')} registros${varLabel}`
     );
 
-    setKpi('kpiManutencaoValue', 'kpiManutencaoSub',
-      formatBRL(totalManut),
-      `${pct(totalManut, totalGeral)} do total`
+    const descontoLabel = totalCombFinal > 0
+      ? `Desconto: ${pct(totalCombFinal - totalLiquidFinal, totalCombFinal)}`
+      : 'Sem combustivel no periodo';
+    set('kpiLiquidadoValue', 'kpiLiquidadoSub', fmt(totalLiquidFinal), descontoLabel);
+
+    set('kpiManutencaoValue', 'kpiManutencaoSub',
+      fmt(totalManutFinal),
+      `${pct(totalManutFinal, totalGeral)} do total`
     );
 
-    setKpi('kpiCombustivelValue', 'kpiCombustivelSub',
-      formatBRL(totalComb),
-      `${pct(totalComb, totalGeral)} do total`
+    set('kpiCombustivelValue', 'kpiCombustivelSub',
+      fmt(totalCombFinal),
+      `${pct(totalCombFinal, totalGeral)} do total`
     );
 
-    setKpi('kpiMediaValue', 'kpiMediaSub',
-      formatBRL(mediaMensal),
-      `por mês com dados (${mesesComDados.size})`
+    set('kpiMediaValue', 'kpiMediaSub',
+      fmt(mediaMensal),
+      `por mes com dados (${meses.size})`
     );
 
-    setKpi('kpiMaiorSecretariaValue', 'kpiMaiorSecretariaSub',
+    set('kpiMaiorSecretariaValue', 'kpiMaiorSecretariaSub',
       maiorSigla[0],
-      `${formatBRL(maiorSigla[1])} · ${maiorPct}`
-    );
-
-    // [B8] Base do desconto corrigida: usa totalComb (não totalGeral),
-    // pois o desconto de 5,01% é aplicado apenas sobre combustível.
-    const descontoLabel = totalComb > 0
-      ? `Desconto aplicado: ${pct(totalComb - totalLiquid, totalComb)}`
-      : 'Sem registros de combustível';
-
-    setKpi('kpiLiquidadoValue', 'kpiLiquidadoSub',
-      formatBRL(totalLiquid),
-      descontoLabel
+      `${fmt(maiorSigla[1])} · ${pct(maiorSigla[1], totalGeral)}`
     );
   }
 
-  return { render, formatBRL, formatBRLFull };
+  return { render, fmt };
 })();

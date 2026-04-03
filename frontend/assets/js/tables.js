@@ -1,251 +1,275 @@
 /**
- * tables.js — Tabela detalhada com paginação, ordenação e busca
- * v1.2.0
- *
- * BUGS CORRIGIDOS NESTA VERSÃO:
- *
- * [B9]  renderInfo(): quando slice.length = 0 (nenhum registro na página),
- *       o cálculo `from + 1` resultava em "Exibindo 1–0 de 0", texto inválido.
- *       O early return `if (!searched)` só cobria o caso total=0; não cobria
- *       o estado vazio pós-filtro quando filtered > 0.
- *       Corrigido: renderInfo agora recebe o slice real e trata o caso vazio.
- *
- * [B10] exportCSV(): a exportação aplicava busca textual (searchData) mas NÃO
- *       aplicava a ordenação ativa (sortData), gerando um CSV em ordem
- *       diferente da tabela exibida na tela. Corrigido: aplica sortData também.
- *
- * [B11] searchData(): busca não cobria o campo Empresa, limitando a pesquisa
- *       a Placa, Modelo, Departamento e Sigla. Adicionado r.Empresa.
+ * tables.js — Tabela v2.0
+ * Busca inline, ordenacao, paginacao, exportacao CSV.
  */
 
 const Tables = (() => {
-  // ----- Formatação -----
 
-  function fBRL(v) {
-    return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  // ── Formatacao ────────────────────────────────────────
+
+  function fmtBRL(v) {
+    if (!v && v !== 0) return '--';
+    return Number(v).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
   }
 
-  function badgeTipo(tipo) {
-    const cls = tipo === 'Veículo' ? 'badge-veiculo' : 'badge-maquina';
-    return `<span class="badge ${cls}">${tipo}</span>`;
+  function fmtMes(m) {
+    return CONFIG.MESES[m] || String(m);
   }
 
-  function badgeDespesa(despesa) {
-    const cls = despesa === 'Combustível' ? 'badge-combustivel' : 'badge-manutencao';
-    return `<span class="badge ${cls}">${despesa}</span>`;
+  function tipoBadge(tipo) {
+    const t = String(tipo).toLowerCase();
+    if (t === 'veiculo' || t === 'veículo') return `<span class="badge badge-veiculo">Veiculo</span>`;
+    if (t === 'maquina' || t === 'máquina') return `<span class="badge badge-maquina">Maquina</span>`;
+    return `<span class="badge">${tipo}</span>`;
   }
 
-  // ----- Ordenação -----
+  function despesaBadge(d) {
+    const lower = String(d).toLowerCase();
+    if (lower.startsWith('combust')) return `<span class="badge badge-combustivel">${d}</span>`;
+    if (lower.startsWith('manut'))   return `<span class="badge badge-manutencao">${d}</span>`;
+    return `<span class="badge">${d}</span>`;
+  }
 
-  function sortData(data) {
-    const { col, dir } = State.getTableSort();
-    if (!col) return data;
+  // ── Busca ─────────────────────────────────────────────
 
-    return [...data].sort((a, b) => {
-      const av = a[col];
-      const bv = b[col];
-      let cmp;
-      if (typeof av === 'number' && typeof bv === 'number') {
-        cmp = av - bv;
-      } else {
-        cmp = String(av).localeCompare(String(bv), 'pt-BR');
-      }
-      return dir === 'asc' ? cmp : -cmp;
+  function getSearchTerm() {
+    return State.getTableSearch();
+  }
+
+  function applySearch(rows) {
+    const term = getSearchTerm();
+    if (!term) return rows;
+    return rows.filter(r => {
+      return (
+        r.Placa?.toLowerCase().includes(term)         ||
+        r.Modelo?.toLowerCase().includes(term)        ||
+        r.Departamento?.toLowerCase().includes(term)  ||
+        r.Classificacao?.toLowerCase().includes(term) ||
+        r.Sigla?.toLowerCase().includes(term)         ||
+        r.Empresa?.toLowerCase().includes(term)       ||
+        r.Contrato?.toLowerCase().includes(term)
+      );
     });
   }
 
-  // ----- [B11] Busca textual — campo Empresa adicionado -----
+  // ── Ordenacao ─────────────────────────────────────────
 
-  function searchData(data) {
-    const term = State.getTableSearch();
-    if (!term) return data;
-    return data.filter(r =>
-      r.Placa.toLowerCase().includes(term)        ||
-      r.Modelo.toLowerCase().includes(term)       ||
-      r.Departamento.toLowerCase().includes(term) ||
-      r.Sigla.toLowerCase().includes(term)        ||
-      r.Empresa.toLowerCase().includes(term)      // [B11]
-    );
+  function applySort(rows) {
+    const { col, dir } = State.getTableSort();
+    if (!col) return rows;
+    return [...rows].sort((a, b) => {
+      let va = a[col], vb = b[col];
+      if (typeof va === 'number' && typeof vb === 'number') {
+        return dir === 'asc' ? va - vb : vb - va;
+      }
+      va = String(va || '').toLowerCase();
+      vb = String(vb || '').toLowerCase();
+      if (va < vb) return dir === 'asc' ? -1 : 1;
+      if (va > vb) return dir === 'asc' ?  1 : -1;
+      return 0;
+    });
   }
 
-  // ----- Renderização da tabela -----
+  // ── Renderizacao ──────────────────────────────────────
 
   function renderTable() {
-    const filtered   = State.getFilteredData();
-    const searched   = searchData(filtered);
-    const sorted     = sortData(searched);
-    const pageSize   = State.getTablePageSize();
-    const page       = State.getTablePage();
-    const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-    const safePage   = Math.min(page, totalPages);
-    if (safePage !== page) State.setTablePage(safePage);
-
-    const start = (safePage - 1) * pageSize;
-    const slice = sorted.slice(start, start + pageSize);
-
-    const tbody = document.getElementById('tableBody');
+    const tbody  = document.getElementById('tableBody');
+    const info   = document.getElementById('tableInfo');
+    const pag    = document.getElementById('tablePagination');
+    const footTv = document.getElementById('tableFooterTotal');
     if (!tbody) return;
 
-    if (!slice.length) {
-      tbody.innerHTML = '<tr><td colspan="12" class="table-empty">Nenhum registro encontrado para os filtros aplicados.</td></tr>';
-    } else {
-      tbody.innerHTML = slice.map(r => `
-        <tr>
-          <td>${r.Empresa}</td>
-          <td><span class="sigla-badge">${r.Sigla}</span></td>
-          <td>${r.Departamento}</td>
-          <td>${badgeDespesa(r.Despesa)}</td>
-          <td>${r.Modelo}</td>
-          <td>${r.Classificacao}</td>
-          <td>${badgeTipo(r.Tipo)}</td>
-          <td class="td-mono">${r.Placa}</td>
-          <td class="td-number">${fBRL(r.Valor)}</td>
-          <td class="td-number">${r.Liquidado > 0 ? fBRL(r.Liquidado) : '—'}</td>
-          <td>${CONFIG.MESES[r.Mes] || r.Mes}</td>
-          <td>${r.Ano}</td>
-        </tr>
-      `).join('');
+    let rows = State.getFilteredData();
+    rows = applySearch(rows);
+    rows = applySort(rows);
+
+    const total     = rows.length;
+    const pageSize  = State.getTablePageSize();
+    const page      = Math.max(1, Math.min(State.getTablePage(), Math.ceil(total / pageSize) || 1));
+    State.setTablePage(page);
+
+    const start    = (page - 1) * pageSize;
+    const pageRows = rows.slice(start, start + pageSize);
+
+    // Atualiza total financeiro da pagina atual
+    const totalValor = rows.reduce((s, r) => s + r.Valor, 0);
+    if (footTv) footTv.textContent = fmtBRL(totalValor);
+
+    // Info
+    if (info) {
+      info.textContent = total
+        ? `Exibindo ${start+1}–${Math.min(start+pageSize, total)} de ${total.toLocaleString('pt-BR')} registros`
+        : 'Nenhum registro encontrado';
     }
 
-    // [B9] Passa o slice diretamente para que renderInfo saiba o tamanho real
-    renderInfo(sorted.length, filtered.length, start, slice.length);
-    renderPagination(safePage, totalPages);
-    renderSortIcons();
-  }
-
-  // ----- [B9] Info — corrigida lógica de exibição de intervalo -----
-
-  function renderInfo(totalSearched, totalFiltered, startIndex, sliceLength) {
-    const el = document.getElementById('tableInfo');
-    if (!el) return;
-
-    if (!totalSearched || !sliceLength) {
-      el.textContent = 'Nenhum registro';
+    // Sem dados
+    if (!pageRows.length) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="11">
+            <div class="table-estado">
+              <div class="table-estado-icon" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </div>
+              <span>${State.getRawData().length ? 'Nenhum registro corresponde aos filtros' : 'Nenhum dado carregado'}</span>
+            </div>
+          </td>
+        </tr>`;
+      if (pag) pag.innerHTML = '';
       return;
     }
 
-    const from = startIndex + 1;
-    const to   = startIndex + sliceLength;
-    const showing = `Exibindo ${from.toLocaleString('pt-BR')}–${to.toLocaleString('pt-BR')} de ${totalSearched.toLocaleString('pt-BR')}`;
-    el.textContent = totalSearched < totalFiltered
-      ? `${showing} (filtrado de ${totalFiltered.toLocaleString('pt-BR')})`
-      : showing;
+    // Linhas
+    const fragment = document.createDocumentFragment();
+    pageRows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="td-mono" style="font-weight:700;color:var(--accent)">${r.Sigla || '--'}</td>
+        <td class="td-truncate" title="${r.Departamento || ''}" style="max-width:160px">${r.Departamento || '--'}</td>
+        <td>${despesaBadge(r.Despesa)}</td>
+        <td>${tipoBadge(r.Tipo)}</td>
+        <td class="td-mono">${r.Placa || '--'}</td>
+        <td class="td-truncate" title="${r.Modelo || ''}" style="max-width:150px">${r.Modelo || '--'}</td>
+        <td class="td-truncate" title="${r.Classificacao || ''}" style="max-width:160px">${r.Classificacao || '--'}</td>
+        <td class="td-number" style="font-weight:700">${fmtBRL(r.Valor)}</td>
+        <td class="td-number" style="color:var(--text-muted)">${r.Liquidado ? fmtBRL(r.Liquidado) : '--'}</td>
+        <td style="white-space:nowrap">${fmtMes(r.Mes)}</td>
+        <td style="font-weight:600">${r.Ano || '--'}</td>
+      `;
+      fragment.appendChild(tr);
+    });
+    tbody.innerHTML = '';
+    tbody.appendChild(fragment);
+
+    // Paginacao
+    renderPagination(page, Math.ceil(total / pageSize), pag);
+
+    // Atualiza icones de ordenacao
+    updateSortIcons();
   }
 
-  // ----- Paginação -----
-
-  function renderPagination(current, total) {
-    const container = document.getElementById('tablePagination');
+  function renderPagination(current, totalPages, container) {
     if (!container) return;
-    if (total <= 1) { container.innerHTML = ''; return; }
+    if (totalPages <= 1) { container.innerHTML = ''; return; }
 
-    const pages = [];
-    const addPage     = (p) => pages.push(p);
-    const addEllipsis = () => pages.push('...');
+    const btns = [];
+    const add  = (label, pg, active = false, disabled = false) => {
+      btns.push(`<button ${disabled?'disabled':''} ${active?'class="ativa"':''} data-pg="${pg}" aria-label="Pagina ${pg}" ${active?'aria-current="page"':''}>${label}</button>`);
+    };
 
-    if (total <= 7) {
-      for (let i = 1; i <= total; i++) addPage(i);
-    } else {
-      addPage(1);
-      if (current > 3) addEllipsis();
-      for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) addPage(i);
-      if (current < total - 2) addEllipsis();
-      addPage(total);
+    add('&laquo;', 1,          false, current === 1);
+    add('&lsaquo;', current-1, false, current === 1);
+
+    const WINDOW = 2;
+    for (let p = 1; p <= totalPages; p++) {
+      if (p === 1 || p === totalPages || (p >= current-WINDOW && p <= current+WINDOW)) {
+        add(p, p, p === current);
+      } else if (p === current-WINDOW-1 || p === current+WINDOW+1) {
+        btns.push(`<button disabled style="pointer-events:none;opacity:.5">...</button>`);
+      }
     }
 
-    container.innerHTML = pages.map(p => {
-      if (p === '...') return `<span class="page-ellipsis">...</span>`;
-      const active = p === current ? 'page-btn--active' : '';
-      return `<button class="page-btn ${active}" data-page="${p}" aria-label="Página ${p}" ${p === current ? 'aria-current="page"' : ''}>${p}</button>`;
-    }).join('');
+    add('&rsaquo;', current+1, false, current === totalPages);
+    add('&raquo;',  totalPages,false, current === totalPages);
 
-    container.querySelectorAll('[data-page]').forEach(btn => {
+    container.innerHTML = `<div class="paginacao-btns">${btns.join('')}</div>`;
+    container.querySelectorAll('button[data-pg]').forEach(btn => {
       btn.addEventListener('click', () => {
-        State.setTablePage(Number(btn.dataset.page));
+        State.setTablePage(parseInt(btn.dataset.pg));
         renderTable();
+        // Scroll suave para o topo da tabela
+        document.getElementById('secaoRegistros')?.scrollIntoView({ behavior:'smooth', block:'start' });
       });
     });
   }
 
-  // ----- Ícones de ordenação -----
-
-  function renderSortIcons() {
+  function updateSortIcons() {
     const { col, dir } = State.getTableSort();
-    document.querySelectorAll('.th-sortable').forEach(th => {
+    document.querySelectorAll('thead th.th-sortable').forEach(th => {
+      const c = th.dataset.col;
       const icon = th.querySelector('.sort-icon');
-      if (!icon) return;
-      if (th.dataset.col === col) {
-        icon.textContent = dir === 'asc' ? ' ▲' : ' ▼';
-        th.setAttribute('aria-sort', dir === 'asc' ? 'ascending' : 'descending');
-      } else {
-        icon.textContent = '';
-        th.removeAttribute('aria-sort');
+      th.classList.toggle('sorted', c === col);
+      if (icon) {
+        icon.textContent = c === col ? (dir === 'asc' ? ' ↑' : ' ↓') : '';
       }
     });
   }
 
-  // ----- [B10] Exportação CSV — agora inclui ordenação ativa -----
+  // ── Exportacao CSV ────────────────────────────────────
 
   function exportCSV() {
-    // [B10] Aplica busca E ordenação para que o CSV reflita exatamente
-    // o que o usuário está vendo na tabela
-    const data = sortData(searchData(State.getFilteredData()));
+    let rows = State.getFilteredData();
+    rows = applySearch(rows);
+    rows = applySort(rows);
 
-    const headers = ['Empresa','Sigla','Departamento','Despesa','Modelo','Classificação','Tipo','Placa','Valor','Liquidado','Mês','Ano','Contrato'];
-    const rows = data.map(r => [
-      r.Empresa, r.Sigla, r.Departamento, r.Despesa, r.Modelo,
-      r.Classificacao, r.Tipo, r.Placa,
-      r.Valor.toFixed(2).replace('.', ','),
-      r.Liquidado.toFixed(2).replace('.', ','),
-      CONFIG.MESES[r.Mes] || r.Mes, r.Ano, r.Contrato,
-    ]);
+    if (!rows.length) {
+      if (typeof App !== 'undefined') App.showToast('warn', 'Sem dados para exportar', 'Aplique filtros que retornem registros');
+      return;
+    }
 
-    const csv = [headers, ...rows]
-      .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';'))
-      .join('\n');
+    const headers = ['Empresa','Sigla','Centro de Custo','Departamento','Despesa','Modelo','Classificacao','Tipo','Placa','Valor','Liquidado','Mes','Ano','Contrato'];
+    const lines   = [headers.join(';')];
+    rows.forEach(r => {
+      lines.push([
+        r.Empresa, r.Sigla, r.CentroCusto, r.Departamento,
+        r.Despesa, r.Modelo, r.Classificacao, r.Tipo, r.Placa,
+        String(r.Valor).replace('.',','),
+        r.Liquidado ? String(r.Liquidado).replace('.',',') : '',
+        r.Mes, r.Ano, r.Contrato,
+      ].map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(';'));
+    });
 
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + lines.join('\n')], { type:'text/csv;charset=utf-8;' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
-    a.download = `despesas_frota_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `despesas_frota_${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+
+    if (typeof App !== 'undefined') App.showToast('success', 'CSV exportado', `${rows.length.toLocaleString('pt-BR')} registros`);
   }
 
-  // ----- Events -----
+  // ── Event bindings ────────────────────────────────────
 
   function bindEvents() {
-    document.querySelectorAll('.th-sortable').forEach(th => {
+    // Cabecalhos clicaveis para ordenacao
+    document.querySelectorAll('thead th.th-sortable').forEach(th => {
       th.addEventListener('click', () => {
         State.setTableSort(th.dataset.col);
         renderTable();
       });
     });
 
-    const pageSizeEl = document.getElementById('tablePageSize');
-    if (pageSizeEl) {
-      pageSizeEl.addEventListener('change', () => {
-        State.setTablePageSize(pageSizeEl.value);
-        renderTable();
-      });
-    }
+    // Busca
+    const input    = document.getElementById('tableSearch');
+    const clearBtn = document.getElementById('searchClear');
+    const searchBt = document.getElementById('searchBtn');
 
-    let searchTimer;
-    const searchEl = document.getElementById('tableSearch');
-    if (searchEl) {
-      searchEl.addEventListener('input', () => {
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(() => {
-          State.setTableSearch(searchEl.value);
-          renderTable();
-        }, 250);
-      });
-    }
+    const doSearch = () => {
+      State.setTableSearch(input?.value || '');
+      State.setTablePage(1);
+      renderTable();
+      if (clearBtn) clearBtn.classList.toggle('visivel', !!(input?.value));
+    };
 
-    const csvBtn = document.getElementById('btnExportCSV');
-    if (csvBtn) csvBtn.addEventListener('click', exportCSV);
+    input?.addEventListener('input',   doSearch);
+    input?.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+    clearBtn?.addEventListener('click', () => {
+      if (input) { input.value = ''; input.focus(); }
+      State.setTableSearch('');
+      State.setTablePage(1);
+      renderTable();
+      clearBtn.classList.remove('visivel');
+    });
+    searchBt?.addEventListener('click', doSearch);
+
+    // Registros por pagina
+    document.getElementById('tablePageSize')?.addEventListener('change', e => {
+      State.setTablePageSize(e.target.value);
+      renderTable();
+    });
   }
 
-  return { renderTable, bindEvents };
+  return { renderTable, bindEvents, exportCSV };
 })();
