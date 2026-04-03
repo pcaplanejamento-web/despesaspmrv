@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.3.0 — Carregamento completo sem paginação — 2026-04-03
+
+### Alterado
+- **`Router.js` — `_rotaDados()`** — quando `porPagina` não é informado na requisição, retorna todos os registros da planilha de uma vez, sem fatiar. Paginação permanece funcional quando `porPagina` é passado explicitamente como parâmetro.
+- **`api.js` — `fetchFromApi()`** — removidos os logs de diagnóstico temporários `[DIAG-1/2/3]`. URL mantida como `?rota=dados` sem parâmetro de paginação, garantindo que o Router sirva o dataset completo.
+
+### Corrigido
+- Tela inicial exibia 0 registros porque o Router paginava em 100 por padrão e o frontend não solicitava páginas subsequentes. Agora todos os registros são carregados na primeira e única requisição.
+
+---
+
+# Changelog
+
 ## v1.2.1 — Correção de carregamento de dados — 2026-04-03
 
 ### Corrigido
