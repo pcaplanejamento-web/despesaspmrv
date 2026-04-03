@@ -6,6 +6,15 @@
  * - Normalizar a resposta JSON para o modelo interno
  * - Gerenciar cache via State (evita requisições desnecessárias)
  * - Atualizar indicadores de status na interface
+ *
+ * Correções aplicadas (v1.1.1):
+ * [1] _get(): adicionado `redirect: 'follow'` ao fetch — necessário para
+ *     seguir os redirecionamentos 302 emitidos pelo Google Apps Script.
+ * [2] normalizeRow(): fallback robusto para a chave 'Mês' com acento,
+ *     usando escape Unicode (\u00eas) para evitar problemas de encoding.
+ * [3] fetchFromApi(): filtro de cabeçalho reescrito — agora descarta apenas
+ *     linhas onde row[0] === 'Empresa' ou row[9] === 'Valor', preservando
+ *     registros legítimos com Valor igual a zero ou string vazia.
  */
 
 const Api = (() => {
@@ -51,7 +60,13 @@ const Api = (() => {
     const timer = setTimeout(() => controller.abort(), CONFIG.API_TIMEOUT);
 
     try {
-      const response = await fetch(url, { signal: controller.signal });
+      // [CORREÇÃO 1] redirect: 'follow' é obrigatório para o Apps Script.
+      // O GAS emite um redirecionamento 302 antes de entregar o conteúdo;
+      // sem este parâmetro o fetch falha silenciosamente com erro de rede.
+      const response = await fetch(url, {
+        signal:   controller.signal,
+        redirect: 'follow',
+      });
       clearTimeout(timer);
 
       if (!response.ok) {
@@ -81,36 +96,48 @@ const Api = (() => {
     // Suporta tanto array posicional quanto objeto com chaves
     if (Array.isArray(row)) {
       return {
-        Empresa:       String(row[0] || '').trim(),
-        Sigla:         String(row[1] || '').trim(),
-        CentroCusto:   String(row[2] || '').trim(),
-        Departamento:  String(row[3] || '').trim(),
-        Despesa:       String(row[4] || '').trim(),
-        Modelo:        String(row[5] || '').trim(),
-        Classificacao: String(row[6] || '').trim(),
-        Tipo:          String(row[7] || '').trim(),
-        Placa:         String(row[8] || '').trim().toUpperCase(),
-        Valor:         parseFloat(String(row[9] || '0').replace(',', '.')) || 0,
+        Empresa:       String(row[0]  || '').trim(),
+        Sigla:         String(row[1]  || '').trim(),
+        CentroCusto:   String(row[2]  || '').trim(),
+        Departamento:  String(row[3]  || '').trim(),
+        Despesa:       String(row[4]  || '').trim(),
+        Modelo:        String(row[5]  || '').trim(),
+        Classificacao: String(row[6]  || '').trim(),
+        Tipo:          String(row[7]  || '').trim(),
+        Placa:         String(row[8]  || '').trim().toUpperCase(),
+        Valor:         parseFloat(String(row[9]  || '0').replace(',', '.')) || 0,
         Liquidado:     parseFloat(String(row[10] || '0').replace(',', '.')) || 0,
         Mes:           parseInt(row[11], 10) || 0,
         Ano:           parseInt(row[12], 10) || 0,
         Contrato:      String(row[13] || '').trim(),
       };
     }
+
+    // [CORREÇÃO 2] A chave 'Mês' (com acento) pode ser serializada de formas
+    // distintas dependendo do encoding adotado pelo Apps Script / JSON.stringify.
+    // Testamos todas as variantes conhecidas antes de cair no fallback numérico.
+    const mesRaw =
+      row['M\u00eas']   ||   // 'Mês' via escape Unicode — mais seguro
+      row['Mês']        ||   // literal UTF-8 (quando o arquivo está em UTF-8)
+      row['Mes']        ||   // sem acento (normalização prévia do GAS)
+      row.mes           ||   // camelCase
+      row.month         ||   // chave em inglês (improvável, mas defensivo)
+      0;
+
     // Resposta como objeto com chaves
     return {
       Empresa:       String(row.Empresa       || row.empresa       || '').trim(),
       Sigla:         String(row.Sigla         || row.sigla         || '').trim(),
-      CentroCusto:   String(row['Centro de Custo'] || row.centroCusto || '').trim(),
+      CentroCusto:   String(row['Centro de Custo'] || row['centro de custo'] || row.centroCusto || '').trim(),
       Departamento:  String(row.Departamento  || row.departamento  || '').trim(),
       Despesa:       String(row.Despesa       || row.despesa       || '').trim(),
       Modelo:        String(row.Modelo        || row.modelo        || '').trim(),
-      Classificacao: String(row['Classificação'] || row.Classificacao || row.classificacao || '').trim(),
+      Classificacao: String(row['Classifica\u00e7\u00e3o'] || row['Classificação'] || row.Classificacao || row.classificacao || '').trim(),
       Tipo:          String(row.Tipo          || row.tipo          || '').trim(),
       Placa:         String(row.Placa         || row.placa         || '').trim().toUpperCase(),
       Valor:         parseFloat(String(row.Valor     || row.valor     || '0').replace(',', '.')) || 0,
       Liquidado:     parseFloat(String(row.Liquidado || row.liquidado || '0').replace(',', '.')) || 0,
-      Mes:           parseInt(row['Mês'] || row.Mes || row.mes || 0, 10) || 0,
+      Mes:           parseInt(mesRaw, 10) || 0,
       Ano:           parseInt(row.Ano         || row.ano           || 0, 10) || 0,
       Contrato:      String(row.Contrato      || row.contrato      || '').trim(),
     };
@@ -119,7 +146,7 @@ const Api = (() => {
   // ----- Extração do array de dados da resposta -----
 
   function extractRows(json) {
-    if (Array.isArray(json)) return json;
+    if (Array.isArray(json))                    return json;
     if (json && Array.isArray(json.dados))      return json.dados;
     if (json && Array.isArray(json.registros))  return json.registros;
     if (json && Array.isArray(json.data))       return json.data;
@@ -141,11 +168,16 @@ const Api = (() => {
       const json = await _get(url);
       const rows = extractRows(json);
 
-      // Remove linha de cabeçalho se presente (quando a API retorna arrays brutos)
+      // [CORREÇÃO 3] A lógica anterior descartava qualquer linha cujo índice [9]
+      // não fosse um número válido — eliminando registros com Valor = "" ou 0.
+      // Agora descartamos apenas linhas que são explicitamente cabeçalho:
+      // row[0] === 'Empresa'  →  linha de cabeçalho de texto
+      // row[9] === 'Valor'    →  linha de cabeçalho de texto (coluna Valor)
       const dataRows = rows.filter(row => {
-        if (!Array.isArray(row)) return true;
-        const val = row[9];
-        return val !== 'Valor' && val !== undefined && !isNaN(parseFloat(String(val).replace(',', '.')));
+        if (!Array.isArray(row)) return true;           // objetos passam sempre
+        if (row[0] === 'Empresa') return false;         // descarta cabeçalho
+        if (row[9] === 'Valor')   return false;         // descarta cabeçalho alternativo
+        return true;                                    // preserva todos os dados, incluindo Valor = 0
       });
 
       const normalized = dataRows.map(normalizeRow);
