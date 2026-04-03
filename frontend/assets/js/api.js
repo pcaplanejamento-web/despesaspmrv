@@ -1,31 +1,51 @@
 /**
- * api.js
- * Camada de comunicação com o Google Apps Script.
- * Toda chamada à API passa por aqui — nunca diretamente do HTML ou outros módulos.
+ * api.js — Integração com Google Apps Script
+ *
+ * Responsabilidades:
+ * - Realizar requisições ao endpoint (parâmetro: ?rota=dados)
+ * - Normalizar a resposta JSON para o modelo interno
+ * - Gerenciar cache via State (evita requisições desnecessárias)
+ * - Atualizar indicadores de status na interface
  */
 
 const Api = (() => {
+  // ----- Status UI -----
 
-  /**
-   * Monta a URL com os parâmetros fornecidos.
-   * @param {string} rota
-   * @param {Object} params
-   * @returns {string}
-   */
-  function _buildUrl(rota, params = {}) {
-    const url = new URL(CONFIG.API_URL);
-    url.searchParams.set('rota', rota);
-    Object.entries(params).forEach(([k, v]) => {
-      if (v && v !== 'todos') url.searchParams.set(k, v);
-    });
-    return url.toString();
+  function setStatus(estado, mensagem) {
+    const dot   = document.getElementById('statusDot');
+    const label = document.getElementById('statusLabel');
+    if (!dot || !label) return;
+    dot.className = `status-dot status-${estado}`;
+    label.textContent = mensagem;
   }
 
-  /**
-   * Executa uma requisição GET com timeout.
-   * @param {string} url
-   * @returns {Promise<Object>}
-   */
+  function setLastSyncLabel(timestamp) {
+    const el = document.getElementById('lastSyncLabel');
+    if (!el) return;
+    if (!timestamp) { el.textContent = ''; return; }
+    const d = new Date(timestamp);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    el.textContent = `Atualizado às ${hh}:${mm}`;
+  }
+
+  function setSyncButtonLoading(loading) {
+    const btn = document.getElementById('btnSync');
+    if (!btn) return;
+    const icon = btn.querySelector('.sync-icon');
+    if (loading) {
+      btn.disabled = true;
+      btn.classList.add('btn-sync--loading');
+      if (icon) icon.classList.add('spin');
+    } else {
+      btn.disabled = false;
+      btn.classList.remove('btn-sync--loading');
+      if (icon) icon.classList.remove('spin');
+    }
+  }
+
+  // ----- Requisição com timeout -----
+
   async function _get(url) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), CONFIG.API_TIMEOUT);
@@ -35,79 +55,133 @@ const Api = (() => {
       clearTimeout(timer);
 
       if (!response.ok) {
-        throw new Error(`Erro HTTP ${response.status}`);
+        throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
       }
 
       const json = await response.json();
 
-      if (json.status === 'erro') {
+      if (json && json.status === 'erro') {
         throw new Error(json.mensagem || 'Erro desconhecido na API');
       }
 
-      return json.dados;
+      return json;
 
     } catch (err) {
       clearTimeout(timer);
       if (err.name === 'AbortError') {
-        throw new Error('A requisição excedeu o tempo limite. Verifique a conexão.');
+        throw new Error('Tempo limite excedido. Verifique a conexão.');
       }
       throw err;
     }
   }
 
-  return {
+  // ----- Normalização de linha -----
 
-    /**
-     * Busca os valores únicos para popular os filtros.
-     * @returns {Promise<Object>}
-     */
-    async getFiltros() {
-      const url = _buildUrl('filtros');
-      return _get(url);
-    },
+  function normalizeRow(row) {
+    // Suporta tanto array posicional quanto objeto com chaves
+    if (Array.isArray(row)) {
+      return {
+        Empresa:       String(row[0] || '').trim(),
+        Sigla:         String(row[1] || '').trim(),
+        CentroCusto:   String(row[2] || '').trim(),
+        Departamento:  String(row[3] || '').trim(),
+        Despesa:       String(row[4] || '').trim(),
+        Modelo:        String(row[5] || '').trim(),
+        Classificacao: String(row[6] || '').trim(),
+        Tipo:          String(row[7] || '').trim(),
+        Placa:         String(row[8] || '').trim().toUpperCase(),
+        Valor:         parseFloat(String(row[9] || '0').replace(',', '.')) || 0,
+        Liquidado:     parseFloat(String(row[10] || '0').replace(',', '.')) || 0,
+        Mes:           parseInt(row[11], 10) || 0,
+        Ano:           parseInt(row[12], 10) || 0,
+        Contrato:      String(row[13] || '').trim(),
+      };
+    }
+    // Resposta como objeto com chaves
+    return {
+      Empresa:       String(row.Empresa       || row.empresa       || '').trim(),
+      Sigla:         String(row.Sigla         || row.sigla         || '').trim(),
+      CentroCusto:   String(row['Centro de Custo'] || row.centroCusto || '').trim(),
+      Departamento:  String(row.Departamento  || row.departamento  || '').trim(),
+      Despesa:       String(row.Despesa       || row.despesa       || '').trim(),
+      Modelo:        String(row.Modelo        || row.modelo        || '').trim(),
+      Classificacao: String(row['Classificação'] || row.Classificacao || row.classificacao || '').trim(),
+      Tipo:          String(row.Tipo          || row.tipo          || '').trim(),
+      Placa:         String(row.Placa         || row.placa         || '').trim().toUpperCase(),
+      Valor:         parseFloat(String(row.Valor     || row.valor     || '0').replace(',', '.')) || 0,
+      Liquidado:     parseFloat(String(row.Liquidado || row.liquidado || '0').replace(',', '.')) || 0,
+      Mes:           parseInt(row['Mês'] || row.Mes || row.mes || 0, 10) || 0,
+      Ano:           parseInt(row.Ano         || row.ano           || 0, 10) || 0,
+      Contrato:      String(row.Contrato      || row.contrato      || '').trim(),
+    };
+  }
 
-    /**
-     * Busca os KPIs calculados com os filtros ativos.
-     * @param {Object} filtros
-     * @returns {Promise<Object>}
-     */
-    async getKpis(filtros = {}) {
-      const url = _buildUrl('kpis', filtros);
-      return _get(url);
-    },
+  // ----- Extração do array de dados da resposta -----
 
-    /**
-     * Busca os registros de dados com os filtros ativos.
-     * @param {Object} filtros
-     * @returns {Promise<Array>}
-     */
-    async getDados(filtros = {}) {
-      const url = _buildUrl('dados', filtros);
-      return _get(url);
-    },
+  function extractRows(json) {
+    if (Array.isArray(json)) return json;
+    if (json && Array.isArray(json.dados))      return json.dados;
+    if (json && Array.isArray(json.registros))  return json.registros;
+    if (json && Array.isArray(json.data))       return json.data;
+    return [];
+  }
 
-    /**
-     * Busca os dados agrupados por período para a linha do tempo.
-     * @param {Object} filtros - deve incluir 'inicio' e 'fim' (YYYY-MM)
-     * @returns {Promise<Object>}
-     */
-    async getTimeline(filtros = {}) {
-      const url = _buildUrl('timeline', filtros);
-      return _get(url);
-    },
+  // ----- Busca principal com cache -----
 
-    /**
-     * Busca dois conjuntos de dados para comparação de cenários.
-     * @param {string} cenario1 - ex: 'ano_2025'
-     * @param {string} cenario2 - ex: 'ano_2026'
-     * @param {Object} filtrosBase - filtros comuns aos dois cenários
-     * @returns {Promise<Object>}
-     */
-    async getComparacao(cenario1, cenario2, filtrosBase = {}) {
-      const url = _buildUrl('comparacao', { ...filtrosBase, cenario1, cenario2 });
-      return _get(url);
-    },
+  async function fetchFromApi(forceRefresh = false) {
+    if (!forceRefresh && State.isCacheValid() && State.hasData()) {
+      return State.getRawData();
+    }
 
-  };
+    setStatus('loading', 'Carregando...');
+    setSyncButtonLoading(true);
 
+    try {
+      const url = `${CONFIG.API_URL}?rota=dados`;
+      const json = await _get(url);
+      const rows = extractRows(json);
+
+      // Remove linha de cabeçalho se presente (quando a API retorna arrays brutos)
+      const dataRows = rows.filter(row => {
+        if (!Array.isArray(row)) return true;
+        const val = row[9];
+        return val !== 'Valor' && val !== undefined && !isNaN(parseFloat(String(val).replace(',', '.')));
+      });
+
+      const normalized = dataRows.map(normalizeRow);
+      State.setRawData(normalized);
+
+      setStatus('connected', 'Conectado');
+      setLastSyncLabel(State.getLastSyncAt());
+      setSyncButtonLoading(false);
+
+      return normalized;
+
+    } catch (err) {
+      console.error('[API] Erro ao buscar dados:', err.message);
+      setStatus('error', 'Erro de conexão');
+      setSyncButtonLoading(false);
+      throw err;
+    }
+  }
+
+  /**
+   * Retorna valores únicos para os filtros, derivados do dataset em cache.
+   * Não faz chamada à API — opera sobre dados já carregados.
+   */
+  function getFilterOptions() {
+    const data = State.getRawData();
+    const unique = (arr) => [...new Set(arr.filter(Boolean))].sort();
+
+    return {
+      anos:        unique(data.map(r => String(r.Ano))),
+      meses:       [...new Set(data.map(r => r.Mes).filter(m => m > 0))].sort((a, b) => a - b),
+      despesas:    unique(data.map(r => r.Despesa)),
+      tipos:       unique(data.map(r => r.Tipo)),
+      secretarias: unique(data.map(r => r.Sigla)),
+      empresas:    unique(data.map(r => r.Empresa)),
+    };
+  }
+
+  return { fetchFromApi, getFilterOptions, setStatus };
 })();

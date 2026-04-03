@@ -1,133 +1,147 @@
 /**
- * state.js
- * Estado global da aplicação.
- * Centraliza os filtros ativos e os dados carregados da API.
- * Nenhum outro módulo deve armazenar estado — tudo passa por aqui.
+ * state.js — Gerenciamento de estado global e cache de dados
+ *
+ * Responsabilidades:
+ * - Manter o dataset bruto carregado da API
+ * - Controlar TTL do cache para evitar requisições desnecessárias
+ * - Expor os dados filtrados derivados do estado atual dos filtros
  */
 
 const State = (() => {
+  // Dataset bruto retornado pela API
+  let _rawData = [];
 
-  // Estado interno (privado)
-  let _estado = {
+  // Timestamp da última sincronização bem-sucedida
+  let _lastSyncAt = null;
 
-    // Filtros ativos (alterados pelos seletores do usuário)
-    filtros: {
-      ano:           'todos',
-      mes:           'todos',
-      sigla:         'todos',
-      despesa:       'todos',
-      tipo:          'todos',
-      classificacao: 'todos',
-      contrato:      'todos',
-    },
+  // Dados após aplicação dos filtros ativos
+  let _filteredData = [];
 
-    // Dados retornados pela API (atualizados a cada requisição)
-    dados:    null,
-    kpis:     null,
-    filtrosDisponiveis: null,
-    timeline: null,
-    comparacao: null,
-
-    // Estado da interface
-    carregando: false,
-    erro: null,
-    abaAtiva: 'visao-geral',
-
+  // Estado atual dos filtros
+  let _filters = {
+    ano:        '',
+    mes:        '',
+    despesa:    '',
+    tipo:       '',
+    secretaria: '',
+    empresa:    '',
   };
 
-  // Listeners registrados para reagir a mudanças de estado
-  const _listeners = [];
+  // Ordenação da tabela
+  let _tableSort = { col: null, dir: 'asc' };
 
-  /**
-   * Notifica todos os listeners registrados.
-   * @param {string} chave - qual parte do estado mudou
-   */
-  function _notificar(chave) {
-    _listeners.forEach(fn => fn(chave, _estado));
-  }
+  // Paginação da tabela
+  let _tablePage = 1;
+  let _tablePageSize = CONFIG.DEFAULT_PAGE_SIZE;
+
+  // Texto de busca da tabela
+  let _tableSearch = '';
 
   return {
+    // ----- Raw data -----
 
-    /**
-     * Retorna o estado atual (ou uma chave específica).
-     * @param {string} [chave]
-     */
-    get(chave) {
-      return chave ? _estado[chave] : { ..._estado };
+    getRawData() {
+      return _rawData;
+    },
+
+    setRawData(data) {
+      _rawData = Array.isArray(data) ? data : [];
+      _lastSyncAt = Date.now();
+    },
+
+    hasData() {
+      return _rawData.length > 0;
     },
 
     /**
-     * Retorna os filtros ativos.
+     * Verifica se o cache ainda é válido com base no TTL configurado.
+     * @returns {boolean}
      */
-    getFiltros() {
-      return { ..._estado.filtros };
+    isCacheValid() {
+      if (!_lastSyncAt) return false;
+      return (Date.now() - _lastSyncAt) < CONFIG.CACHE_TTL_MS;
     },
 
-    /**
-     * Atualiza um filtro e notifica os listeners.
-     * @param {string} chave - nome do filtro
-     * @param {string} valor
-     */
-    setFiltro(chave, valor) {
-      _estado.filtros[chave] = valor;
-      _notificar('filtros');
+    getLastSyncAt() {
+      return _lastSyncAt;
     },
 
-    /**
-     * Redefine todos os filtros para o valor padrão.
-     */
-    resetFiltros() {
-      Object.keys(_estado.filtros).forEach(k => {
-        _estado.filtros[k] = 'todos';
-      });
-      _notificar('filtros');
+    // ----- Filtered data -----
+
+    getFilteredData() {
+      return _filteredData;
     },
 
-    /**
-     * Atualiza dados da API.
-     * @param {string} chave - 'dados', 'kpis', 'timeline', etc.
-     * @param {*} valor
-     */
-    setDados(chave, valor) {
-      _estado[chave] = valor;
-      _notificar(chave);
+    setFilteredData(data) {
+      _filteredData = Array.isArray(data) ? data : [];
     },
 
-    /**
-     * Define o estado de carregamento.
-     * @param {boolean} valor
-     */
-    setCarregando(valor) {
-      _estado.carregando = valor;
-      _notificar('carregando');
+    // ----- Filters -----
+
+    getFilters() {
+      return { ..._filters };
     },
 
-    /**
-     * Define uma mensagem de erro (null para limpar).
-     * @param {string|null} mensagem
-     */
-    setErro(mensagem) {
-      _estado.erro = mensagem;
-      _notificar('erro');
+    setFilter(key, value) {
+      if (key in _filters) {
+        _filters[key] = value;
+        _tablePage = 1; // resetar paginação ao mudar filtro
+      }
     },
 
-    /**
-     * Define a aba ativa da interface.
-     * @param {string} aba
-     */
-    setAba(aba) {
-      _estado.abaAtiva = aba;
-      _notificar('abaAtiva');
+    clearFilters() {
+      Object.keys(_filters).forEach(k => (_filters[k] = ''));
+      _tablePage = 1;
     },
 
-    /**
-     * Registra um listener para reagir a mudanças.
-     * @param {Function} fn - recebe (chave, estado)
-     */
-    subscribe(fn) {
-      _listeners.push(fn);
+    hasActiveFilters() {
+      return Object.values(_filters).some(v => v !== '');
     },
 
+    // ----- Table sort -----
+
+    getTableSort() {
+      return { ..._tableSort };
+    },
+
+    setTableSort(col) {
+      if (_tableSort.col === col) {
+        _tableSort.dir = _tableSort.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        _tableSort.col = col;
+        _tableSort.dir = 'asc';
+      }
+      _tablePage = 1;
+    },
+
+    // ----- Pagination -----
+
+    getTablePage() {
+      return _tablePage;
+    },
+
+    setTablePage(page) {
+      _tablePage = page;
+    },
+
+    getTablePageSize() {
+      return _tablePageSize;
+    },
+
+    setTablePageSize(size) {
+      _tablePageSize = Number(size) || CONFIG.DEFAULT_PAGE_SIZE;
+      _tablePage = 1;
+    },
+
+    // ----- Search -----
+
+    getTableSearch() {
+      return _tableSearch;
+    },
+
+    setTableSearch(text) {
+      _tableSearch = text.trim().toLowerCase();
+      _tablePage = 1;
+    },
   };
-
 })();

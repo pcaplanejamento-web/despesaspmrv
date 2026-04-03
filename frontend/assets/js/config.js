@@ -1,65 +1,56 @@
 /**
- * config.js
- * Constantes globais e configuração da API.
- * ÚNICO arquivo que precisa ser editado ao trocar de planilha ou ambiente.
+ * config.js — Configurações globais do sistema
+ * ÚNICO arquivo a editar ao trocar de ambiente ou planilha.
  */
 
-const CONFIG = {
-
+const CONFIG = Object.freeze({
   // URL publicada do Google Apps Script (Web App)
   // Substitua após publicar o script — veja docs/apps-script-deploy.md
-  API_URL: 'https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMUmBx1D7tQFaP7g4cyoYRhqads_mfXyRYc99R1E5d9093kPabu0phOeHyoQAff7mtS1CU0Jqkd9G49Ng2EMz5u2KdBWViKjgTmeo8i_ZVsCsnQN6i6b808K-Cx6KnDJbe93llUT5scd59Ge1zF_n-PZ7lTfuTEzcvWCJoYMHR2U4bJH6SAJSBpnmTjPKs2C7_kaDgxUFe3WRj7Be4OFZAf7-jUAdckF4wOfWhuiBGY0gNQupV58IYoMvMGbR4eV2uEwN6uPqWc71SUtgIqugyTp2PB5r2Ns7MKkaYxwRL1GqnZz-XY&lib=Mkt9KtBLaOxdgSl0i0MnQ52PtmFYUZF0k',
+  API_URL: 'https://script.google.com/macros/s/COLE_SUA_URL_AQUI/exec',
 
   // Timeout máximo para chamadas à API (ms)
   API_TIMEOUT: 15000,
 
-  // Versão do sistema (exibida no rodapé)
-  VERSAO: '1.0.0',
+  // Cache TTL em milissegundos (5 minutos)
+  CACHE_TTL_MS: 5 * 60 * 1000,
 
-  // Nome exibido no cabeçalho e título da aba
+  // Debounce para filtros em milissegundos
+  FILTER_DEBOUNCE_MS: 300,
+
+  // Paginação padrão
+  DEFAULT_PAGE_SIZE: 25,
+
+  // Versão do sistema
+  VERSAO: '1.1.0',
+
+  // Nome e subtítulo exibidos na interface
   NOME_SISTEMA: 'Gastos — Rio Verde',
-
-  // Subtítulo do sistema
   SUBTITULO: 'Combustível e Manutenção de Frota',
 
-};
+  // Nomes dos meses por extenso (índice 1 = Janeiro)
+  MESES: [
+    '', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ],
 
-/**
- * Mapeamento das colunas da planilha para campos internos.
- * Se a planilha mudar os nomes das colunas, ajuste apenas aqui.
- */
-const COLUNAS = {
-  empresa:        'Empresa',
-  sigla:          'Sigla',
-  centroCusto:    'Centro de Custo',
-  departamento:   'Departamento',
-  despesa:        'Despesa',
-  modelo:         'Modelo',
-  classificacao:  'Classificação',
-  tipo:           'Tipo',
-  placa:          'Placa',
-  valor:          'Valor',
-  valorLiquidado: 'Liquidado (-5,01%)',
-  mes:            'Mês',
-  ano:            'Ano',
-  contrato:       'Contrato',
-};
+  // Cores funcionais — alinhadas ao design system PCA
+  CORES: {
+    combustivel: '#185FA5',
+    manutencao:  '#D85A30',
+    veiculo:     '#1c64f2',
+    maquina:     '#BA7517',
+    primaria:    '#185FA5',
+    secundaria:  '#1D9E75',
+    sucesso:     '#057a55',
+    alerta:      '#D85A30',
+    critico:     '#e02424',
+    info:        '#0694a2',
+    neutro:      '#73726c',
+  },
 
-/**
- * Rótulos dos meses (usados em gráficos e tabelas).
- */
-const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-
-/**
- * Paleta de cores padrão do sistema (alinhada ao PCA).
- */
-const CORES = {
-  primaria:    '#185FA5',
-  secundaria:  '#1D9E75',
-  alerta:      '#D85A30',
-  aviso:       '#BA7517',
-  roxo:        '#534AB7',
-  cinza:       '#73726c',
-  // Série de cores para gráficos com múltiplas categorias
-  serie: ['#185FA5','#1D9E75','#D85A30','#BA7517','#534AB7','#993556','#3B6D11','#73726c'],
-};
+  // Paleta para série de gráficos
+  PALETA_GRAFICOS: [
+    '#185FA5', '#1D9E75', '#D85A30', '#BA7517',
+    '#534AB7', '#993556', '#3B6D11', '#73726c',
+  ],
+});

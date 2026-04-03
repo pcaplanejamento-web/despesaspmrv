@@ -1,472 +1,235 @@
 /**
- * charts.js
- * Instancia e atualiza todos os gráficos do dashboard usando Chart.js.
- *
- * Regras:
- *  - Nunca acessa a API diretamente — recebe dados já processados
- *  - Sempre destrói o gráfico anterior antes de recriar
- *  - Toda formatação de valores passa por _fmt*
- *  - Legendas são sempre HTML customizado (nunca o padrão do Chart.js)
+ * charts.js — Renderização e atualização dos gráficos via Chart.js
  */
 
 const Charts = (() => {
+  const _instances = {};
 
-  // Registro dos gráficos ativos — necessário para destruir antes de recriar
-  const _instancias = {};
+  // ----- Utilitários -----
 
-  // Paleta de cores alinhada ao sistema
-  const COR = {
-    azul:        '#185FA5',
-    azulClaro:   'rgba(24, 95, 165, 0.15)',
-    verde:       '#1D9E75',
-    verdeClaro:  'rgba(29, 158, 117, 0.15)',
-    laranja:     '#D85A30',
-    laranjaClaro:'rgba(216, 90, 48, 0.15)',
-    amarelo:     '#BA7517',
-    roxo:        '#534AB7',
-    cinza:       '#73726c',
-    cinzaClaro:  'rgba(115, 114, 108, 0.15)',
-    serie: ['#185FA5','#1D9E75','#D85A30','#BA7517','#534AB7','#993556','#3B6D11','#73726c'],
+  function destroyChart(id) {
+    if (_instances[id]) {
+      _instances[id].destroy();
+      delete _instances[id];
+    }
+  }
+
+  function showSkeleton(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'block';
+  }
+
+  function hideSkeleton(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  }
+
+  function tooltipBRL(ctx) {
+    const v = ctx.parsed;
+    const value = typeof v === 'number' ? v : (v.y ?? v);
+    return ' ' + Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  const baseOptions = {
+    animation: { duration: 300, easing: 'easeOutQuart' },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: { label: tooltipBRL },
+        backgroundColor: '#1e293b',
+        titleColor: '#f1f5f9',
+        bodyColor:  '#cbd5e1',
+        padding: 10,
+        cornerRadius: 6,
+      },
+    },
   };
 
-  const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  // ----- Gráfico: Tipo de Despesa (Donut) -----
 
-  // ── API pública ───────────────────────────────────────────────────
+  function renderTipoDespesa(data) {
+    hideSkeleton('skeletonTipoDespesa');
+    destroyChart('tipoDespesa');
 
-  /**
-   * Renderiza (ou atualiza) todos os gráficos com os dados recebidos.
-   * @param {Array} dados - registros da API (rota /dados)
-   */
-  function renderizar(dados) {
-    if (!dados || !Array.isArray(dados)) return;
+    const combustivel = data.filter(r => r.Despesa === 'Combustível').reduce((s, r) => s + r.Valor, 0);
+    const manutencao  = data.filter(r => r.Despesa === 'Manutenção').reduce((s, r) => s + r.Valor, 0);
+    const outros      = data.filter(r => r.Despesa !== 'Combustível' && r.Despesa !== 'Manutenção').reduce((s, r) => s + r.Valor, 0);
 
-    const agregados = _agregar(dados);
+    const labels  = [];
+    const valores = [];
+    const cores   = [];
 
-    _graficoRoscaDespesa(agregados.porDespesa);
-    _graficoRoscaTipo(agregados.porTipo);
-    _graficoEvolucaoMensal(agregados.porMesAno);
-    _rankingSecretarias(agregados.porSigla);
-  }
+    if (combustivel > 0) { labels.push('Combustível'); valores.push(combustivel); cores.push(CONFIG.CORES.combustivel); }
+    if (manutencao  > 0) { labels.push('Manutenção');  valores.push(manutencao);  cores.push(CONFIG.CORES.manutencao); }
+    if (outros      > 0) { labels.push('Outros');       valores.push(outros);       cores.push(CONFIG.CORES.neutro); }
 
-  /**
-   * Destrói todos os gráficos ativos.
-   * Útil ao trocar de página.
-   */
-  function destruirTodos() {
-    Object.keys(_instancias).forEach(_destruir);
-  }
+    const ctx = document.getElementById('chartTipoDespesa');
+    if (!ctx) return;
 
-  // ── Gráficos individuais ──────────────────────────────────────────
-
-  /**
-   * Rosca — distribuição Combustível vs Manutenção
-   */
-  function _graficoRoscaDespesa(porDespesa) {
-    const canvas = document.getElementById('chart-despesa');
-    if (!canvas) return;
-    _destruir('despesa');
-
-    const labels = Object.keys(porDespesa);
-    const valores = Object.values(porDespesa);
-    const total   = valores.reduce((a, b) => a + b, 0);
-
-    // Legenda HTML customizada
-    const legEl = document.getElementById('leg-despesa');
-    if (legEl) {
-      legEl.innerHTML = labels.map((l, i) => `
-        <span class="legenda-item">
-          <span class="legenda-cor" style="background:${COR.serie[i]}"></span>
-          ${l} — ${_fmtMoeda(valores[i])} (${_fmtPct(valores[i] / total * 100)})
-        </span>
-      `).join('');
-    }
-
-    _instancias['despesa'] = new Chart(canvas, {
+    _instances.tipoDespesa = new Chart(ctx, {
       type: 'doughnut',
-      data: {
-        labels,
-        datasets: [{
-          data:            valores,
-          backgroundColor: labels.map((_, i) => COR.serie[i]),
-          borderWidth:     0,
-          hoverOffset:     6,
-        }],
-      },
+      data: { labels, datasets: [{ data: valores, backgroundColor: cores, borderWidth: 0, hoverOffset: 8 }] },
       options: {
-        responsive:          true,
-        maintainAspectRatio: false,
-        cutout:              '65%',
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => ` ${ctx.label}: ${_fmtMoeda(ctx.raw)} (${_fmtPct(ctx.raw / total * 100)})`,
-            },
-          },
-        },
+        ...baseOptions,
+        cutout: '68%',
+        plugins: { ...baseOptions.plugins, tooltip: { ...baseOptions.plugins.tooltip, callbacks: { label: ctx => ' ' + ctx.label + ': ' + tooltipBRL(ctx) } } },
       },
     });
-  }
 
-  /**
-   * Rosca — distribuição Veículo vs Máquina
-   */
-  function _graficoRoscaTipo(porTipo) {
-    const canvas = document.getElementById('chart-tipo');
-    if (!canvas) return;
-    _destruir('tipo');
-
-    const labels = Object.keys(porTipo);
-    const valores = Object.values(porTipo);
-    const total   = valores.reduce((a, b) => a + b, 0);
-
-    const legEl = document.getElementById('leg-tipo');
-    if (legEl) {
-      legEl.innerHTML = labels.map((l, i) => `
-        <span class="legenda-item">
-          <span class="legenda-cor" style="background:${[COR.azul, COR.cinza][i] || COR.serie[i]}"></span>
-          ${l} — ${_fmtMoeda(valores[i])} (${_fmtPct(valores[i] / total * 100)})
-        </span>
-      `).join('');
+    // Legenda manual
+    const legendEl = document.getElementById('legendTipoDespesa');
+    if (legendEl) {
+      legendEl.innerHTML = labels.map((l, i) =>
+        `<span class="legend-item"><span class="legend-dot" style="background:${cores[i]}"></span>${l} — ${Number(valores[i]).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>`
+      ).join('');
     }
-
-    _instancias['tipo'] = new Chart(canvas, {
-      type: 'doughnut',
-      data: {
-        labels,
-        datasets: [{
-          data:            valores,
-          backgroundColor: [COR.azul, COR.cinza],
-          borderWidth:     0,
-          hoverOffset:     6,
-        }],
-      },
-      options: {
-        responsive:          true,
-        maintainAspectRatio: false,
-        cutout:              '65%',
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => ` ${ctx.label}: ${_fmtMoeda(ctx.raw)} (${_fmtPct(ctx.raw / total * 100)})`,
-            },
-          },
-        },
-      },
-    });
   }
 
-  /**
-   * Linha + área — evolução mensal total
-   * Suporta múltiplos anos (uma série por ano)
-   */
-  function _graficoEvolucaoMensal(porMesAno) {
-    const canvas = document.getElementById('chart-evolucao');
-    if (!canvas) return;
-    _destruir('evolucao');
+  // ----- Gráfico: Top 8 Secretarias (Barras Horizontais) -----
 
-    // Organiza: { 2025: [jan..dez], 2026: [jan..dez] }
-    const anos = [...new Set(Object.keys(porMesAno).map(k => k.split('-')[0]))].sort();
+  function renderSecretarias(data) {
+    hideSkeleton('skeletonSecretarias');
+    destroyChart('secretarias');
 
-    const datasets = anos.map((ano, idx) => {
-      const data = MESES.map((_, i) => {
-        const chave = `${ano}-${String(i + 1).padStart(2, '0')}`;
-        return porMesAno[chave] || 0;
-      });
-      return {
-        label:           ano,
-        data,
-        borderColor:     COR.serie[idx],
-        backgroundColor: idx === 0 ? COR.azulClaro : COR.verdeClaro,
-        fill:            true,
-        tension:         0.35,
-        pointRadius:     3,
-        pointHoverRadius: 6,
-      };
-    });
+    const porSigla = data.reduce((acc, r) => {
+      acc[r.Sigla] = (acc[r.Sigla] || 0) + r.Valor;
+      return acc;
+    }, {});
 
-    _instancias['evolucao'] = new Chart(canvas, {
-      type: 'line',
-      data: { labels: MESES, datasets },
-      options: {
-        responsive:          true,
-        maintainAspectRatio: false,
-        interaction:         { mode: 'index', intersect: false },
-        plugins: {
-          legend: { display: anos.length > 1, position: 'top',
-            labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 } },
-          },
-          tooltip: {
-            callbacks: {
-              label: ctx => ` ${ctx.dataset.label}: ${_fmtMoeda(ctx.raw)}`,
-            },
-          },
-        },
-        scales: {
-          x: { ticks: { font: { size: 11 }, autoSkip: false, maxRotation: 0 } },
-          y: { ticks: { callback: v => _fmtMoeda(v), font: { size: 10 } }, beginAtZero: true },
-        },
-      },
-    });
-  }
-
-  /**
-   * Barras horizontais — ranking de secretarias (renderizado como HTML, não Chart.js)
-   * Mais legível para labels longos e responsivo por padrão.
-   */
-  function _rankingSecretarias(porSigla) {
-    const container = document.getElementById('ranking-secretarias');
-    if (!container) return;
-
-    const ranking = Object.entries(porSigla)
-      .map(([sigla, valor]) => ({ sigla, valor }))
-      .sort((a, b) => b.valor - a.valor)
+    const sorted = Object.entries(porSigla)
+      .sort((a, b) => b[1] - a[1])
       .slice(0, 8);
 
-    if (ranking.length === 0) {
-      container.innerHTML = '<div class="estado-vazio">Sem dados para exibir</div>';
-      return;
-    }
+    const labels = sorted.map(([s]) => s);
+    const values = sorted.map(([, v]) => v);
 
-    const max = ranking[0].valor;
+    const ctx = document.getElementById('chartSecretarias');
+    if (!ctx) return;
 
-    container.innerHTML = ranking.map(({ sigla, valor }) => `
-      <div class="rank-row">
-        <div class="rank-label">${sigla}</div>
-        <div class="rank-track">
-          <div class="rank-fill" style="width:${(valor / max * 100).toFixed(1)}%"></div>
-        </div>
-        <div class="rank-valor">${_fmtMoeda(valor)}</div>
-      </div>
-    `).join('');
-  }
-
-  // ── Gráficos extras (usados nas páginas secundárias) ─────────────
-
-  /**
-   * Barras verticais agrupadas — comparação de dois cenários por mês.
-   * @param {string} canvasId
-   * @param {Object} cenario1 - { label, data: { porMes } }
-   * @param {Object} cenario2
-   */
-  function renderizarComparacao(canvasId, cenario1, cenario2) {
-    _destruir(canvasId);
-
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-
-    const labels = MESES;
-
-    const toSerie = (mesAno) => MESES.map((_, i) => {
-      const chave = `${String(i + 1).padStart(2, '0')}`;
-      // Localiza por sufixo de mês independente do ano
-      const match = Object.entries(mesAno).find(([k]) => k.endsWith('-' + chave));
-      return match ? match[1] : 0;
-    });
-
-    _instancias[canvasId] = new Chart(canvas, {
+    _instances.secretarias = new Chart(ctx, {
       type: 'bar',
       data: {
         labels,
-        datasets: [
-          {
-            label:           cenario1.label,
-            data:            toSerie(cenario1.kpis?.porMes || {}),
-            backgroundColor: COR.azul,
-          },
-          {
-            label:           cenario2.label,
-            data:            toSerie(cenario2.kpis?.porMes || {}),
-            backgroundColor: COR.laranja,
-          },
-        ],
-      },
-      options: {
-        responsive:          true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${_fmtMoeda(ctx.raw)}` } },
-        },
-        scales: {
-          x: { ticks: { font: { size: 11 }, autoSkip: false, maxRotation: 0 } },
-          y: { ticks: { callback: v => _fmtMoeda(v), font: { size: 10 } }, beginAtZero: true },
-        },
-      },
-    });
-  }
-
-  /**
-   * Barras horizontais — top N por campo (secretaria, classificação, modelo).
-   * @param {string} canvasId
-   * @param {Object} agrupado - { chave: valor }
-   * @param {number} limite
-   * @param {string} cor
-   */
-  function renderizarBarrasHorizontais(canvasId, agrupado, limite = 10, cor = null) {
-    _destruir(canvasId);
-
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-
-    const ranking = Object.entries(agrupado)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, limite);
-
-    const alturaWrapper = canvas.parentElement;
-    if (alturaWrapper) {
-      alturaWrapper.style.height = Math.max(200, ranking.length * 42 + 60) + 'px';
-    }
-
-    _instancias[canvasId] = new Chart(canvas, {
-      type:     'bar',
-      indexAxis: 'y',
-      data: {
-        labels:   ranking.map(([k]) => k),
         datasets: [{
-          data:            ranking.map(([, v]) => v),
-          backgroundColor: cor || ranking.map((_, i) => COR.serie[i % COR.serie.length]),
-          borderRadius:    4,
-          borderSkipped:   false,
+          data: values,
+          backgroundColor: CONFIG.PALETA_GRAFICOS.slice(0, labels.length),
+          borderRadius: 4,
+          barThickness: 22,
         }],
       },
       options: {
-        responsive:          true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: ctx => ` ${_fmtMoeda(ctx.raw)}` } },
-        },
+        ...baseOptions,
+        indexAxis: 'y',
         scales: {
-          x: { ticks: { callback: v => _fmtMoeda(v), font: { size: 10 } }, beginAtZero: true },
-          y: { ticks: { font: { size: 11 } } },
+          x: {
+            ticks: { callback: v => Kpis.formatBRL(v), color: '#6b7280', font: { size: 11 } },
+            grid: { color: '#f1f5f9' },
+          },
+          y: { ticks: { color: '#374151', font: { size: 12 } }, grid: { display: false } },
         },
       },
     });
   }
 
-  /**
-   * Linha do tempo com múltiplas séries (Combustível e Manutenção separados).
-   * @param {string} canvasId
-   * @param {Object} timelineData - resposta da rota /timeline
-   */
-  function renderizarTimeline(canvasId, timelineData) {
-    _destruir(canvasId);
+  // ----- Gráfico: Tipo de Frota (Donut) -----
 
-    const canvas = document.getElementById(canvasId);
-    if (!canvas || !timelineData) return;
+  function renderTipoFrota(data) {
+    hideSkeleton('skeletonTipoFrota');
+    destroyChart('tipoFrota');
 
-    const cores    = [COR.azul, COR.verde, COR.laranja, COR.amarelo];
-    const datasets = (timelineData.seriesDespesa || []).map((serie, i) => ({
-      label:           serie.label,
-      data:            serie.data,
-      borderColor:     cores[i] || COR.cinza,
-      backgroundColor: 'transparent',
-      tension:         0.35,
-      pointRadius:     3,
-      pointHoverRadius: 6,
-    }));
+    const veiculo = data.filter(r => r.Tipo === 'Veículo').reduce((s, r) => s + r.Valor, 0);
+    const maquina = data.filter(r => r.Tipo === 'Máquina').reduce((s, r) => s + r.Valor, 0);
 
-    // Adiciona série total
-    datasets.unshift({
-      label:           'Total',
-      data:            timelineData.serieTotal,
-      borderColor:     COR.cinza,
-      backgroundColor: COR.cinzaClaro,
-      fill:            true,
-      tension:         0.35,
-      pointRadius:     2,
-      borderDash:      [4, 3],
+    const labels  = [];
+    const valores = [];
+    const cores   = [];
+
+    if (veiculo > 0) { labels.push('Veículo'); valores.push(veiculo); cores.push(CONFIG.CORES.veiculo); }
+    if (maquina > 0) { labels.push('Máquina'); valores.push(maquina); cores.push(CONFIG.CORES.maquina); }
+
+    const ctx = document.getElementById('chartTipoFrota');
+    if (!ctx) return;
+
+    _instances.tipoFrota = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data: valores, backgroundColor: cores, borderWidth: 0, hoverOffset: 8 }] },
+      options: { ...baseOptions, cutout: '68%' },
     });
 
-    _instancias[canvasId] = new Chart(canvas, {
-      type: 'line',
-      data: { labels: timelineData.labels, datasets },
-      options: {
-        responsive:          true,
-        maintainAspectRatio: false,
-        interaction:         { mode: 'index', intersect: false },
-        plugins: {
-          legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${_fmtMoeda(ctx.raw)}` } },
-        },
-        scales: {
-          x: { ticks: { font: { size: 11 }, autoSkip: false, maxRotation: 45 } },
-          y: { ticks: { callback: v => _fmtMoeda(v), font: { size: 10 } }, beginAtZero: true },
-        },
-      },
-    });
-  }
-
-  // ── Agregação local (quando os dados vêm como array de registros) ─
-
-  /**
-   * Agrega os registros brutos nos grupos necessários para os gráficos.
-   * Usado quando a API retorna /dados em vez dos KPIs já calculados.
-   */
-  function _agregar(dados) {
-    const porDespesa = {};
-    const porTipo    = {};
-    const porSigla   = {};
-    const porMesAno  = {};
-
-    dados.forEach(r => {
-      const val = r.valor || 0;
-
-      porDespesa[r.despesa || 'Outros'] = (porDespesa[r.despesa || 'Outros'] || 0) + val;
-      porTipo[r.tipo       || 'Outros'] = (porTipo[r.tipo       || 'Outros'] || 0) + val;
-      porSigla[r.sigla     || 'Outros'] = (porSigla[r.sigla     || 'Outros'] || 0) + val;
-
-      if (r.ano && r.mes) {
-        const chave = `${r.ano}-${String(r.mes).padStart(2, '0')}`;
-        porMesAno[chave] = (porMesAno[chave] || 0) + val;
-      }
-    });
-
-    return { porDespesa, porTipo, porSigla, porMesAno };
-  }
-
-  // ── Helpers ───────────────────────────────────────────────────────
-
-  function _destruir(id) {
-    if (_instancias[id]) {
-      _instancias[id].destroy();
-      delete _instancias[id];
+    const legendEl = document.getElementById('legendTipoFrota');
+    if (legendEl) {
+      const total = veiculo + maquina;
+      legendEl.innerHTML = labels.map((l, i) => {
+        const pct = total ? ((valores[i] / total) * 100).toFixed(1).replace('.', ',') : '0,0';
+        return `<span class="legend-item"><span class="legend-dot" style="background:${cores[i]}"></span>${l} — ${pct}%</span>`;
+      }).join('');
     }
   }
 
-  function _fmtMoeda(v) {
-    if (!v && v !== 0) return 'R$ 0';
-    if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1)}M`;
-    if (v >= 1_000)     return `R$ ${(v / 1_000).toFixed(0)}k`;
-    return `R$ ${Number(v).toFixed(0)}`;
+  // ----- Gráfico: Evolução Mensal (Linha) -----
+
+  function renderEvolucao(data) {
+    hideSkeleton('skeletonEvolucao');
+    destroyChart('evolucao');
+
+    // Agrupa por Ano-Mês
+    const porMes = data.reduce((acc, r) => {
+      const key = `${r.Ano}-${String(r.Mes).padStart(2, '0')}`;
+      acc[key] = (acc[key] || 0) + r.Valor;
+      return acc;
+    }, {});
+
+    const sorted = Object.entries(porMes).sort(([a], [b]) => a.localeCompare(b));
+    const labels = sorted.map(([k]) => {
+      const [ano, mes] = k.split('-');
+      return `${CONFIG.MESES[parseInt(mes, 10)].slice(0, 3)}/${ano}`;
+    });
+    const values = sorted.map(([, v]) => v);
+
+    const ctx = document.getElementById('chartEvolucao');
+    if (!ctx) return;
+
+    _instances.evolucao = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          borderColor:     CONFIG.CORES.primaria,
+          backgroundColor: CONFIG.CORES.primaria + '18',
+          borderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          fill: true,
+          tension: 0.35,
+        }],
+      },
+      options: {
+        ...baseOptions,
+        scales: {
+          x: { ticks: { color: '#6b7280', font: { size: 11 } }, grid: { display: false } },
+          y: {
+            ticks: { callback: v => Kpis.formatBRL(v), color: '#6b7280', font: { size: 11 } },
+            grid: { color: '#f1f5f9' },
+          },
+        },
+      },
+    });
   }
 
-  function _fmtPct(v) {
-    return `${Number(v || 0).toFixed(1)}%`;
+  // ----- Render all -----
+
+  function renderAll() {
+    const data = State.getFilteredData();
+    renderTipoDespesa(data);
+    renderSecretarias(data);
+    renderTipoFrota(data);
+    renderEvolucao(data);
   }
 
-
-  /**
-   * Renderiza todos os gráficos usando dados já agregados (vindos dos KPIs).
-   * Mais eficiente que processar registros brutos no frontend.
-   * Chamado pelo app.js quando a API retorna KPIs com rankingSecretarias/porMes.
-   */
-  function _renderizarComAgregados(agregados) {
-    _graficoRoscaDespesa(agregados.porDespesa || {});
-    _graficoRoscaTipo(agregados.porTipo || {});
-    _graficoEvolucaoMensal(agregados.porMesAno || {});
-    _rankingSecretarias(agregados.porSigla || {});
+  function showSkeletons() {
+    ['skeletonTipoDespesa', 'skeletonSecretarias', 'skeletonTipoFrota', 'skeletonEvolucao'].forEach(showSkeleton);
   }
 
-  return {
-    renderizar,
-    _renderizarComAgregados,
-    destruirTodos,
-    renderizarComparacao,
-    renderizarBarrasHorizontais,
-    renderizarTimeline,
-  };
-
+  return { renderAll, showSkeletons };
 })();

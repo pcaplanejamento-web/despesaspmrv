@@ -1,103 +1,135 @@
 /**
- * app.js — corrigido v1.1
- * Orquestra inicialização e fluxo de dados entre API e módulos de UI.
+ * app.js — Orquestrador principal da aplicação
+ *
+ * Responsabilidades:
+ * - Inicializar todos os módulos na ordem correta
+ * - Carregar dados (respeitando o cache do State)
+ * - Coordenar o botão de sincronização
+ * - Controlar a navegação do sidebar
+ * - Gerenciar comportamento responsivo do menu
  */
 
 const App = (() => {
+  // ----- Atualização da UI com dados filtrados -----
 
-  function _setLoading(visivel) {
-    const el = document.getElementById('loading-overlay');
-    if (el) el.style.display = visivel ? 'flex' : 'none';
+  function refresh() {
+    Kpis.render();
+    Charts.renderAll();
+    Tables.renderTable();
   }
 
-  function _setErro(mensagem) {
-    const el = document.getElementById('erro-global');
-    if (!el) return;
-    if (mensagem) { el.textContent = mensagem; el.style.display = 'block'; }
-    else { el.style.display = 'none'; }
-  }
+  // ----- Carregamento de dados -----
 
-  async function _carregarFiltros() {
+  async function loadData(forceRefresh = false) {
+    Api.setStatus('loading', 'Carregando...');
+    Charts.showSkeletons();
+
     try {
-      const dados = await Api.getFiltros();
-      State.setDados('filtrosDisponiveis', dados);
-      Filters.popular(dados);
+      await Api.fetchFromApi(forceRefresh);
+      Filters.populateAll();
+      Filters.applyFilters();
+      refresh();
     } catch (err) {
-      console.error('[App] Erro filtros:', err);
+      document.getElementById('tableBody').innerHTML =
+        `<tr><td colspan="12" class="table-error">
+          Erro ao carregar dados. 
+          <button class="btn-retry" onclick="App.sync()">Tentar novamente</button>
+        </td></tr>`;
     }
   }
 
-  async function _renderizar() {
-    const filtros = State.getFiltros();
-    State.setCarregando(true);
-    State.setErro(null);
+  // ----- Sincronização forçada -----
 
-    try {
-      // Busca KPIs e dados em paralelo
-      const [kpis, respDados] = await Promise.all([
-        Api.getKpis(filtros),
-        Api.getDados(filtros),
-      ]);
-
-      State.setDados('kpis', kpis);
-      State.setDados('dados', respDados);
-
-      // Normaliza registros — API retorna { registros: [...], paginacao: {} }
-      const registros = Array.isArray(respDados)
-        ? respDados
-        : (respDados && respDados.registros ? respDados.registros : []);
-
-      // Renderiza KPIs
-      Kpis.renderizar(kpis);
-
-      // Monta agregados a partir dos KPIs (mais eficiente que processar registros brutos)
-      const porDespesa = {};
-      (kpis.rankingDespesas || []).forEach(i => { porDespesa[i.chave] = i.valor; });
-
-      const porTipo = {};
-      (kpis.rankingTipos || []).forEach(i => { porTipo[i.chave] = i.valor; });
-
-      const porSigla = {};
-      (kpis.rankingSecretarias || []).forEach(i => { porSigla[i.chave] = i.valor; });
-
-      const porMesAno = kpis.porMes || {};
-
-      // Renderiza gráficos com dados agregados
-      Charts._renderizarComAgregados({ porDespesa, porTipo, porSigla, porMesAno });
-
-      // Renderiza tabela com registros brutos
-      Tables.renderizar(registros);
-
-    } catch (err) {
-      State.setErro('Erro ao carregar dados: ' + err.message);
-      console.error('[App] Erro renderizar:', err);
-    } finally {
-      State.setCarregando(false);
-    }
+  async function sync() {
+    await loadData(true);
   }
 
-  function _registrarListeners() {
-    State.subscribe((chave, estado) => {
-      if (chave === 'carregando') _setLoading(estado.carregando);
-      if (chave === 'erro') _setErro(estado.erro);
-      if (chave === 'filtros') _renderizar();
+  // ----- Sidebar -----
+
+  function initSidebar() {
+    const sidebar  = document.getElementById('sidebar');
+    const toggle   = document.getElementById('sidebarToggle');
+    const menuBtn  = document.getElementById('topbarMenuBtn');
+    const overlay  = document.getElementById('sidebarOverlay');
+    const wrapper  = document.getElementById('mainWrapper');
+
+    function isMobile() { return window.innerWidth < 768; }
+
+    function openSidebar() {
+      sidebar.classList.add('sidebar--open');
+      sidebar.classList.remove('sidebar--closed');
+      if (overlay) { overlay.classList.add('overlay--visible'); overlay.setAttribute('aria-hidden', 'false'); }
+      if (menuBtn)  menuBtn.setAttribute('aria-expanded', 'true');
+      if (toggle)   toggle.setAttribute('aria-expanded', 'true');
+      if (wrapper && !isMobile()) wrapper.classList.add('main-wrapper--shifted');
+    }
+
+    function closeSidebar() {
+      sidebar.classList.remove('sidebar--open');
+      sidebar.classList.add('sidebar--closed');
+      if (overlay) { overlay.classList.remove('overlay--visible'); overlay.setAttribute('aria-hidden', 'true'); }
+      if (menuBtn)  menuBtn.setAttribute('aria-expanded', 'false');
+      if (toggle)   toggle.setAttribute('aria-expanded', 'false');
+      if (wrapper)  wrapper.classList.remove('main-wrapper--shifted');
+    }
+
+    function toggleSidebar() {
+      if (sidebar.classList.contains('sidebar--closed')) openSidebar();
+      else closeSidebar();
+    }
+
+    if (toggle)  toggle.addEventListener('click', toggleSidebar);
+    if (menuBtn) menuBtn.addEventListener('click', toggleSidebar);
+    if (overlay) overlay.addEventListener('click', closeSidebar);
+
+    // Em telas grandes, sidebar começa aberta
+    if (!isMobile()) openSidebar();
+
+    window.addEventListener('resize', () => {
+      if (!isMobile() && !sidebar.classList.contains('sidebar--closed')) {
+        wrapper && wrapper.classList.add('main-wrapper--shifted');
+      } else if (isMobile()) {
+        wrapper && wrapper.classList.remove('main-wrapper--shifted');
+      }
+    });
+
+    // Navegação por itens
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        document.querySelectorAll('.nav-item').forEach(i => {
+          i.classList.remove('active');
+          i.removeAttribute('aria-current');
+        });
+        item.classList.add('active');
+        item.setAttribute('aria-current', 'page');
+        if (isMobile()) closeSidebar();
+      });
     });
   }
 
-  function _iniciarIcones() {
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+  // ----- Botão Sincronizar -----
+
+  function initSyncButton() {
+    const btn = document.getElementById('btnSync');
+    if (btn) btn.addEventListener('click', sync);
   }
 
-  async function init() {
-    _iniciarIcones();
-    Filters.registrarListeners();
-    _registrarListeners();
-    await _carregarFiltros();
-    await _renderizar();
+  // ----- Bootstrap -----
+
+  function init() {
+    initSidebar();
+    initSyncButton();
+    Filters.bindEvents();
+    Tables.bindEvents();
+    loadData(false);
   }
 
-  return { init };
+  // Inicia após DOM estar pronto
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 
+  return { refresh, sync };
 })();
-
-document.addEventListener('DOMContentLoaded', App.init);
