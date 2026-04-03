@@ -1,176 +1,71 @@
-/* main.css — Design tokens Liquid Glass + reset base */
-
-/* ── SF Pro typography stack ─────────────────────────── */
-:root {
-  --font-ui:    -apple-system,"SF Pro Display","SF Pro Text","Helvetica Neue",system-ui,sans-serif;
-  --font-mono:  "SF Mono",ui-monospace,"Cascadia Code",monospace;
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-/* ── Liquid Glass tokens — modo claro ─────────────────── */
-:root {
-  --bg:          #e8ecf4;
-  --surface:     rgba(255,255,255,0.62);
-  --surface2:    rgba(248,249,252,0.55);
-  --surface3:    rgba(236,238,245,0.50);
-  --border:      rgba(255,255,255,0.70);
-  --border-dim:  rgba(200,210,230,0.40);
-  --text:        #1a1f36;
-  --text-muted:  #6b7280;
-  --text-light:  #9ca3af;
-  --input-bg:    rgba(255,255,255,0.50);
-  --input-bord:  rgba(255,255,255,0.65);
-  --accent:      #4361ee;
-  --accent-2:    #3bc4c4;
-  --accent-soft: rgba(67,97,238,0.10);
-  --th-bg:       rgba(245,246,250,0.70);
-  --th-color:    #4b5563;
-  --row-even:    rgba(250,251,254,0.50);
-  --row-hover:   rgba(67,97,238,0.07);
-  --total-row:   rgba(236,238,245,0.60);
-  --hover:       rgba(67,97,238,0.07);
-  --card:        var(--surface);
-
-  /* Blur */
-  --lg-blur:     18px;
-  --lg-blur-sm:   8px;
-  --lg-blur-md:  14px;
-  --lg-blur-lg:  28px;
-  --lg-blur-xl:  40px;
-  --lg-blur-compact: 24px;
-
-  /* Surfaces translúcidas */
-  --lg-bg:         rgba(255,255,255,0.60);
-  --lg-bg-sm:      rgba(255,255,255,0.45);
-  --lg-bg-md:      rgba(255,255,255,0.70);
-  --lg-bg-strong:  rgba(255,255,255,0.82);
-  --lg-bg-overlay: rgba(255,255,255,0.92);
-
-  /* Bordas e reflexo */
-  --lg-border:     rgba(255,255,255,0.75);
-  --lg-border-dim: rgba(255,255,255,0.40);
-  --lg-border-low: rgba(200,210,230,0.35);
-  --lg-shine-top:  rgba(255,255,255,0.95);
-
-  /* Sombras */
-  --lg-shadow-sm: 0 2px 8px rgba(67,97,238,0.07),  0 1px 3px rgba(15,22,40,0.05);
-  --lg-shadow:    0 8px 28px rgba(67,97,238,0.10),  0 2px 8px rgba(15,22,40,0.06);
-  --lg-shadow-md: 0 16px 44px rgba(67,97,238,0.13), 0 4px 14px rgba(15,22,40,0.07);
-  --lg-shadow-lg: 0 24px 64px rgba(67,97,238,0.16), 0 8px 24px rgba(15,22,40,0.09);
-  --lg-shadow-xl: 0 36px 80px rgba(67,97,238,0.20), 0 12px 32px rgba(15,22,40,0.11);
-  --lg-inset:     inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(255,255,255,0.15);
-  --lg-inset-sm:  inset 0 1px 0 rgba(255,255,255,0.80);
-
-  /* Radii */
-  --radius-sm: 12px;
-  --radius-md: 16px;
-  --radius-lg: 22px;
-  --radius-xl: 28px;
-
-  /* Sombras legadas */
-  --shadow-sm: var(--lg-shadow-sm);
-  --shadow-md: var(--lg-shadow);
-  --shadow-lg: var(--lg-shadow-md);
-  --shadow:    var(--lg-shadow-sm);
-
-  /* Altura do header */
-  --hdr-h: 78px;
-
-  /* Fundo ambiente */
+/* main.css — v3.0 — Design tokens Liquid Glass + system-ui */
+:root{
+  --font-ui: system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-mono: ui-monospace,'Cascadia Code','SF Mono',monospace;
+  --bg:#e8ecf4;--surface:rgba(255,255,255,.62);--surface2:rgba(248,249,252,.55);--surface3:rgba(236,238,245,.50);
+  --border:rgba(255,255,255,.70);--border-dim:rgba(200,210,230,.40);
+  --text:#1a1f36;--text-muted:#6b7280;--text-light:#9ca3af;
+  --input-bg:rgba(255,255,255,.50);--accent:#4361ee;--accent-2:#3bc4c4;--accent-soft:rgba(67,97,238,.10);
+  --th-bg:rgba(245,246,250,.70);--th-color:#4b5563;--row-even:rgba(250,251,254,.50);
+  --row-hover:rgba(67,97,238,.07);--total-row:rgba(236,238,245,.60);--hover:rgba(67,97,238,.07);
+  --lg-blur:18px;--lg-blur-sm:8px;--lg-blur-md:14px;--lg-blur-lg:28px;--lg-blur-xl:40px;--lg-blur-compact:24px;
+  --lg-bg:rgba(255,255,255,.60);--lg-bg-sm:rgba(255,255,255,.45);--lg-bg-md:rgba(255,255,255,.70);
+  --lg-bg-strong:rgba(255,255,255,.82);--lg-bg-overlay:rgba(255,255,255,.92);
+  --lg-border:rgba(255,255,255,.75);--lg-border-dim:rgba(255,255,255,.40);--lg-border-low:rgba(200,210,230,.35);
+  --lg-shine-top:rgba(255,255,255,.95);
+  --lg-shadow-sm:0 2px 8px rgba(67,97,238,.07),0 1px 3px rgba(15,22,40,.05);
+  --lg-shadow:0 8px 28px rgba(67,97,238,.10),0 2px 8px rgba(15,22,40,.06);
+  --lg-shadow-md:0 16px 44px rgba(67,97,238,.13),0 4px 14px rgba(15,22,40,.07);
+  --lg-shadow-lg:0 24px 64px rgba(67,97,238,.16),0 8px 24px rgba(15,22,40,.09);
+  --lg-shadow-xl:0 36px 80px rgba(67,97,238,.20),0 12px 32px rgba(15,22,40,.11);
+  --lg-inset:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(255,255,255,.15);
+  --lg-inset-sm:inset 0 1px 0 rgba(255,255,255,.80);
+  --radius-sm:12px;--radius-md:16px;--radius-lg:22px;--radius-xl:28px;
+  --shadow-sm:var(--lg-shadow-sm);--shadow-md:var(--lg-shadow);--shadow-lg:var(--lg-shadow-md);
+  --hdr-h:78px;
   --bg-mesh:
-    radial-gradient(ellipse 90% 70% at 15%  8%, rgba(67,97,238,0.09)  0%,transparent 55%),
-    radial-gradient(ellipse 70% 60% at 85% 85%,rgba(59,196,196,0.07)  0%,transparent 55%),
-    radial-gradient(ellipse 60% 50% at 55% 40%,rgba(139,92,246,0.05)  0%,transparent 50%),
-    radial-gradient(ellipse 80% 40% at 30% 70%,rgba(67,97,238,0.04)   0%,transparent 60%);
+    radial-gradient(ellipse 90% 70% at 15% 8%,rgba(67,97,238,.09) 0%,transparent 55%),
+    radial-gradient(ellipse 70% 60% at 85% 85%,rgba(59,196,196,.07) 0%,transparent 55%),
+    radial-gradient(ellipse 60% 50% at 55% 40%,rgba(139,92,246,.05) 0%,transparent 50%),
+    radial-gradient(ellipse 80% 40% at 30% 70%,rgba(67,97,238,.04) 0%,transparent 60%);
 }
-
-/* ── Dark mode tokens ─────────────────────────────────── */
-[data-theme="dark"] {
-  --bg:          #0b0f1a;
-  --surface:     rgba(22,27,39,0.72);
-  --surface2:    rgba(30,37,54,0.65);
-  --surface3:    rgba(37,45,66,0.60);
-  --border:      rgba(255,255,255,0.10);
-  --border-dim:  rgba(255,255,255,0.06);
-  --text:        #e8edf5;
-  --text-muted:  #7a8499;
-  --text-light:  #4a5568;
-  --input-bg:    rgba(22,27,39,0.65);
-  --input-bord:  rgba(255,255,255,0.12);
-  --accent:      #5b78ff;
-  --accent-2:    #3bc4c4;
-  --accent-soft: rgba(91,120,255,0.14);
-  --th-bg:       rgba(30,37,54,0.70);
-  --th-color:    #a0aec0;
-  --row-even:    rgba(26,32,48,0.50);
-  --row-hover:   rgba(91,120,255,0.09);
-  --total-row:   rgba(26,32,64,0.60);
-  --hover:       rgba(91,120,255,0.10);
-
-  --lg-bg:         rgba(22,27,39,0.72);
-  --lg-bg-sm:      rgba(22,27,39,0.58);
-  --lg-bg-md:      rgba(22,27,39,0.80);
-  --lg-bg-strong:  rgba(16,20,30,0.88);
-  --lg-bg-overlay: rgba(12,15,24,0.94);
-  --lg-border:     rgba(255,255,255,0.11);
-  --lg-border-dim: rgba(255,255,255,0.06);
-  --lg-border-low: rgba(255,255,255,0.04);
-  --lg-shine-top:  rgba(255,255,255,0.10);
-  --lg-shadow-sm: 0 2px 8px  rgba(0,0,0,0.28), 0 1px 3px  rgba(0,0,0,0.18);
-  --lg-shadow:    0 8px 28px rgba(0,0,0,0.36), 0 2px 8px  rgba(0,0,0,0.22);
-  --lg-shadow-md: 0 16px 44px rgba(0,0,0,0.44),0 4px 14px rgba(0,0,0,0.26);
-  --lg-shadow-lg: 0 24px 64px rgba(0,0,0,0.52),0 8px 24px rgba(0,0,0,0.30);
-  --lg-shadow-xl: 0 36px 80px rgba(0,0,0,0.60),0 12px 32px rgba(0,0,0,0.35);
-  --lg-inset:     inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -1px 0 rgba(0,0,0,0.22);
-  --lg-inset-sm:  inset 0 1px 0 rgba(255,255,255,0.08);
-
+[data-theme="dark"]{
+  --bg:#0b0f1a;--surface:rgba(22,27,39,.72);--surface2:rgba(30,37,54,.65);--surface3:rgba(37,45,66,.60);
+  --border:rgba(255,255,255,.10);--border-dim:rgba(255,255,255,.06);
+  --text:#e8edf5;--text-muted:#7a8499;--text-light:#4a5568;
+  --input-bg:rgba(22,27,39,.65);--accent:#5b78ff;--accent-2:#3bc4c4;--accent-soft:rgba(91,120,255,.14);
+  --th-bg:rgba(30,37,54,.70);--th-color:#a0aec0;--row-even:rgba(26,32,48,.50);
+  --row-hover:rgba(91,120,255,.09);--total-row:rgba(26,32,64,.60);--hover:rgba(91,120,255,.10);
+  --lg-bg:rgba(22,27,39,.72);--lg-bg-sm:rgba(22,27,39,.58);--lg-bg-md:rgba(22,27,39,.80);
+  --lg-bg-strong:rgba(16,20,30,.88);--lg-bg-overlay:rgba(12,15,24,.94);
+  --lg-border:rgba(255,255,255,.11);--lg-border-dim:rgba(255,255,255,.06);--lg-shine-top:rgba(255,255,255,.10);
+  --lg-shadow-sm:0 2px 8px rgba(0,0,0,.28),0 1px 3px rgba(0,0,0,.18);
+  --lg-shadow:0 8px 28px rgba(0,0,0,.36),0 2px 8px rgba(0,0,0,.22);
+  --lg-shadow-md:0 16px 44px rgba(0,0,0,.44),0 4px 14px rgba(0,0,0,.26);
+  --lg-shadow-lg:0 24px 64px rgba(0,0,0,.52),0 8px 24px rgba(0,0,0,.30);
+  --lg-shadow-xl:0 36px 80px rgba(0,0,0,.60),0 12px 32px rgba(0,0,0,.35);
+  --lg-inset:inset 0 1px 0 rgba(255,255,255,.10),inset 0 -1px 0 rgba(0,0,0,.22);
+  --lg-inset-sm:inset 0 1px 0 rgba(255,255,255,.08);
   --bg-mesh:
-    radial-gradient(ellipse 90% 70% at 15%  8%, rgba(91,120,255,0.13) 0%,transparent 55%),
-    radial-gradient(ellipse 70% 60% at 85% 85%,rgba(59,196,196,0.09) 0%,transparent 55%),
-    radial-gradient(ellipse 60% 50% at 55% 40%,rgba(139,92,246,0.08) 0%,transparent 50%),
-    radial-gradient(ellipse 80% 40% at 30% 70%,rgba(91,120,255,0.06) 0%,transparent 60%);
+    radial-gradient(ellipse 90% 70% at 15% 8%,rgba(91,120,255,.13) 0%,transparent 55%),
+    radial-gradient(ellipse 70% 60% at 85% 85%,rgba(59,196,196,.09) 0%,transparent 55%),
+    radial-gradient(ellipse 60% 50% at 55% 40%,rgba(139,92,246,.08) 0%,transparent 50%),
+    radial-gradient(ellipse 80% 40% at 30% 70%,rgba(91,120,255,.06) 0%,transparent 60%);
 }
-
-/* ── Base ─────────────────────────────────────────────── */
-html { font-size: 16px; }
-
-body {
-  font-family: var(--font-ui);
-  background: var(--bg);
-  background-image: var(--bg-mesh);
-  background-attachment: fixed;
-  color: var(--text);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  transition: background 0.4s, color 0.3s;
-  min-height: 100vh;
-}
-
-/* ── Animações globais ────────────────────────────────── */
-@keyframes spin    { to { transform: rotate(360deg); } }
-@keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
-@keyframes slideUp { from { opacity:0; transform:translateY(16px) scale(.96) } to { opacity:1; transform:translateY(0) scale(1) } }
-@keyframes lgDrop  { from { opacity:0; transform:translateY(20px) scale(.97) } to { opacity:1; transform:translateY(0) scale(1) } }
-@keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.5} }
-@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-@keyframes smItemIn{ from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
-
-/* ── Utilitários ──────────────────────────────────────── */
-.hidden { display: none !important; }
-.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
-
-/* Scrollbar personalizada */
-::-webkit-scrollbar { width:6px; height:6px; }
-::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:var(--lg-border-dim); border-radius:3px; }
-::-webkit-scrollbar-thumb:hover { background:var(--lg-border); }
-
-/* ── Skeleton loading ─────────────────────────────────── */
-.skeleton {
-  background: linear-gradient(90deg,var(--surface2) 25%,var(--surface3) 50%,var(--surface2) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 8px;
-}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:16px;}
+body{font-family:var(--font-ui);background:var(--bg);background-image:var(--bg-mesh);background-attachment:fixed;color:var(--text);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;transition:background .4s,color .3s;min-height:100vh;}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes lgDrop{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes smItemIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
+@keyframes progressIndeterminate{0%{left:-40%;width:40%}60%{left:100%;width:40%}100%{left:100%;width:40%}}
+.hidden{display:none!important;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--lg-border-dim);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--lg-border);}
+.skeleton{background:linear-gradient(90deg,var(--surface2) 25%,var(--surface3) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px;}

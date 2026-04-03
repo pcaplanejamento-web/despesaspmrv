@@ -1,72 +1,43 @@
-# Mapeamento de Colunas da Planilha
+# Mapeamento de Colunas — Planilha GERAL
 
-## Planilha: Geral - gastos.xlsx → Aba: Página1
+## Planilha
 
-| Coluna (planilha) | Campo interno (JS/GS) | Tipo | Exemplo |
+**ID:** `1QUbIMNx0_qtLFFyRCE24f7crSs4BsL3j93TMRZ1Gazg`  
+**Aba:** `GERAL`
+
+## Colunas (ordem obrigatória)
+
+| # | Coluna na planilha | Campo interno (JS) | Tipo |
 |---|---|---|---|
-| Empresa | empresa | string | MUNICIPIO DE RIO VERDE |
-| Sigla | sigla | string | FMP |
-| Centro de Custo | centroCusto | string | FUNDO MUNICIPAL DE POSTURAS |
-| Departamento | departamento | string | FUNDO MUNICIPAL DE POSTURAS |
-| Despesa | despesa | enum | Combustível, Manutenção |
-| Modelo | modelo | string | POLO TRACK MA |
-| Classificação | classificacao | enum | VEÍCULO PASSEIO, CAMINHONETE(A)... |
-| Tipo | tipo | enum | Veículo, Máquina |
-| Placa | placa | string | TFI4F81 |
-| Valor | valor | number | R$ 780,16 → 780.16 |
-| Liquidado (-5,01%) | valorLiquidado | number | R$ 741,07 → 741.07 |
-| Mês | mes | integer | 3 (março) |
-| Ano | ano | integer | 2026 |
-| Contrato | contrato | enum | PROPRIO, ... |
+| 1 | Empresa | `Empresa` | string |
+| 2 | Sigla | `Sigla` | string |
+| 3 | Centro de Custo | `CentroCusto` | string |
+| 4 | Departamento | `Departamento` | string |
+| 5 | Despesa | `Despesa` | enum: Combustível, Manutenção |
+| 6 | Modelo | `Modelo` | string |
+| 7 | Classificação | `Classificacao` | string |
+| 8 | Tipo | `Tipo` | enum: Veículo, Máquina |
+| 9 | Placa | `Placa` | string (uppercase) |
+| 10 | Valor | `Valor` | float (R$ → float) |
+| 11 | Liquidado | `Liquidado` | float (desconto 5,01% sobre Combustível) |
+| 12 | Mês | `Mes` | integer 1–12 |
+| 13 | Ano | `Ano` | integer |
+| 14 | Contrato | `Contrato` | string |
 
-## Enumerações conhecidas
+## Regras de Normalização
 
-### Despesa
-- Combustível
-- Manutenção
+- `Placa` → `toUpperCase()`
+- `Valor` / `Liquidado` → `parseBRFloat()` suporta "R$ 1.234,56" e "1234.56"
+- `Classificacao` → aceita "Classificação" (com acento) ou "Classificacao"
+- `Mes` → aceita "Mês", "Mês", "Mes", "mes"
+- `Liquidado` → aceita "Liquidado", "liquidado", "valorLiquidado"
 
-### Tipo
-- Veículo
-- Máquina
+## Filtros disponíveis (getFilterOptions)
 
-### Classificação
-- CAMINHONETE(A)
-- CAMINHÃO
-- FURGÃO
-- GRUPO GERADORES
-- MAQUINÁRIO/IMPL. AGRÍCOLAS
-- MICROÔNIBUS
-- MOTOCICLETA
-- RETROESCAVADEIRA
-- ROCADEIRA
-- TRAILER/REBOQUE
-- VEÍCULO PASSEIO
-- (outras)
-
-### Siglas das Secretarias
-- AMAE, AMMT, FMAS, FMC, FMDES, FME, FMP, FMS, GCM, GP
-- LAGOA DO BAUZINHO, OUROANA, PGM, PROCON, RIVERLÂNDIA
-- SEFAZ, SMAPA, SMAUSP, SMC, SMCTI, SMDES, SMDMU, SME
-- SMEL, SMHRF, SMIDU, SMIR, SMMA, SMPG, SMTUR
-
-## Tratamento de valores monetários
-
-Os valores na planilha estão no formato brasileiro com prefixo:
-```
-R$ 3.751,98
-```
-
-O Apps Script deve converter para float usando:
-```javascript
-function parseMoeda(str) {
-  return parseFloat(
-    String(str).replace('R$', '').replace(/\./g, '').replace(',', '.').trim()
-  );
-}
-```
-
-## Período dos dados
-
-- 2025: janeiro a dezembro (10.806 registros)
-- 2026: janeiro a março (2.595 registros)
-- Total: 13.401 registros
+- `anos` — valores únicos de Ano
+- `meses` — valores únicos de Mes (ordenados numericamente)
+- `despesas` — valores únicos de Despesa
+- `tipos` — valores únicos de Tipo
+- `secretarias` — valores únicos de Sigla
+- `classificacoes` — valores únicos de Classificacao
+- `empresas` — valores únicos de Empresa

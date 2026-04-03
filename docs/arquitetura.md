@@ -1,162 +1,102 @@
-# Arquitetura Técnica — Sistema de Gastos
+# Arquitetura Técnica — Sistema de Gastos RV v3.0
 
 ## Visão Geral
 
-O sistema é composto por duas partes independentes que se comunicam via HTTP:
+Sistema frontend estático hospedado no GitHub Pages, integrado ao Google Sheets via Google Apps Script (Web App). Não há servidor próprio.
 
-1. **Google Apps Script** — funciona como API/backend, lê a planilha e expõe os dados
-2. **Frontend estático** — consome a API e renderiza os painéis
+```
+GitHub Pages (frontend)  ←──fetch──→  Apps Script (backend/API)  ←──read──→  Google Sheets
+```
 
-Não há servidor próprio. Toda a infraestrutura usa serviços gratuitos do Google e GitHub.
-
----
-
-## Camadas e Responsabilidades
-
-### Frontend
-
-| Arquivo | Responsabilidade | NÃO deve conter |
-|---|---|---|
-| `config.js` | URL da API, constantes globais, mapeamento de colunas | Lógica de negócio |
-| `api.js` | fetch, tratamento de erros HTTP, timeout | Formatação visual |
-| `state.js` | Estado global (filtros ativos, dados carregados) | Chamadas HTTP |
-| `filters.js` | Popular seletores, capturar mudanças, disparar re-render | Cálculos de KPI |
-| `kpis.js` | Renderizar cards de KPI no DOM | Busca de dados |
-| `charts.js` | Instanciar e atualizar gráficos Chart.js | Estado global |
-| `tables.js` | Renderizar tabela, paginação, ordenação | Gráficos |
-| `timeline.js` | Gráficos e lógica de linha do tempo | Filtros |
-| `comparison.js` | Lógica de comparação de dois cenários | Dados brutos |
-| `app.js` | Inicializar tudo, orquestrar chamadas | Regras de negócio |
-
-### Apps Script
+## Estrutura de Arquivos Frontend
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `Code.gs` | `doGet()` — recebe requisição, chama Router, retorna JSON |
-| `Router.gs` | Lê parâmetro `rota`, direciona para o controller correto |
-| `DadosService.gs` | Lê planilha, aplica filtros, usa cache |
-| `KpiService.gs` | Recebe dados filtrados, calcula todos os KPIs |
-| `FiltroService.gs` | Retorna valores únicos de cada coluna para os seletores |
-| `TimelineService.gs` | Agrupa dados por mês/ano para o gráfico de linha do tempo |
-| `ComparacaoService.gs` | Monta dois datasets para comparação lado a lado |
-| `CacheUtil.gs` | Abstrai `CacheService.getScriptCache()` com TTL configurável |
-| `CorsUtil.gs` | Adiciona headers `Access-Control-Allow-Origin` |
-| `ErroUtil.gs` | Formata erros em JSON padronizado |
-| `LogUtil.gs` | Loga erros e eventos no Stackdriver |
+| `index.html` | Estrutura HTML completa da SPA |
+| `assets/css/main.css` | Tokens de design, variáveis CSS, animações globais |
+| `assets/css/layout.css` | Header pill, sidebar drawer, page container, botões |
+| `assets/css/components.css` | KPIs, filtros, multi-select, modal, charts, tabelas, toast, loading banner |
+| `assets/js/config.js` | URL da API, constantes, meses, cores, paleta |
+| `assets/js/state.js` | Estado global: filtros multi-select, filtros de coluna, sort, paginação |
+| `assets/js/api.js` | Fetch com timeout, normalização, cache, getFilterOptions |
+| `assets/js/filters.js` | Multi-select component, applyFilters, resumo de filtros ativos |
+| `assets/js/kpis.js` | 4 KPI cards, modal ao clicar em Maior Despesa |
+| `assets/js/charts.js` | Gráficos Chart.js, click-to-expand modal, evolução multi-ano |
+| `assets/js/tables.js` | Tabela detalhada, tabelas resumo (sem paginação), CSV export |
+| `assets/js/app.js` | Modal utility, toast, loading banner, sidebar, tema, bootstrap |
 
----
+## Estrutura de Dados (Planilha GERAL)
 
-## Mapeamento de Colunas da Planilha
-
-| Coluna da planilha | Campo interno | Tipo |
+| Coluna | Campo interno | Tipo |
 |---|---|---|
-| Empresa | empresa | string |
-| Sigla | sigla | string |
-| Centro de Custo | centroCusto | string |
-| Departamento | departamento | string |
-| Despesa | despesa | string (enum: Combustível, Manutenção) |
-| Modelo | modelo | string |
-| Classificação | classificacao | string |
-| Tipo | tipo | string (enum: Veículo, Máquina) |
-| Placa | placa | string |
-| Valor | valor | number (R$ formatado → float) |
-| Liquidado (-5,01%) | valorLiquidado | number |
-| Mês | mes | integer (1–12) |
-| Ano | ano | integer |
-| Contrato | contrato | string |
+| Empresa | Empresa | string |
+| Sigla | Sigla | string |
+| Centro de Custo | CentroCusto | string |
+| Departamento | Departamento | string |
+| Despesa | Despesa | string enum: Combustível, Manutenção |
+| Modelo | Modelo | string |
+| Classificação | Classificacao | string |
+| Tipo | Tipo | string enum: Veículo, Máquina |
+| Placa | Placa | string |
+| Valor | Valor | number |
+| Liquidado | Liquidado | number |
+| Mês | Mes | integer 1-12 |
+| Ano | Ano | integer |
+| Contrato | Contrato | string |
 
----
-
-## Formato da Resposta da API
-
-Todas as rotas retornam JSON no formato:
-
-```json
-{
-  "status": "ok",
-  "rota": "kpis",
-  "timestamp": "2026-04-02T10:30:00Z",
-  "dados": { ... }
-}
-```
-
-Em caso de erro:
-
-```json
-{
-  "status": "erro",
-  "codigo": 400,
-  "mensagem": "Parâmetro inválido: ano deve ser numérico"
-}
-```
-
----
-
-## Estratégia de Cache
-
-| Rota | TTL | Motivo |
-|---|---|---|
-| `/filtros` | 1 hora | Valores únicos raramente mudam |
-| `/dados` sem filtro | 15 min | Dataset completo, pesado |
-| `/dados` com filtros | 5 min | Combinações variadas |
-| `/kpis` | 10 min | Dependem dos dados |
-| `/timeline` | 15 min | Agrupamento estável |
-| `/comparacao` | 5 min | Parâmetros variáveis |
-
-Chave de cache: `rota_param1_valor1_param2_valor2` (ex: `dados_ano_2025_sigla_SMIR`)
-
----
-
-## Estratégia de Versionamento no GitHub
+## Fluxo de Dados
 
 ```
-main          ← produção (GitHub Pages serve daqui)
-  └── develop ← integração contínua
-        ├── etapa/2-apps-script
-        ├── etapa/3-frontend-base
-        ├── etapa/4-kpis-graficos
-        └── etapa/5-paginas
+loadData()
+  → Api.fetchFromApi()        — fetch ?rota=dados ao Apps Script
+  → extractRows()             — desempacota resposta (paginada ou direta)
+  → normalizeRow()            — padroniza campos e tipos
+  → State.setRawData()        — armazena dataset bruto
+  → Filters.populateAll()     — constrói opções dos multi-selects
+  → Filters.applyFilters()    — filtra rawData → filteredData
+  → App.refresh()
+      → Kpis.render()             — atualiza 4 cards
+      → Charts.renderAll()        — reconstrói 3 gráficos
+      → Tables.renderTable()      — pagina + renderiza tabela detalhada
+      → Tables.renderSummaryTables() — 5 tabelas resumo sem paginação
 ```
 
-Padrão de commit:
-```
-[etapa] tipo: descrição curta
+## Filtros
 
-Exemplos:
-[apps-script] feat: adiciona rota /comparacao
-[frontend] fix: corrige filtro de ano no gráfico de barras
-[docs] chore: atualiza mapeamento de colunas
-```
+### Principais (afetam KPIs, gráficos, tabelas resumo)
+- `anos[]` — multi-select
+- `despesas[]` — multi-select
+- `tipos[]` — multi-select (Veículo / Máquina)
+- `secretarias[]` — multi-select com nome completo
+- `classificacoes[]` — multi-select
 
----
+### Coluna (afetam apenas Registros Detalhados)
+Inputs individuais por coluna: Sigla, Departamento, Despesa, Tipo, Placa, Modelo, Classificacao, Mes, Ano, ValorMin
 
-## Estratégia de Deploy
+## Modais
 
-1. Push para `main` dispara o workflow `.github/workflows/deploy.yml`
-2. O workflow copia a pasta `frontend/` para o branch `gh-pages`
-3. GitHub Pages serve o conteúdo em `https://<usuario>.github.io/<repositorio>/`
-4. Nenhum build é necessário — HTML/CSS/JS puro
-
----
+Utilitário `Modal` em `app.js`:
+- `Modal.open('detalheRegistro', registro)` — detalhes de qualquer registro
+- `Modal.open('chartDetalhe', {titulo, registros, tipo})` — clique em barra do gráfico
+- `Modal.open('evolucaoDetalhe', {mes, ano, total, registros})` — clique em ponto da linha
 
 ## Responsividade
 
-| Breakpoint | Layout |
+| Breakpoint | Comportamento |
 |---|---|
-| `>= 1280px` | Sidebar expandida + 2–3 colunas de gráficos |
-| `768px – 1279px` | Sidebar colapsável + 2 colunas |
-| `< 768px` | Sidebar oculta (menu hamburger) + 1 coluna |
+| ≥ 1280px | Sidebar externa, 4 KPIs, gráficos 2×1, resumos 2×2 |
+| 768–1279px | Sidebar drawer, 2 KPIs, gráficos 1 col, resumos 1 col |
+| < 768px | Layout coluna única, KPIs 2×2, tudo empilhado |
 
----
+## Apps Script
 
-## Dependências Externas (CDN — sem instalação)
+Endpoint: `CONFIG.API_URL?rota=dados`
+Resposta aceita: array direto, `{dados:[...]}`, `{dados:{registros:[...]}}`, `{registros:[...]}`, `{data:[...]}`
+
+## Dependências Externas
 
 ```html
-<!-- Chart.js para gráficos -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-
-<!-- Lucide para ícones (mesma lib do PCA) -->
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 ```
 
 Nenhuma outra dependência. Sem npm, sem build, sem node_modules.
