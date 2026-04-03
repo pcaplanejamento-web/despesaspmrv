@@ -205,7 +205,25 @@ const Api = (() => {
     try {
       const url  = `${CONFIG.API_URL}?rota=dados`;
       const json = await _get(url);
+
+      // ── [DIAG] Ponto 1: estrutura bruta da resposta ──────────────────
+      console.warn('[DIAG-1] Chaves de json:', Object.keys(json || {}));
+      console.warn('[DIAG-1] json.status:', json?.status);
+      console.warn('[DIAG-1] typeof json.dados:', typeof json?.dados);
+      console.warn('[DIAG-1] Array.isArray(json.dados):', Array.isArray(json?.dados));
+      if (json?.dados && typeof json.dados === 'object' && !Array.isArray(json.dados)) {
+        console.warn('[DIAG-1] Chaves de json.dados:', Object.keys(json.dados));
+        console.warn('[DIAG-1] Array.isArray(json.dados.registros):', Array.isArray(json?.dados?.registros));
+        console.warn('[DIAG-1] json.dados.registros?.length:', json?.dados?.registros?.length);
+      }
+      // ────────────────────────────────────────────────────────────────
+
       const rows = extractRows(json);
+
+      // ── [DIAG] Ponto 2: resultado do extractRows ─────────────────────
+      console.warn('[DIAG-2] rows.length após extractRows:', rows.length);
+      if (rows.length > 0) console.warn('[DIAG-2] Primeiro row (keys):', Object.keys(rows[0] || {}));
+      // ────────────────────────────────────────────────────────────────
 
       // Descarta apenas linhas que são explicitamente cabeçalho textual
       const dataRows = rows.filter(row => {
@@ -216,6 +234,17 @@ const Api = (() => {
       });
 
       const normalized = dataRows.map(normalizeRow);
+
+      // ── [DIAG] Ponto 3: resultado da normalização ────────────────────
+      console.warn('[DIAG-3] normalized.length:', normalized.length);
+      if (normalized.length > 0) {
+        const p = normalized[0];
+        console.warn('[DIAG-3] Primeiro registro normalizado:', {
+          Empresa: p.Empresa, Sigla: p.Sigla, Despesa: p.Despesa,
+          Valor: p.Valor, Mes: p.Mes, Ano: p.Ano
+        });
+      }
+      // ────────────────────────────────────────────────────────────────
 
       // [B5] Diagnóstico quando 0 registros são retornados após parse
       if (normalized.length === 0) {
