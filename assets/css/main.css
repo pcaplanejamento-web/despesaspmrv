@@ -236,3 +236,121 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   border-radius: 50%;
   flex-shrink: 0;
 }
+
+/* ===== BANNER DE CARREGAMENTO SUSPENSO ===== */
+
+#loadingBanner {
+  position: sticky;
+  top: 0;
+  z-index: 500;
+  width: 100%;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition:
+    max-height 380ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity    280ms ease;
+  pointer-events: none;
+}
+
+#loadingBanner.loading-banner--visible {
+  max-height: 52px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#loadingBanner.loading-banner--hidden {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-banner-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: 12px var(--space-5);
+  background: linear-gradient(90deg, #1245b8 0%, #1a56db 50%, #1245b8 100%);
+  background-size: 200% 100%;
+  animation: banner-shimmer 2s linear infinite;
+  color: #fff;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(26, 86, 219, 0.35);
+}
+
+/* Estado de sucesso */
+#loadingBanner.loading-banner--success .loading-banner-inner {
+  background: linear-gradient(90deg, #046c4e 0%, #057a55 50%, #046c4e 100%);
+  background-size: 200% 100%;
+  animation: banner-shimmer 2s linear infinite;
+  box-shadow: 0 2px 8px rgba(5, 122, 85, 0.35);
+}
+
+/* Estado de erro */
+#loadingBanner.loading-banner--error .loading-banner-inner {
+  background: linear-gradient(90deg, #c81e1e 0%, #e02424 50%, #c81e1e 100%);
+  background-size: 200% 100%;
+  animation: banner-shimmer 2s linear infinite;
+  box-shadow: 0 2px 8px rgba(224, 36, 36, 0.35);
+}
+
+/* Ícone spinner */
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  animation: spin 0.9s linear infinite;
+}
+
+/* Esconde o spinner quando sucesso ou erro */
+#loadingBanner.loading-banner--success .loading-spinner,
+#loadingBanner.loading-banner--error   .loading-spinner {
+  display: none;
+}
+
+/* Texto */
+.loading-banner-text {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.015em;
+}
+
+/* Pontinhos animados */
+.loading-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.loading-dots span {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+/* Esconde os pontinhos quando sucesso ou erro */
+#loadingBanner.loading-banner--success .loading-dots,
+#loadingBanner.loading-banner--error   .loading-dots {
+  display: none;
+}
+
+@keyframes banner-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1);   opacity: 1; }
+}
