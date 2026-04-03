@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.2.1 — Correção de carregamento de dados — 2026-04-03
+
+### Corrigido
+- **[B8] `DadosService.js` linha 15** — `NOME_ABA` estava definido como `'DADOSGERAL'` em vez de `'GERAL'`. O Apps Script lançava erro ao tentar abrir a aba, impedindo qualquer leitura da planilha. Causa raiz do tela em branco.
+- **[B8] `api.js` — `extractRows()`** — a função não tratava a estrutura paginada retornada pelo `Router.js` na rota `dados`. A resposta real é `{ dados: { registros: [...], paginacao: {...} } }`, mas o código verificava `Array.isArray(json.dados)`, que é `false` para um objeto. Adicionada verificação `json.dados.registros` antes das demais, garantindo extração correta dos registros.
+- **[B9] `api.js` — `normalizeRow()`** — campo `Liquidado` buscava `row.Liquidado || row.liquidado`, mas o `DadosService.js` serializa o campo como `valorLiquidado`. Adicionado `|| row.valorLiquidado` no fallback. Todos os KPIs de liquidação estavam retornando 0.
+
+### Arquivos alterados
+- `DadosService.js` — linha 15
+- `api.js` — `extractRows()` e `normalizeRow()`
+
+---
+
+## v1.1.0 — Metodologia — 2026-04-03
+
+### Documentação
+- `metodologia.md` criado — define fluxo de trabalho obrigatório: leitura dos arquivos do projeto antes de qualquer ação, atualização de `.md` a cada entrega, hierarquia de decisão entre arquivo do projeto, instrução do usuário e memória de contexto
+
+---
+
 ## v1.0.0 — Etapa 1 (em andamento)
 
 ### Adicionado

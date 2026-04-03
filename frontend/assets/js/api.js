@@ -167,7 +167,7 @@ const Api = (() => {
       Tipo:          String(row.Tipo          || row.tipo          || '').trim(),
       Placa:         String(row.Placa         || row.placa         || '').trim().toUpperCase(),
       Valor:         parseBRFloat(row.Valor    || row.valor),     // [B3]
-      Liquidado:     parseBRFloat(row.Liquidado || row.liquidado), // [B3]
+      Liquidado:     parseBRFloat(row.Liquidado || row.liquidado || row.valorLiquidado), // [B3][B9] backend serializa como valorLiquidado
       Mes:           parseInt(mesRaw, 10) || 0,
       Ano:           parseInt(row.Ano || row.ano || 0, 10) || 0,
       Contrato:      String(row.Contrato || row.contrato || '').trim(),
@@ -182,9 +182,10 @@ const Api = (() => {
       try { json = JSON.parse(json); } catch (_) { return []; }
     }
 
-    if (Array.isArray(json))                    return json;
-    if (json && Array.isArray(json.dados))      return json.dados;
-    if (json && Array.isArray(json.registros))  return json.registros;
+    if (Array.isArray(json))                                        return json;
+    if (json && json.dados && Array.isArray(json.dados.registros)) return json.dados.registros; // [B8] resposta paginada do Router
+    if (json && Array.isArray(json.dados))                         return json.dados;
+    if (json && Array.isArray(json.registros))                     return json.registros;
     if (json && Array.isArray(json.data))       return json.data;
     if (json && Array.isArray(json.rows))       return json.rows;    // Sheets API
     if (json && Array.isArray(json.values))     return json.values;  // Sheets API v4
