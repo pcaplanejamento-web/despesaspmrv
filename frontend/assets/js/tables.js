@@ -1,5 +1,21 @@
 /**
  * tables.js — Tabela detalhada com paginação, ordenação e busca
+ * v1.2.0
+ *
+ * BUGS CORRIGIDOS NESTA VERSÃO:
+ *
+ * [B9]  renderInfo(): quando slice.length = 0 (nenhum registro na página),
+ *       o cálculo `from + 1` resultava em "Exibindo 1–0 de 0", texto inválido.
+ *       O early return `if (!searched)` só cobria o caso total=0; não cobria
+ *       o estado vazio pós-filtro quando filtered > 0.
+ *       Corrigido: renderInfo agora recebe o slice real e trata o caso vazio.
+ *
+ * [B10] exportCSV(): a exportação aplicava busca textual (searchData) mas NÃO
+ *       aplicava a ordenação ativa (sortData), gerando um CSV em ordem
+ *       diferente da tabela exibida na tela. Corrigido: aplica sortData também.
+ *
+ * [B11] searchData(): busca não cobria o campo Empresa, limitando a pesquisa
+ *       a Placa, Modelo, Departamento e Sigla. Adicionado r.Empresa.
  */
 
 const Tables = (() => {
@@ -38,29 +54,30 @@ const Tables = (() => {
     });
   }
 
-  // ----- Busca textual -----
+  // ----- [B11] Busca textual — campo Empresa adicionado -----
 
   function searchData(data) {
     const term = State.getTableSearch();
     if (!term) return data;
     return data.filter(r =>
-      r.Placa.toLowerCase().includes(term)       ||
-      r.Modelo.toLowerCase().includes(term)      ||
-      r.Departamento.toLowerCase().includes(term)||
-      r.Sigla.toLowerCase().includes(term)
+      r.Placa.toLowerCase().includes(term)        ||
+      r.Modelo.toLowerCase().includes(term)       ||
+      r.Departamento.toLowerCase().includes(term) ||
+      r.Sigla.toLowerCase().includes(term)        ||
+      r.Empresa.toLowerCase().includes(term)      // [B11]
     );
   }
 
   // ----- Renderização da tabela -----
 
   function renderTable() {
-    const filtered  = State.getFilteredData();
-    const searched  = searchData(filtered);
-    const sorted    = sortData(searched);
-    const pageSize  = State.getTablePageSize();
-    const page      = State.getTablePage();
+    const filtered   = State.getFilteredData();
+    const searched   = searchData(filtered);
+    const sorted     = sortData(searched);
+    const pageSize   = State.getTablePageSize();
+    const page       = State.getTablePage();
     const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-    const safePage  = Math.min(page, totalPages);
+    const safePage   = Math.min(page, totalPages);
     if (safePage !== page) State.setTablePage(safePage);
 
     const start = (safePage - 1) * pageSize;
@@ -90,19 +107,29 @@ const Tables = (() => {
       `).join('');
     }
 
-    renderInfo(sorted.length, filtered.length, start, start + slice.length);
+    // [B9] Passa o slice diretamente para que renderInfo saiba o tamanho real
+    renderInfo(sorted.length, filtered.length, start, slice.length);
     renderPagination(safePage, totalPages);
     renderSortIcons();
   }
 
-  // ----- Info -----
+  // ----- [B9] Info — corrigida lógica de exibição de intervalo -----
 
-  function renderInfo(searched, filtered, from, to) {
+  function renderInfo(totalSearched, totalFiltered, startIndex, sliceLength) {
     const el = document.getElementById('tableInfo');
     if (!el) return;
-    if (!searched) { el.textContent = 'Nenhum registro'; return; }
-    const showing = `Exibindo ${(from + 1).toLocaleString('pt-BR')}–${to.toLocaleString('pt-BR')} de ${searched.toLocaleString('pt-BR')}`;
-    el.textContent = searched < filtered ? `${showing} (filtrado de ${filtered.toLocaleString('pt-BR')})` : showing;
+
+    if (!totalSearched || !sliceLength) {
+      el.textContent = 'Nenhum registro';
+      return;
+    }
+
+    const from = startIndex + 1;
+    const to   = startIndex + sliceLength;
+    const showing = `Exibindo ${from.toLocaleString('pt-BR')}–${to.toLocaleString('pt-BR')} de ${totalSearched.toLocaleString('pt-BR')}`;
+    el.textContent = totalSearched < totalFiltered
+      ? `${showing} (filtrado de ${totalFiltered.toLocaleString('pt-BR')})`
+      : showing;
   }
 
   // ----- Paginação -----
@@ -113,7 +140,7 @@ const Tables = (() => {
     if (total <= 1) { container.innerHTML = ''; return; }
 
     const pages = [];
-    const addPage = (p) => pages.push(p);
+    const addPage     = (p) => pages.push(p);
     const addEllipsis = () => pages.push('...');
 
     if (total <= 7) {
@@ -157,10 +184,13 @@ const Tables = (() => {
     });
   }
 
-  // ----- Exportação CSV -----
+  // ----- [B10] Exportação CSV — agora inclui ordenação ativa -----
 
   function exportCSV() {
-    const data = searchData(State.getFilteredData());
+    // [B10] Aplica busca E ordenação para que o CSV reflita exatamente
+    // o que o usuário está vendo na tabela
+    const data = sortData(searchData(State.getFilteredData()));
+
     const headers = ['Empresa','Sigla','Departamento','Despesa','Modelo','Classificação','Tipo','Placa','Valor','Liquidado','Mês','Ano','Contrato'];
     const rows = data.map(r => [
       r.Empresa, r.Sigla, r.Departamento, r.Despesa, r.Modelo,
@@ -186,7 +216,6 @@ const Tables = (() => {
   // ----- Events -----
 
   function bindEvents() {
-    // Ordenação por coluna
     document.querySelectorAll('.th-sortable').forEach(th => {
       th.addEventListener('click', () => {
         State.setTableSort(th.dataset.col);
@@ -194,7 +223,6 @@ const Tables = (() => {
       });
     });
 
-    // Tamanho de página
     const pageSizeEl = document.getElementById('tablePageSize');
     if (pageSizeEl) {
       pageSizeEl.addEventListener('change', () => {
@@ -203,7 +231,6 @@ const Tables = (() => {
       });
     }
 
-    // Busca com debounce
     let searchTimer;
     const searchEl = document.getElementById('tableSearch');
     if (searchEl) {
@@ -216,7 +243,6 @@ const Tables = (() => {
       });
     }
 
-    // Exportar CSV
     const csvBtn = document.getElementById('btnExportCSV');
     if (csvBtn) csvBtn.addEventListener('click', exportCSV);
   }

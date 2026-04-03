@@ -1,20 +1,28 @@
 /**
  * api.js — Integração com Google Apps Script
+ * v1.2.0
  *
- * Responsabilidades:
- * - Realizar requisições ao endpoint (parâmetro: ?rota=dados)
- * - Normalizar a resposta JSON para o modelo interno
- * - Gerenciar cache via State (evita requisições desnecessárias)
- * - Atualizar indicadores de status na interface
+ * BUGS CORRIGIDOS NESTA VERSÃO:
  *
- * Correções aplicadas (v1.1.1):
- * [1] _get(): adicionado `redirect: 'follow'` ao fetch — necessário para
- *     seguir os redirecionamentos 302 emitidos pelo Google Apps Script.
- * [2] normalizeRow(): fallback robusto para a chave 'Mês' com acento,
- *     usando escape Unicode (\u00eas) para evitar problemas de encoding.
- * [3] fetchFromApi(): filtro de cabeçalho reescrito — agora descarta apenas
- *     linhas onde row[0] === 'Empresa' ou row[9] === 'Valor', preservando
- *     registros legítimos com Valor igual a zero ou string vazia.
+ * [B1] _get(): redirect:'follow' já presente — mantido.
+ *
+ * [B2] _get(): response.json() lançava SyntaxError silencioso quando o GAS
+ *      retorna HTML de erro (quota, autenticação). Agora detecta e relança
+ *      com mensagem clara: "Resposta inesperada da API (não é JSON)".
+ *
+ * [B3] normalizeRow(): parseFloat(str.replace(',','.')) falhava com valores
+ *      em formato brasileiro com separador de milhar, ex: "1.234,56" virava
+ *      "1.234.56" → parseFloat lia apenas 1.234. Novo helper parseBRFloat()
+ *      remove pontos de milhar antes de trocar a vírgula decimal por ponto.
+ *
+ * [B4] extractRows(): quando o GAS retorna string duplo-codificada
+ *      (JSON.stringify aninhado), a função retornava [] silenciosamente.
+ *      Agora detecta string e tenta JSON.parse antes de extrair.
+ *      Adicionadas chaves 'rows' e 'values' (compatibilidade Sheets API v4).
+ *
+ * [B5] fetchFromApi(): quando normalized.length === 0 após parse, o sistema
+ *      exibia "Conectado" + 0 registros sem nenhuma pista de diagnóstico.
+ *      Agora emite console.warn detalhado com a resposta bruta da API.
  */
 
 const Api = (() => {
@@ -60,12 +68,9 @@ const Api = (() => {
     const timer = setTimeout(() => controller.abort(), CONFIG.API_TIMEOUT);
 
     try {
-      // [CORREÇÃO 1] redirect: 'follow' é obrigatório para o Apps Script.
-      // O GAS emite um redirecionamento 302 antes de entregar o conteúdo;
-      // sem este parâmetro o fetch falha silenciosamente com erro de rede.
       const response = await fetch(url, {
         signal:   controller.signal,
-        redirect: 'follow',
+        redirect: 'follow',  // obrigatório para o redirecionamento 302 do GAS
       });
       clearTimeout(timer);
 
@@ -73,7 +78,17 @@ const Api = (() => {
         throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const json = await response.json();
+      // [B2] Isola o parse de JSON para dar mensagem de erro útil quando
+      // o GAS retorna HTML (quota excedida, script não publicado, etc.)
+      let json;
+      try {
+        json = await response.json();
+      } catch (_) {
+        throw new Error(
+          'Resposta inesperada da API (não é JSON). ' +
+          'Verifique se o Apps Script está publicado como Web App com acesso "Qualquer pessoa".'
+        );
+      }
 
       if (json && json.status === 'erro') {
         throw new Error(json.mensagem || 'Erro desconhecido na API');
@@ -90,10 +105,29 @@ const Api = (() => {
     }
   }
 
+  // ----- [B3] Parser numérico para formato pt-BR -----
+
+  /**
+   * Converte string de número em formato brasileiro para float.
+   *   "1.234,56" → 1234.56   (milhar '.' + decimal ',')
+   *   "1234,56"  → 1234.56   (decimal ',' sem milhar)
+   *   "1234.56"  → 1234.56   (já no formato US / número puro)
+   *   1234.56    → 1234.56   (já é number — retorna diretamente)
+   */
+  function parseBRFloat(val) {
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+    const s = String(val || '0')
+      .trim()
+      .replace(/[R$\s]/g, '')              // remove prefixo R$
+      .replace(/\.(?=\d{3}(?:[,.]|$))/g, '') // remove separador de milhar '.'
+      .replace(',', '.');                  // vírgula decimal → ponto
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  }
+
   // ----- Normalização de linha -----
 
   function normalizeRow(row) {
-    // Suporta tanto array posicional quanto objeto com chaves
     if (Array.isArray(row)) {
       return {
         Empresa:       String(row[0]  || '').trim(),
@@ -105,26 +139,23 @@ const Api = (() => {
         Classificacao: String(row[6]  || '').trim(),
         Tipo:          String(row[7]  || '').trim(),
         Placa:         String(row[8]  || '').trim().toUpperCase(),
-        Valor:         parseFloat(String(row[9]  || '0').replace(',', '.')) || 0,
-        Liquidado:     parseFloat(String(row[10] || '0').replace(',', '.')) || 0,
+        Valor:         parseBRFloat(row[9]),   // [B3]
+        Liquidado:     parseBRFloat(row[10]),  // [B3]
         Mes:           parseInt(row[11], 10) || 0,
         Ano:           parseInt(row[12], 10) || 0,
         Contrato:      String(row[13] || '').trim(),
       };
     }
 
-    // [CORREÇÃO 2] A chave 'Mês' (com acento) pode ser serializada de formas
-    // distintas dependendo do encoding adotado pelo Apps Script / JSON.stringify.
-    // Testamos todas as variantes conhecidas antes de cair no fallback numérico.
+    // Fallback robusto para 'Mês' — encoding do GAS pode variar
     const mesRaw =
-      row['M\u00eas']   ||   // 'Mês' via escape Unicode — mais seguro
-      row['Mês']        ||   // literal UTF-8 (quando o arquivo está em UTF-8)
-      row['Mes']        ||   // sem acento (normalização prévia do GAS)
-      row.mes           ||   // camelCase
-      row.month         ||   // chave em inglês (improvável, mas defensivo)
+      row['M\u00eas'] ||  // escape Unicode — mais portável
+      row['Mês']      ||  // literal UTF-8
+      row['Mes']      ||  // sem acento
+      row.mes         ||
+      row.month       ||
       0;
 
-    // Resposta como objeto com chaves
     return {
       Empresa:       String(row.Empresa       || row.empresa       || '').trim(),
       Sigla:         String(row.Sigla         || row.sigla         || '').trim(),
@@ -135,21 +166,28 @@ const Api = (() => {
       Classificacao: String(row['Classifica\u00e7\u00e3o'] || row['Classificação'] || row.Classificacao || row.classificacao || '').trim(),
       Tipo:          String(row.Tipo          || row.tipo          || '').trim(),
       Placa:         String(row.Placa         || row.placa         || '').trim().toUpperCase(),
-      Valor:         parseFloat(String(row.Valor     || row.valor     || '0').replace(',', '.')) || 0,
-      Liquidado:     parseFloat(String(row.Liquidado || row.liquidado || '0').replace(',', '.')) || 0,
+      Valor:         parseBRFloat(row.Valor    || row.valor),     // [B3]
+      Liquidado:     parseBRFloat(row.Liquidado || row.liquidado), // [B3]
       Mes:           parseInt(mesRaw, 10) || 0,
-      Ano:           parseInt(row.Ano         || row.ano           || 0, 10) || 0,
-      Contrato:      String(row.Contrato      || row.contrato      || '').trim(),
+      Ano:           parseInt(row.Ano || row.ano || 0, 10) || 0,
+      Contrato:      String(row.Contrato || row.contrato || '').trim(),
     };
   }
 
-  // ----- Extração do array de dados da resposta -----
+  // ----- [B4] Extração do array de dados da resposta -----
 
   function extractRows(json) {
+    // Desempacota string duplo-codificada (GAS às vezes serializa duas vezes)
+    if (typeof json === 'string') {
+      try { json = JSON.parse(json); } catch (_) { return []; }
+    }
+
     if (Array.isArray(json))                    return json;
     if (json && Array.isArray(json.dados))      return json.dados;
     if (json && Array.isArray(json.registros))  return json.registros;
     if (json && Array.isArray(json.data))       return json.data;
+    if (json && Array.isArray(json.rows))       return json.rows;    // Sheets API
+    if (json && Array.isArray(json.values))     return json.values;  // Sheets API v4
     return [];
   }
 
@@ -164,25 +202,34 @@ const Api = (() => {
     setSyncButtonLoading(true);
 
     try {
-      const url = `${CONFIG.API_URL}?rota=dados`;
+      const url  = `${CONFIG.API_URL}?rota=dados`;
       const json = await _get(url);
       const rows = extractRows(json);
 
-      // [CORREÇÃO 3] A lógica anterior descartava qualquer linha cujo índice [9]
-      // não fosse um número válido — eliminando registros com Valor = "" ou 0.
-      // Agora descartamos apenas linhas que são explicitamente cabeçalho:
-      // row[0] === 'Empresa'  →  linha de cabeçalho de texto
-      // row[9] === 'Valor'    →  linha de cabeçalho de texto (coluna Valor)
+      // Descarta apenas linhas que são explicitamente cabeçalho textual
       const dataRows = rows.filter(row => {
-        if (!Array.isArray(row)) return true;           // objetos passam sempre
-        if (row[0] === 'Empresa') return false;         // descarta cabeçalho
-        if (row[9] === 'Valor')   return false;         // descarta cabeçalho alternativo
-        return true;                                    // preserva todos os dados, incluindo Valor = 0
+        if (!Array.isArray(row)) return true;
+        if (row[0] === 'Empresa') return false;
+        if (row[9] === 'Valor')   return false;
+        return true;
       });
 
       const normalized = dataRows.map(normalizeRow);
-      State.setRawData(normalized);
 
+      // [B5] Diagnóstico quando 0 registros são retornados após parse
+      if (normalized.length === 0) {
+        console.warn(
+          '[API] Atenção: nenhum registro foi normalizado.\n' +
+          'Possíveis causas:\n' +
+          '  • Chave de dados não reconhecida (esperado: "dados", "registros", "data", "rows" ou "values")\n' +
+          '  • Colunas fora da ordem esperada (Empresa[0]…Ano[12])\n' +
+          '  • Apps Script retornou estrutura vazia ou inesperada\n' +
+          'Resposta bruta recebida:',
+          json
+        );
+      }
+
+      State.setRawData(normalized);
       setStatus('connected', 'Conectado');
       setLastSyncLabel(State.getLastSyncAt());
       setSyncButtonLoading(false);

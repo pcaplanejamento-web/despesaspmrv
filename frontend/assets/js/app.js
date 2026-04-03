@@ -1,13 +1,18 @@
 /**
  * app.js — Orquestrador principal da aplicação
+ * v1.2.0
  *
- * Responsabilidades:
- * - Inicializar todos os módulos na ordem correta
- * - Carregar dados (respeitando o cache do State)
- * - Coordenar o botão de sincronização
- * - Controlar a navegação do sidebar
- * - Gerenciar comportamento responsivo do menu
- * - Exibir banner de carregamento suspenso no topo da página
+ * BUGS CORRIGIDOS NESTA VERSÃO:
+ *
+ * [B6] hideLoadingBanner(): setTimeout sem referência causava race condition —
+ *      se sync() fosse chamado novamente antes dos 2200 ms, o timer antigo
+ *      disparava e escondia o banner enquanto o novo carregamento ainda
+ *      estava em curso. Corrigido com _bannerTimer cancelável.
+ *
+ * [B7] initSidebar(): aria-expanded do sidebarToggle estava hardcoded como
+ *      "true" no HTML mas o JS iniciava a sidebar como fechada em mobile.
+ *      Agora o estado inicial do atributo é definido programaticamente no
+ *      init, garantindo consistência entre atributo ARIA e estado visual.
  */
 
 const App = (() => {
@@ -21,7 +26,15 @@ const App = (() => {
 
   // ----- Banner de carregamento -----
 
+  let _bannerTimer = null; // [B6] referência do timer para cancelamento
+
   function showLoadingBanner(mensagem) {
+    // [B6] Cancela qualquer timer de ocultação pendente ao mostrar novamente
+    if (_bannerTimer) {
+      clearTimeout(_bannerTimer);
+      _bannerTimer = null;
+    }
+
     let banner = document.getElementById('loadingBanner');
     if (!banner) {
       banner = document.createElement('div');
@@ -35,13 +48,13 @@ const App = (() => {
               <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
             </svg>
           </span>
+          <span class="loading-banner-icon-state" id="loadingBannerIcon" aria-hidden="true"></span>
           <span class="loading-banner-text" id="loadingBannerText"></span>
           <span class="loading-dots" aria-hidden="true">
             <span></span><span></span><span></span>
           </span>
         </div>
       `;
-      // Insere antes do page-content, dentro do main-wrapper
       const pageContent = document.getElementById('pageContent');
       if (pageContent && pageContent.parentNode) {
         pageContent.parentNode.insertBefore(banner, pageContent);
@@ -49,6 +62,7 @@ const App = (() => {
         document.body.appendChild(banner);
       }
     }
+
     document.getElementById('loadingBannerText').textContent = mensagem || 'Carregando dados da planilha...';
     banner.classList.remove('loading-banner--hidden', 'loading-banner--success', 'loading-banner--error');
     banner.classList.add('loading-banner--visible');
@@ -66,9 +80,12 @@ const App = (() => {
       document.getElementById('loadingBannerText').textContent = 'Falha ao carregar. Verifique a conexão.';
     }
 
-    setTimeout(() => {
+    // [B6] Guarda referência para poder cancelar se loadData for chamado
+    // novamente antes do timer disparar
+    _bannerTimer = setTimeout(() => {
       banner.classList.remove('loading-banner--visible');
       banner.classList.add('loading-banner--hidden');
+      _bannerTimer = null;
     }, tipo ? 2200 : 0);
   }
 
@@ -139,8 +156,13 @@ const App = (() => {
     if (menuBtn) menuBtn.addEventListener('click', toggleSidebar);
     if (overlay) overlay.addEventListener('click', closeSidebar);
 
-    // Em telas grandes, sidebar começa aberta
-    if (!isMobile()) openSidebar();
+    // [B7] Define estado ARIA inicial programaticamente em vez de depender
+    // do valor hardcoded no HTML (que era sempre 'true' independente do viewport)
+    if (!isMobile()) {
+      openSidebar();
+    } else {
+      closeSidebar(); // garante que aria-expanded='false' em mobile
+    }
 
     window.addEventListener('resize', () => {
       if (!isMobile() && !sidebar.classList.contains('sidebar--closed')) {
@@ -181,7 +203,6 @@ const App = (() => {
     loadData(false);
   }
 
-  // Inicia após DOM estar pronto
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
