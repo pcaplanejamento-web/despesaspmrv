@@ -1,318 +1,224 @@
 /**
- * charts.js — Graficos v2.0
- * Chart.js com paleta PCA, animacoes suaves, skeletons.
+ * charts.js — v2.1
+ * Gráfico Siglas, Classificação, Evolução Mensal multi-ano.
  */
-
 const Charts = (() => {
-  const _instances = {};
+  const _inst = {};
 
-  // ── Helpers de cor ────────────────────────────────────
+  function isDark()    { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+  function textColor() { return isDark() ? 'rgba(232,237,245,0.75)' : 'rgba(26,31,54,0.70)'; }
+  function gridColor() { return isDark() ? 'rgba(255,255,255,0.07)' : 'rgba(67,97,238,0.07)'; }
 
-  function isDark() {
-    return document.documentElement.getAttribute('data-theme') === 'dark';
-  }
+  const PALETTE = (typeof CONFIG !== 'undefined' ? CONFIG.PALETA_GRAFICOS : ['#4f6ef5','#0ea872','#f09b0a','#7c3aed','#e11d48','#0ea5e9','#3bc4c4','#b45309']);
 
-  function textColor()   { return isDark() ? 'rgba(232,237,245,0.75)' : 'rgba(26,31,54,0.70)'; }
-  function gridColor()   { return isDark() ? 'rgba(255,255,255,0.07)' : 'rgba(67,97,238,0.07)'; }
-  function bgPlugin()    { return { id:'bg', beforeDraw(c){ const ctx=c.ctx; ctx.save(); ctx.fillStyle='transparent'; ctx.fillRect(0,0,c.width,c.height); ctx.restore(); } }; }
+  const tooltipBRL = ctx => ' ' + Number(ctx.parsed.x ?? ctx.parsed.y ?? ctx.parsed).toLocaleString('pt-BR', {style:'currency',currency:'BRL'});
 
-  const PALETTE = CONFIG.PALETA_GRAFICOS;
-
-  function tooltipBRL(ctx) {
-    const v = ctx.parsed;
-    const value = typeof v === 'number' ? v : (v.y ?? v);
-    return ' ' + Number(value).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
-  }
-
-  const BASE_OPTIONS = {
-    animation:  { duration: 350, easing:'easeOutQuart' },
+  const BASE = {
+    animation:  { duration:350, easing:'easeOutQuart' },
     responsive: true,
     maintainAspectRatio: true,
     plugins: {
-      legend: { display: false },
+      legend: { display:false },
       tooltip: {
-        callbacks: { label: tooltipBRL },
-        backgroundColor: isDark() ? '#1a1f36' : '#fff',
-        titleColor:      isDark() ? '#e8edf5' : '#1a1f36',
-        bodyColor:       isDark() ? '#9ca3af' : '#6b7280',
-        borderColor:     isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-        borderWidth: 1,
-        padding: 12, cornerRadius: 10,
-        titleFont: { weight:'700', size:13 },
-        bodyFont:  { size:12 },
+        callbacks:       { label: tooltipBRL },
+        backgroundColor: () => isDark() ? '#1a1f36' : '#fff',
+        titleColor:      () => isDark() ? '#e8edf5' : '#1a1f36',
+        bodyColor:       () => isDark() ? '#9ca3af' : '#6b7280',
+        borderColor:     () => isDark() ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.08)',
+        borderWidth:1, padding:12, cornerRadius:10,
+        titleFont:{weight:'700',size:13}, bodyFont:{size:12},
       },
     },
   };
 
-  // ── Skeletons ─────────────────────────────────────────
-
-  function showSkeletons() {
-    ['skeletonTipoDespesa','skeletonSecretarias','skeletonTipoFrota','skeletonEvolucao'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) { el.style.display = 'block'; }
-    });
-    ['chartTipoDespesa','chartSecretarias','chartTipoFrota','chartEvolucao'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) { el.style.opacity = '0'; }
-    });
-  }
+  function destroy(id) { if (_inst[id]) { _inst[id].destroy(); delete _inst[id]; } }
 
   function hideSkeletons() {
-    ['skeletonTipoDespesa','skeletonSecretarias','skeletonTipoFrota','skeletonEvolucao'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
+    ['skeletonSiglas','skeletonClassificacao','skeletonEvolucao'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.style.display='none';
     });
-    ['chartTipoDespesa','chartSecretarias','chartTipoFrota','chartEvolucao'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.opacity = '1';
+    ['chartSiglas','chartClassificacao','chartEvolucao'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.style.opacity='1';
     });
   }
 
-  function destroyChart(id) {
-    if (_instances[id]) {
-      _instances[id].destroy();
-      delete _instances[id];
-    }
+  function showSkeletons() {
+    ['skeletonSiglas','skeletonClassificacao','skeletonEvolucao'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.style.display='block';
+    });
+    ['chartSiglas','chartClassificacao','chartEvolucao'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.style.opacity='0';
+    });
   }
 
-  // ── Grafico 1: Donut Tipo de Despesa ─────────────────
+  // ── Gráfico 1: Por Local (Sigla) ─────────────────────
 
-  function renderTipoDespesa(data) {
-    const canvasId = 'chartTipoDespesa';
-    destroyChart(canvasId);
-    const canvas = document.getElementById(canvasId);
+  function renderSiglas(data) {
+    const id = 'chartSiglas';
+    destroy(id);
+    const canvas = document.getElementById(id);
     if (!canvas) return;
 
-    const comb = data.filter(r => r.Despesa === 'Combustivel' || r.Despesa === 'Combustível').reduce((s,r)=>s+r.Valor,0);
-    const manu = data.filter(r => r.Despesa === 'Manutencao'  || r.Despesa === 'Manutenção').reduce((s,r)=>s+r.Valor,0);
+    const agg = {};
+    data.forEach(r => { const k = r.Sigla||'--'; agg[k]=(agg[k]||0)+r.Valor; });
+    const sorted = Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,10);
 
-    if (!comb && !manu) { canvas.parentElement.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:40px;font-size:13px;">Sem dados</p>'; return; }
+    if (!sorted.length) { _noData(canvas); return; }
 
-    _instances[canvasId] = new Chart(canvas, {
-      type: 'doughnut',
-      data: {
-        labels: ['Combustivel', 'Manutencao'],
-        datasets: [{
-          data: [comb, manu],
-          backgroundColor: [CONFIG.CORES.combustivel, CONFIG.CORES.manutencao],
-          borderColor:     [CONFIG.CORES.combustivel, CONFIG.CORES.manutencao],
-          borderWidth: 0,
-          hoverOffset: 12,
-          borderRadius: 6,
-        }],
-      },
-      options: {
-        ...BASE_OPTIONS,
-        cutout: '68%',
-        plugins: {
-          ...BASE_OPTIONS.plugins,
-          legend: {
-            display: true,
-            position: 'bottom',
-            labels: {
-              color: textColor(), padding:16, boxWidth:12, borderRadius:6,
-              font: { size:12, weight:'600' },
-            },
-          },
-          tooltip: { ...BASE_OPTIONS.plugins.tooltip },
-        },
-      },
-      plugins: [bgPlugin()],
-    });
-  }
-
-  // ── Grafico 2: Barras Horizontais Top Secretarias ─────
-
-  function renderSecretarias(data) {
-    const canvasId = 'chartSecretarias';
-    destroyChart(canvasId);
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-
-    const agg = data.reduce((acc, r) => { acc[r.Sigla]=(acc[r.Sigla]||0)+r.Valor; return acc; }, {});
-    const sorted = Object.entries(agg).sort((a,b) => b[1]-a[1]).slice(0,8);
-    if (!sorted.length) { canvas.parentElement.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:40px;font-size:13px;">Sem dados</p>'; return; }
-
-    _instances[canvasId] = new Chart(canvas, {
+    _inst[id] = new Chart(canvas, {
       type: 'bar',
       data: {
         labels: sorted.map(s => s[0]),
         datasets: [{
           data: sorted.map(s => s[1]),
-          backgroundColor: sorted.map((_,i) => PALETTE[i % PALETTE.length] + 'CC'),
-          borderColor:     sorted.map((_,i) => PALETTE[i % PALETTE.length]),
-          borderWidth: 0,
-          borderRadius: 8,
-          borderSkipped: false,
+          backgroundColor: sorted.map((_,i) => PALETTE[i%PALETTE.length]+'BB'),
+          borderColor:     sorted.map((_,i) => PALETTE[i%PALETTE.length]),
+          borderWidth:0, borderRadius:8, borderSkipped:false,
         }],
       },
       options: {
-        ...BASE_OPTIONS,
+        ...BASE,
         indexAxis: 'y',
         scales: {
-          x: {
-            grid: { color: gridColor(), drawTicks:false },
-            border: { display:false },
-            ticks: { color:textColor(), font:{size:11}, callback: v => { if(v>=1000000) return 'R$'+(v/1000000).toFixed(1)+'M'; if(v>=1000) return 'R$'+(v/1000).toFixed(0)+'k'; return 'R$'+v; } },
-          },
-          y: {
-            grid: { display:false },
-            border: { display:false },
-            ticks: { color:textColor(), font:{size:12,weight:'600'} },
-          },
+          x: { grid:{color:gridColor(),drawTicks:false}, border:{display:false}, ticks:{color:textColor(),font:{size:11},callback:v=>_kFmt(v)} },
+          y: { grid:{display:false}, border:{display:false}, ticks:{color:textColor(),font:{size:12,weight:'600'}} },
         },
-        plugins: {
-          ...BASE_OPTIONS.plugins,
-          tooltip: {
-            ...BASE_OPTIONS.plugins.tooltip,
-            callbacks: {
-              label: ctx => ' ' + ctx.parsed.x.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}),
-            },
-          },
-        },
+        plugins: { ...BASE.plugins, tooltip:{ ...BASE.plugins.tooltip, callbacks:{ label:ctx=>' '+ctx.parsed.x.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) } } },
       },
-      plugins: [bgPlugin()],
     });
   }
 
-  // ── Grafico 3: Donut Tipo de Frota ────────────────────
+  // ── Gráfico 2: Por Classificação ──────────────────────
 
-  function renderTipoFrota(data) {
-    const canvasId = 'chartTipoFrota';
-    destroyChart(canvasId);
-    const canvas = document.getElementById(canvasId);
+  function renderClassificacao(data) {
+    const id = 'chartClassificacao';
+    destroy(id);
+    const canvas = document.getElementById(id);
     if (!canvas) return;
 
-    const veic = data.filter(r => (r.Tipo||'').toLowerCase().startsWith('ve')).reduce((s,r)=>s+r.Valor,0);
-    const maq  = data.filter(r => (r.Tipo||'').toLowerCase().startsWith('m')).reduce((s,r)=>s+r.Valor,0);
+    const agg = {};
+    data.forEach(r => { const k = (r.Classificacao||'--').substring(0,25); agg[k]=(agg[k]||0)+r.Valor; });
+    const sorted = Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,8);
 
-    if (!veic && !maq) { canvas.parentElement.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:40px;font-size:13px;">Sem dados</p>'; return; }
+    if (!sorted.length) { _noData(canvas); return; }
 
-    _instances[canvasId] = new Chart(canvas, {
-      type: 'doughnut',
+    _inst[id] = new Chart(canvas, {
+      type: 'bar',
       data: {
-        labels: ['Veiculos', 'Maquinas'],
+        labels: sorted.map(s => s[0]),
         datasets: [{
-          data: [veic, maq],
-          backgroundColor: [CONFIG.CORES.veiculo, CONFIG.CORES.maquina],
-          borderColor:     [CONFIG.CORES.veiculo, CONFIG.CORES.maquina],
-          borderWidth: 0,
-          hoverOffset: 12,
-          borderRadius: 6,
+          data: sorted.map(s => s[1]),
+          backgroundColor: sorted.map((_,i) => PALETTE[i%PALETTE.length]+'BB'),
+          borderColor:     sorted.map((_,i) => PALETTE[i%PALETTE.length]),
+          borderWidth:0, borderRadius:8, borderSkipped:false,
         }],
       },
       options: {
-        ...BASE_OPTIONS,
-        cutout: '68%',
-        plugins: {
-          ...BASE_OPTIONS.plugins,
-          legend: {
-            display: true,
-            position: 'bottom',
-            labels: {
-              color: textColor(), padding:16, boxWidth:12, borderRadius:6,
-              font: { size:12, weight:'600' },
-            },
-          },
-          tooltip: { ...BASE_OPTIONS.plugins.tooltip },
+        ...BASE,
+        indexAxis: 'y',
+        scales: {
+          x: { grid:{color:gridColor(),drawTicks:false}, border:{display:false}, ticks:{color:textColor(),font:{size:11},callback:v=>_kFmt(v)} },
+          y: { grid:{display:false}, border:{display:false}, ticks:{color:textColor(),font:{size:11},maxTicksLimit:8} },
         },
+        plugins: { ...BASE.plugins, tooltip:{ ...BASE.plugins.tooltip, callbacks:{ label:ctx=>' '+ctx.parsed.x.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) } } },
       },
-      plugins: [bgPlugin()],
     });
   }
 
-  // ── Grafico 4: Linha Evolucao Mensal ──────────────────
+  // ── Gráfico 3: Evolução Mensal (multi-ano) ────────────
 
   function renderEvolucao(data) {
-    const canvasId = 'chartEvolucao';
-    destroyChart(canvasId);
-    const canvas = document.getElementById(canvasId);
+    const id = 'chartEvolucao';
+    destroy(id);
+    const canvas   = document.getElementById(id);
+    const legEl    = document.getElementById('evolucaoLegenda');
     if (!canvas) return;
 
-    const periodos = {};
+    // Agrupa por ano → mês
+    const porAno = {};
     data.forEach(r => {
       if (!r.Mes || !r.Ano) return;
-      const k = `${r.Ano}-${String(r.Mes).padStart(2,'0')}`;
-      periodos[k] = (periodos[k]||0) + r.Valor;
+      const ano = String(r.Ano);
+      if (!porAno[ano]) porAno[ano] = {};
+      const m = r.Mes;
+      porAno[ano][m] = (porAno[ano][m]||0) + r.Valor;
     });
-    const sorted = Object.entries(periodos).sort((a,b) => a[0].localeCompare(b[0]));
-    if (!sorted.length) { canvas.parentElement.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:40px;font-size:13px;">Sem dados</p>'; return; }
 
-    const labels  = sorted.map(([k]) => {
-      const [ano, mes] = k.split('-');
-      return `${CONFIG.MESES[parseInt(mes)]||mes}/${ano}`;
+    const anos = Object.keys(porAno).sort();
+    if (!anos.length) { _noData(canvas); if(legEl) legEl.innerHTML=''; return; }
+
+    // Labels = todos os meses de 1 a 12 que aparecem no dataset
+    const mesesPresentes = new Set();
+    anos.forEach(a => Object.keys(porAno[a]).forEach(m => mesesPresentes.add(parseInt(m))));
+    const labels = [...mesesPresentes].sort((a,b)=>a-b);
+    const labelTexts = labels.map(m => CONFIG.MESES[m]||m);
+
+    const datasets = anos.map((ano, i) => {
+      const cor = PALETTE[i % PALETTE.length];
+      return {
+        label: ano,
+        data: labels.map(m => porAno[ano][m] || null),  // null = sem dado naquele mês
+        borderColor: cor,
+        backgroundColor: cor + '22',
+        fill: anos.length === 1,  // preenche só quando há 1 ano
+        tension: 0.35,
+        pointBackgroundColor: cor,
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        borderWidth: 2.5,
+        spanGaps: false,
+      };
     });
-    const values  = sorted.map(([,v]) => v);
-    const accent  = CONFIG.CORES.primaria;
-    const accentA = accent + '22';
 
-    _instances[canvasId] = new Chart(canvas, {
+    _inst[id] = new Chart(canvas, {
       type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          data: values,
-          borderColor: accent,
-          backgroundColor: (ctx) => {
-            const g = ctx.chart.ctx.createLinearGradient(0,0,0,ctx.chart.height);
-            g.addColorStop(0, accent+'55');
-            g.addColorStop(1, accent+'00');
-            return g;
-          },
-          fill: true,
-          tension: 0.35,
-          pointBackgroundColor: accent,
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 7,
-          borderWidth: 2.5,
-        }],
-      },
+      data: { labels: labelTexts, datasets },
       options: {
-        ...BASE_OPTIONS,
+        ...BASE,
         scales: {
-          x: {
-            grid: { color: gridColor(), drawTicks:false },
-            border: { display:false },
-            ticks: { color:textColor(), font:{size:11}, maxRotation:45 },
-          },
-          y: {
-            grid: { color: gridColor(), drawTicks:false },
-            border: { display:false },
-            ticks: { color:textColor(), font:{size:11}, callback: v => { if(v>=1000000) return 'R$'+(v/1000000).toFixed(1)+'M'; if(v>=1000) return 'R$'+(v/1000).toFixed(0)+'k'; return 'R$'+v; } },
-          },
+          x: { grid:{color:gridColor(),drawTicks:false}, border:{display:false}, ticks:{color:textColor(),font:{size:11}} },
+          y: { grid:{color:gridColor(),drawTicks:false}, border:{display:false}, ticks:{color:textColor(),font:{size:11},callback:v=>_kFmt(v)} },
         },
         plugins: {
-          ...BASE_OPTIONS.plugins,
-          tooltip: {
-            ...BASE_OPTIONS.plugins.tooltip,
-            callbacks: {
-              label: ctx => ' ' + ctx.parsed.y.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}),
-            },
-          },
+          ...BASE.plugins,
+          legend: { display: anos.length > 1, position:'top', labels:{ color:textColor(), font:{size:12,weight:'600'}, boxWidth:12, borderRadius:6, padding:16 } },
+          tooltip: { ...BASE.plugins.tooltip, mode:'index', intersect:false, callbacks:{ label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y?.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})||'—'}` } },
         },
+        interaction: { mode:'index', intersect:false },
       },
-      plugins: [bgPlugin()],
     });
+
+    // Legenda customizada (pills) — só quando múltiplos anos
+    if (legEl) {
+      if (anos.length > 1) {
+        legEl.innerHTML = anos.map((a,i) => `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--text-muted);"><span style="width:10px;height:10px;border-radius:50%;background:${PALETTE[i%PALETTE.length]};display:inline-block;"></span>${a}</span>`).join('');
+      } else {
+        legEl.innerHTML = '';
+      }
+    }
   }
 
-  // ── Render all ────────────────────────────────────────
+  function _kFmt(v) {
+    if (v >= 1e6) return 'R$'+(v/1e6).toFixed(1).replace('.',',')+'M';
+    if (v >= 1e3) return 'R$'+(v/1e3).toFixed(0)+'k';
+    return 'R$'+v;
+  }
+
+  function _noData(canvas) {
+    canvas.parentElement.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:48px 20px;font-size:13px;">Sem dados para o periodo selecionado</p>';
+  }
 
   function renderAll() {
     const data = State.getFilteredData();
     hideSkeletons();
-    renderTipoDespesa(data);
-    renderSecretarias(data);
-    renderTipoFrota(data);
+    renderSiglas(data);
+    renderClassificacao(data);
     renderEvolucao(data);
   }
 
-  // ── Atualiza tema ─────────────────────────────────────
-
-  function updateTheme() {
-    renderAll();
-  }
+  function updateTheme() { renderAll(); }
 
   return { renderAll, showSkeletons, updateTheme };
 })();

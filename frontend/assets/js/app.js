@@ -188,6 +188,7 @@ const App = (() => {
     Kpis.render();
     Charts.renderAll();
     Tables.renderTable();
+    Tables.renderSummaryTables();
   }
 
   async function loadData(forceRefresh = false) {
