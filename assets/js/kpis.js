@@ -1,150 +1,118 @@
 /**
- * kpis.js
- * Recebe o objeto de KPIs da API e renderiza os cards no DOM.
- * Não calcula nada — apenas formata e exibe o que veio do KpiService.
+ * kpis.js — Cálculo e renderização dos cards de KPI
  */
 
 const Kpis = (() => {
+  // ----- Formatação -----
 
-  /**
-   * Renderiza todos os KPI cards no container do dashboard.
-   * @param {Object} kpis - objeto retornado pela rota ?rota=kpis
-   */
-  function renderizar(kpis) {
-    const container = document.getElementById('kpis-container');
-    if (!container || !kpis) return;
-
-    const cards = _definirCards(kpis);
-    container.innerHTML = cards.map(_renderCard).join('');
+  function formatBRL(value) {
+    if (value >= 1_000_000_000) {
+      return `R$ ${(value / 1_000_000_000).toFixed(1).replace('.', ',')}B`;
+    }
+    if (value >= 1_000_000) {
+      return `R$ ${(value / 1_000_000).toFixed(1).replace('.', ',')}M`;
+    }
+    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
-  /**
-   * Define quais cards exibir e com quais dados.
-   * Altere aqui para adicionar, remover ou reordenar KPIs.
-   */
-  function _definirCards(k) {
-    const variacaoMensal = _calcularVariacaoExibicao(k);
-
-    return [
-      {
-        id:        'total-geral',
-        cor:       '',
-        label:     'Total Geral',
-        valor:     _fmtMoeda(k.totalGeral),
-        sub:       `${_fmtNum(k.qtdRegistros)} registros`,
-        variacao:  null,
-        icone:     'trending-up',
-      },
-      {
-        id:        'manutencao',
-        cor:       '',
-        label:     'Manutenção',
-        valor:     _fmtMoeda(k.totalManutencao),
-        sub:       `${_fmtPct(k.pctManutencao)} do total`,
-        variacao:  null,
-        icone:     'wrench',
-      },
-      {
-        id:        'combustivel',
-        cor:       'verde',
-        label:     'Combustível',
-        valor:     _fmtMoeda(k.totalCombustivel),
-        sub:       `${_fmtPct(k.pctCombustivel)} do total`,
-        variacao:  null,
-        icone:     'fuel',
-      },
-      {
-        id:        'media-mensal',
-        cor:       '',
-        label:     'Média Mensal',
-        valor:     _fmtMoeda(k.mediaMensal),
-        sub:       'por mês com dados',
-        variacao:  variacaoMensal,
-        icone:     'bar-chart-2',
-      },
-      {
-        id:        'maior-secretaria',
-        cor:       'roxo',
-        label:     'Maior Secretaria',
-        valor:     k.maiorSigla || '-',
-        sub:       `${_fmtMoeda(k.maiorSiglaValor)} · ${_fmtPct(k.maiorSiglaPct)}`,
-        variacao:  null,
-        icone:     'building-2',
-      },
-      {
-        id:        'liquidado',
-        cor:       '',
-        label:     'Total Liquidado',
-        valor:     _fmtMoeda(k.totalLiquidado),
-        sub:       `Desconto aplicado: ${_fmtPct(k.pctDesconto)}`,
-        variacao:  null,
-        icone:     'check-circle',
-      },
-    ];
+  function formatBRLFull(value) {
+    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
-  /**
-   * Gera o HTML de um card de KPI.
-   */
-  function _renderCard(card) {
-    const varHtml = card.variacao
-      ? `<span class="kpi-variacao ${card.variacao.positivo ? 'negativo' : 'positivo'}">
-           ${card.variacao.positivo ? '▲' : '▼'} ${card.variacao.texto}
-         </span>`
-      : '';
-
-    return `
-      <div class="kpi-card ${card.cor}" id="kpi-${card.id}">
-        <div class="kpi-label">${card.label}</div>
-        <div class="kpi-valor">${card.valor}</div>
-        <div class="kpi-sub">${card.sub} ${varHtml}</div>
-      </div>
-    `;
+  function pct(part, total) {
+    if (!total) return '0,0%';
+    return `${((part / total) * 100).toFixed(1).replace('.', ',')}%`;
   }
 
-  /**
-   * Tenta calcular a variação entre o primeiro e o último período disponível.
-   * Retorna null se não houver dados suficientes.
-   */
-  function _calcularVariacaoExibicao(kpis) {
-    if (!kpis.porMes) return null;
+  // ----- Atualização de um card -----
 
-    const periodos = Object.keys(kpis.porMes).sort();
-    if (periodos.length < 2) return null;
-
-    const primeiro = kpis.porMes[periodos[0]];
-    const ultimo   = kpis.porMes[periodos[periodos.length - 1]];
-
-    if (!primeiro || primeiro === 0) return null;
-
-    const pct      = ((ultimo - primeiro) / primeiro) * 100;
-    const positivo = pct > 0;
-
-    return {
-      positivo,
-      texto: `${Math.abs(pct).toFixed(1)}% vs ${periodos[0]}`,
-    };
+  function setKpi(valueId, subId, value, sub) {
+    const valEl = document.getElementById(valueId);
+    const subEl = document.getElementById(subId);
+    if (valEl) valEl.textContent = value;
+    if (subEl) subEl.textContent = sub;
   }
 
-  // ── Formatadores ─────────────────────────────────────────────────
+  // ----- Renderização principal -----
 
-  function _fmtMoeda(v) {
-    if (v === null || v === undefined) return 'R$ 0';
-    if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1)}M`;
-    if (v >= 1_000)     return `R$ ${(v / 1_000).toFixed(0)}k`;
-    return `R$ ${v.toFixed(0)}`;
+  function render() {
+    const data = State.getFilteredData();
+    const raw  = State.getRawData();
+
+    if (!data.length) {
+      setKpi('kpiTotalGeralValue',      'kpiTotalGeralSub',      'R$ 0', `0 registros`);
+      setKpi('kpiManutencaoValue',      'kpiManutencaoSub',      'R$ 0', '0,0% do total');
+      setKpi('kpiCombustivelValue',     'kpiCombustivelSub',     'R$ 0', '0,0% do total');
+      setKpi('kpiMediaValue',           'kpiMediaSub',           'R$ 0', 'por mês com dados');
+      setKpi('kpiMaiorSecretariaValue', 'kpiMaiorSecretariaSub', '—',    '—');
+      setKpi('kpiLiquidadoValue',       'kpiLiquidadoSub',       'R$ 0', 'Desconto: 5,01%');
+      return;
+    }
+
+    const totalGeral    = data.reduce((s, r) => s + r.Valor, 0);
+    const totalManut    = data.filter(r => r.Despesa === 'Manutenção').reduce((s, r) => s + r.Valor, 0);
+    const totalComb     = data.filter(r => r.Despesa === 'Combustível').reduce((s, r) => s + r.Valor, 0);
+    const totalLiquid   = data.filter(r => r.Despesa === 'Combustível').reduce((s, r) => s + r.Liquidado, 0);
+
+    // Média mensal
+    const mesesComDados = new Set(data.map(r => `${r.Ano}-${r.Mes}`));
+    const mediaMensal   = mesesComDados.size ? totalGeral / mesesComDados.size : 0;
+
+    // Maior secretaria
+    const porSigla = data.reduce((acc, r) => {
+      acc[r.Sigla] = (acc[r.Sigla] || 0) + r.Valor;
+      return acc;
+    }, {});
+    const maiorSigla   = Object.entries(porSigla).sort((a, b) => b[1] - a[1])[0] || ['—', 0];
+    const maiorPct     = pct(maiorSigla[1], totalGeral);
+
+    // Variação vs período anterior (mês anterior no mesmo dataset bruto)
+    const filtros = State.getFilters();
+    let variacaoLabel = '';
+    if (filtros.mes && filtros.ano) {
+      const mesAnt = parseInt(filtros.mes) - 1;
+      const anoAnt = mesAnt === 0 ? parseInt(filtros.ano) - 1 : parseInt(filtros.ano);
+      const mesRef = mesAnt === 0 ? 12 : mesAnt;
+      const anterior = raw
+        .filter(r => r.Mes === mesRef && r.Ano === anoAnt)
+        .reduce((s, r) => s + r.Valor, 0);
+      if (anterior > 0) {
+        const delta = ((totalGeral - anterior) / anterior) * 100;
+        const sinal = delta >= 0 ? '+' : '';
+        variacaoLabel = `${sinal}${delta.toFixed(1).replace('.', ',')}% vs ${CONFIG.MESES[mesRef]}/${anoAnt}`;
+      }
+    }
+
+    setKpi('kpiTotalGeralValue', 'kpiTotalGeralSub',
+      formatBRL(totalGeral),
+      `${data.length.toLocaleString('pt-BR')} registros${variacaoLabel ? ' · ' + variacaoLabel : ''}`
+    );
+
+    setKpi('kpiManutencaoValue', 'kpiManutencaoSub',
+      formatBRL(totalManut),
+      `${pct(totalManut, totalGeral)} do total`
+    );
+
+    setKpi('kpiCombustivelValue', 'kpiCombustivelSub',
+      formatBRL(totalComb),
+      `${pct(totalComb, totalGeral)} do total`
+    );
+
+    setKpi('kpiMediaValue', 'kpiMediaSub',
+      formatBRL(mediaMensal),
+      `por mês com dados (${mesesComDados.size})`
+    );
+
+    setKpi('kpiMaiorSecretariaValue', 'kpiMaiorSecretariaSub',
+      maiorSigla[0],
+      `${formatBRL(maiorSigla[1])} · ${maiorPct}`
+    );
+
+    setKpi('kpiLiquidadoValue', 'kpiLiquidadoSub',
+      formatBRL(totalLiquid),
+      `Desconto aplicado: ${pct(totalGeral - totalLiquid, totalGeral)}`
+    );
   }
 
-  function _fmtNum(v) {
-    if (!v) return '0';
-    return Number(v).toLocaleString('pt-BR');
-  }
-
-  function _fmtPct(v) {
-    if (v === null || v === undefined) return '0%';
-    return `${Number(v).toFixed(1)}%`;
-  }
-
-  return { renderizar };
-
+  return { render, formatBRL, formatBRLFull };
 })();

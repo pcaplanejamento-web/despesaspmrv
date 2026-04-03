@@ -1,288 +1,347 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gastos — Rio Verde</title>
-
-  <!-- Estilos do sistema -->
-  <link rel="stylesheet" href="assets/css/main.css">
-  <link rel="stylesheet" href="assets/css/layout.css">
-  <link rel="stylesheet" href="assets/css/components.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gastos RV — Despesas de Frota</title>
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="assets/css/layout.css" />
+  <link rel="stylesheet" href="assets/css/components.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
-<body>
+<body class="app-body">
 
-<!-- Loading overlay global -->
-<div id="loading-overlay">
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-    style="animation: spin 0.8s linear infinite;">
-    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-  </svg>
-  Carregando dados...
-</div>
-
-<!-- Mensagem de erro global -->
-<div id="erro-global"></div>
-
-<!-- Shell principal -->
-<div class="app-shell">
-
-  <!-- ── SIDEBAR ── -->
-  <aside class="sidebar" id="sidebar">
-
-    <div class="sidebar-logo">
-      <div class="sidebar-logo-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-          fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
-          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <svg class="brand-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
         </svg>
+        <span class="brand-name">Gastos RV</span>
       </div>
-      <span class="sidebar-logo-texto">Gastos RV</span>
-    </div>
-
-    <nav class="sidebar-nav">
-
-      <div class="nav-grupo-titulo">Painel</div>
-
-      <a href="index.html" class="nav-item ativo" data-pagina="visao-geral">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-          <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-        </svg>
-        <span class="nav-item-texto">Visão Geral</span>
-      </a>
-
-      <a href="pages/secretarias.html" class="nav-item" data-pagina="secretarias">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-        <span class="nav-item-texto">Secretarias</span>
-      </a>
-
-      <a href="pages/evolucao.html" class="nav-item" data-pagina="evolucao">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-        </svg>
-        <span class="nav-item-texto">Evolução</span>
-      </a>
-
-      <a href="pages/comparacao.html" class="nav-item" data-pagina="comparacao">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
-        </svg>
-        <span class="nav-item-texto">Comparação</span>
-      </a>
-
-      <a href="pages/classificacao.html" class="nav-item" data-pagina="classificacao">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M12 8v4l3 3"/>
-        </svg>
-        <span class="nav-item-texto">Classificação</span>
-      </a>
-
-      <div class="nav-grupo-titulo" style="margin-top: 8px;">Ferramentas</div>
-
-      <a href="pages/exportacao.html" class="nav-item" data-pagina="exportacao">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-        <span class="nav-item-texto">Exportação</span>
-      </a>
-
-    </nav>
-
-    <div class="sidebar-rodape">
-      v1.0.0 · Gastos RV
-    </div>
-
-  </aside>
-
-  <!-- ── CONTEÚDO PRINCIPAL ── -->
-  <div class="main-wrapper">
-
-    <!-- Header -->
-    <header class="header">
-      <button class="header-toggle" id="btn-toggle-sidebar" title="Recolher menu">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Fechar menu" aria-expanded="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
+    </div>
 
-      <div class="header-titulo">Painel de Gastos — Combustível e Manutenção</div>
+    <nav class="sidebar-nav" aria-label="Seções do painel">
+      <div class="nav-group">
+        <span class="nav-group-label">Painel</span>
+        <a href="#visao-geral" class="nav-item active" data-view="visao-geral" aria-current="page">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Visão Geral</span>
+        </a>
+        <a href="#secretarias" class="nav-item" data-view="secretarias">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Secretarias</span>
+        </a>
+        <a href="#evolucao" class="nav-item" data-view="evolucao">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span>Evolução</span>
+        </a>
+        <a href="#comparacao" class="nav-item" data-view="comparacao">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span>Comparação</span>
+        </a>
+        <a href="#classificacao" class="nav-item" data-view="classificacao">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          <span>Classificação</span>
+        </a>
+      </div>
+      <div class="nav-group">
+        <span class="nav-group-label">Ferramentas</span>
+        <a href="#exportacao" class="nav-item" data-view="exportacao">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Exportação</span>
+        </a>
+      </div>
+    </nav>
 
-      <!-- Filtros globais -->
-      <div class="header-filtros" id="filtros-header">
+    <div class="sidebar-footer">
+      <span class="app-version">v1.1.0 — Gastos RV</span>
+    </div>
+  </aside>
 
-        <div class="filtro-grupo">
-          <span class="filtro-label">Ano</span>
-          <select class="filtro-select" id="filtro-ano" data-filtro="ano">
-            <option value="todos">Todos</option>
-          </select>
-        </div>
+  <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
 
-        <div class="filtro-grupo">
-          <span class="filtro-label">Despesa</span>
-          <select class="filtro-select" id="filtro-despesa" data-filtro="despesa">
-            <option value="todos">Todas</option>
-          </select>
-        </div>
+  <!-- Main area -->
+  <div class="main-wrapper" id="mainWrapper">
 
-        <div class="filtro-grupo">
-          <span class="filtro-label">Tipo</span>
-          <select class="filtro-select" id="filtro-tipo" data-filtro="tipo">
-            <option value="todos">Todos</option>
-          </select>
-        </div>
-
-        <div class="filtro-grupo">
-          <span class="filtro-label">Secretaria</span>
-          <select class="filtro-select" id="filtro-sigla" data-filtro="sigla">
-            <option value="todos">Todas</option>
-          </select>
-        </div>
-
-        <button class="btn-reset" id="btn-reset-filtros" title="Limpar filtros">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+    <!-- Topbar -->
+    <header class="topbar" role="banner">
+      <div class="topbar-left">
+        <button class="topbar-menu-btn" id="topbarMenuBtn" aria-label="Abrir menu" aria-expanded="false">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
-          Limpar
         </button>
+        <h1 class="topbar-title">Painel de Gastos — Combustível e Manutenção</h1>
+      </div>
 
+      <div class="topbar-right">
+        <div class="connection-status" id="connectionStatus" aria-live="polite">
+          <span class="status-dot status-idle" id="statusDot" aria-hidden="true"></span>
+          <span class="status-label" id="statusLabel">Aguardando</span>
+        </div>
+        <button class="btn-sync" id="btnSync" aria-label="Sincronizar dados com a planilha">
+          <svg class="sync-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          <span class="btn-sync-label">Sincronizar</span>
+        </button>
+        <span class="last-sync-label" id="lastSyncLabel" aria-live="polite"></span>
       </div>
     </header>
 
-    <!-- Conteúdo da página -->
-    <main class="page-content">
+    <!-- Page content -->
+    <main class="page-content" id="pageContent" role="main">
 
-      <!-- KPIs -->
-      <div class="grid-kpis" id="kpis-container">
-        <!-- Preenchido por kpis.js -->
-      </div>
-
-      <!-- Gráficos linha 1 -->
-      <div class="grid-2">
-
-        <div class="card">
-          <div class="card-titulo">Distribuição por Tipo de Despesa</div>
-          <div class="legenda" id="leg-despesa"></div>
-          <div style="position:relative; height:220px;">
-            <canvas id="chart-despesa"></canvas>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-titulo">Top 8 Secretarias por Valor Total</div>
-          <div id="ranking-secretarias"></div>
-        </div>
-
-      </div>
-
-      <!-- Gráficos linha 2 -->
-      <div class="grid-2">
-
-        <div class="card">
-          <div class="card-titulo">Distribuição por Tipo de Frota</div>
-          <div class="legenda" id="leg-tipo"></div>
-          <div style="position:relative; height:200px;">
-            <canvas id="chart-tipo"></canvas>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-titulo">Evolução Mensal — Total Geral</div>
-          <div style="position:relative; height:200px;">
-            <canvas id="chart-evolucao"></canvas>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Tabela de registros -->
-      <div class="card">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: var(--gap-md);">
-          <div class="card-titulo" style="margin-bottom:0;">Registros Detalhados</div>
-          <button class="btn btn-secundario" id="btn-exportar-tabela">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+      <!-- PAINEL DE FILTROS -->
+      <section class="filter-panel" id="filterPanel" aria-label="Filtros">
+        <div class="filter-panel-header">
+          <div class="filter-panel-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
             </svg>
-            Exportar CSV
+            <span>Filtros</span>
+            <span class="filter-record-count" id="filterRecordCount" aria-live="polite"></span>
+          </div>
+          <button class="btn-clear-filters hidden" id="btnClearFilters" aria-label="Limpar todos os filtros">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            Limpar
           </button>
         </div>
-        <div class="tabela-wrapper">
-          <table class="tabela" id="tabela-principal">
-            <thead>
-              <tr>
-                <th data-col="sigla">Sigla</th>
-                <th data-col="departamento">Departamento</th>
-                <th data-col="despesa">Despesa</th>
-                <th data-col="classificacao">Classificação</th>
-                <th data-col="tipo">Tipo</th>
-                <th data-col="placa">Placa</th>
-                <th data-col="mes">Mês</th>
-                <th data-col="ano">Ano</th>
-                <th data-col="valor" style="text-align:right;">Valor</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-corpo">
-              <!-- Preenchido por tables.js -->
-            </tbody>
-          </table>
+
+        <div class="filter-grid">
+          <div class="filter-field">
+            <label class="filter-label" for="filterAno">Ano</label>
+            <select class="filter-select" id="filterAno" aria-label="Filtrar por ano">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="filter-field">
+            <label class="filter-label" for="filterMes">Mês</label>
+            <select class="filter-select" id="filterMes" aria-label="Filtrar por mês">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="filter-field">
+            <label class="filter-label" for="filterDespesa">Despesa</label>
+            <select class="filter-select" id="filterDespesa" aria-label="Filtrar por tipo de despesa">
+              <option value="">Todas</option>
+            </select>
+          </div>
+          <div class="filter-field">
+            <label class="filter-label" for="filterTipo">Tipo</label>
+            <select class="filter-select" id="filterTipo" aria-label="Filtrar por tipo de bem">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="filter-field filter-field--wide">
+            <label class="filter-label" for="filterSecretaria">Secretaria</label>
+            <select class="filter-select" id="filterSecretaria" aria-label="Filtrar por secretaria">
+              <option value="">Todas</option>
+            </select>
+          </div>
+          <div class="filter-field">
+            <label class="filter-label" for="filterEmpresa">Entidade</label>
+            <select class="filter-select" id="filterEmpresa" aria-label="Filtrar por entidade">
+              <option value="">Todas</option>
+            </select>
+          </div>
         </div>
-        <div class="paginacao" id="paginacao-principal">
-          <!-- Preenchido por tables.js -->
+      </section>
+
+      <!-- KPI CARDS -->
+      <section class="kpi-section" aria-label="Indicadores">
+        <div class="kpi-grid" id="kpiGrid">
+          <article class="kpi-card" aria-label="Total geral">
+            <div class="kpi-card-inner">
+              <div class="kpi-icon kpi-icon--primary" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Total Geral</div>
+                <div class="kpi-value" id="kpiTotalGeralValue"><span class="skeleton-line skeleton-line--lg"></span></div>
+                <div class="kpi-sub" id="kpiTotalGeralSub"></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="kpi-card" aria-label="Manutenção">
+            <div class="kpi-card-inner">
+              <div class="kpi-icon kpi-icon--warning" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Manutenção</div>
+                <div class="kpi-value" id="kpiManutencaoValue"><span class="skeleton-line skeleton-line--lg"></span></div>
+                <div class="kpi-sub" id="kpiManutencaoSub"></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="kpi-card" aria-label="Combustível">
+            <div class="kpi-card-inner">
+              <div class="kpi-icon kpi-icon--primary" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8l9-6 9 6v14"/><path d="M9 22V12h6v10"/></svg>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Combustível</div>
+                <div class="kpi-value" id="kpiCombustivelValue"><span class="skeleton-line skeleton-line--lg"></span></div>
+                <div class="kpi-sub" id="kpiCombustivelSub"></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="kpi-card" aria-label="Média mensal">
+            <div class="kpi-card-inner">
+              <div class="kpi-icon kpi-icon--info" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Média Mensal</div>
+                <div class="kpi-value" id="kpiMediaValue"><span class="skeleton-line skeleton-line--lg"></span></div>
+                <div class="kpi-sub" id="kpiMediaSub"></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="kpi-card" aria-label="Maior secretaria">
+            <div class="kpi-card-inner">
+              <div class="kpi-icon kpi-icon--success" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Maior Secretaria</div>
+                <div class="kpi-value kpi-value--text" id="kpiMaiorSecretariaValue"><span class="skeleton-line skeleton-line--md"></span></div>
+                <div class="kpi-sub" id="kpiMaiorSecretariaSub"></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="kpi-card" aria-label="Total liquidado">
+            <div class="kpi-card-inner">
+              <div class="kpi-icon kpi-icon--success" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Total Liquidado</div>
+                <div class="kpi-value" id="kpiLiquidadoValue"><span class="skeleton-line skeleton-line--lg"></span></div>
+                <div class="kpi-sub" id="kpiLiquidadoSub"></div>
+              </div>
+            </div>
+          </article>
         </div>
-      </div>
+      </section>
+
+      <!-- GRÁFICOS LINHA 1 -->
+      <section class="charts-row" aria-label="Distribuição de despesas">
+        <div class="chart-card chart-card--half">
+          <h2 class="chart-title">Distribuição por Tipo de Despesa</h2>
+          <div class="chart-wrapper chart-wrapper--donut">
+            <canvas id="chartTipoDespesa" aria-label="Distribuição por tipo de despesa"></canvas>
+            <div class="chart-skeleton" id="skeletonTipoDespesa" aria-hidden="true"></div>
+          </div>
+          <div class="chart-legend" id="legendTipoDespesa"></div>
+        </div>
+        <div class="chart-card chart-card--half">
+          <h2 class="chart-title">Top 8 Secretarias por Valor Total</h2>
+          <div class="chart-wrapper chart-wrapper--bar">
+            <canvas id="chartSecretarias" aria-label="Top secretarias por valor total"></canvas>
+            <div class="chart-skeleton" id="skeletonSecretarias" aria-hidden="true"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GRÁFICOS LINHA 2 -->
+      <section class="charts-row" aria-label="Distribuição de frota">
+        <div class="chart-card chart-card--half">
+          <h2 class="chart-title">Distribuição por Tipo de Frota</h2>
+          <div class="chart-wrapper chart-wrapper--donut">
+            <canvas id="chartTipoFrota" aria-label="Distribuição por tipo de frota"></canvas>
+            <div class="chart-skeleton" id="skeletonTipoFrota" aria-hidden="true"></div>
+          </div>
+          <div class="chart-legend" id="legendTipoFrota"></div>
+        </div>
+        <div class="chart-card chart-card--half">
+          <h2 class="chart-title">Evolução Mensal — Total Geral</h2>
+          <div class="chart-wrapper chart-wrapper--line">
+            <canvas id="chartEvolucao" aria-label="Evolução mensal de despesas"></canvas>
+            <div class="chart-skeleton" id="skeletonEvolucao" aria-hidden="true"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TABELA DETALHADA -->
+      <section class="table-section" aria-label="Registros detalhados">
+        <div class="table-card">
+          <div class="table-card-header">
+            <h2 class="chart-title">Registros Detalhados</h2>
+            <div class="table-controls">
+              <div class="table-search-wrapper">
+                <svg class="table-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" class="table-search-input" id="tableSearch" placeholder="Buscar por placa, modelo..." aria-label="Buscar registros" />
+              </div>
+              <select class="filter-select table-page-size" id="tablePageSize" aria-label="Registros por página">
+                <option value="25">25 / página</option>
+                <option value="50">50 / página</option>
+                <option value="100">100 / página</option>
+              </select>
+              <button class="btn-export" id="btnExportCSV" aria-label="Exportar CSV">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                CSV
+              </button>
+            </div>
+          </div>
+
+          <div class="table-responsive" role="region" aria-label="Tabela de despesas" tabindex="0">
+            <table class="data-table" id="dataTable" aria-label="Despesas de frota municipal">
+              <thead>
+                <tr>
+                  <th class="th-sortable" data-col="Empresa" scope="col">Empresa <span class="sort-icon" aria-hidden="true"></span></th>
+                  <th class="th-sortable" data-col="Sigla" scope="col">Sigla <span class="sort-icon" aria-hidden="true"></span></th>
+                  <th class="th-sortable" data-col="Departamento" scope="col">Departamento <span class="sort-icon" aria-hidden="true"></span></th>
+                  <th class="th-sortable" data-col="Despesa" scope="col">Despesa <span class="sort-icon" aria-hidden="true"></span></th>
+                  <th class="th-sortable" data-col="Modelo" scope="col">Modelo <span class="sort-icon" aria-hidden="true"></span></th>
+                  <th class="th-sortable" data-col="Classificacao" scope="col">Classificação <span class="sort-icon" aria-hidden="true"></span></th>
+                  <th class="th-sortable" data-col="Tipo" scope="col">Tipo <span class="sort-icon" aria-hidden="true"></span></th>
+                  <th class="th-sortable" data-col="Placa" scope="col">Placa <span class="sort-icon" aria-hidden="true"></span></th>
+                  <th class="th-sortable th-number" data-col="Valor" scope="col">Valor <span class="sort-icon" aria-hidden="true"></span></th>
+                  <th class="th-sortable th-number" data-col="Liquidado" scope="col">Liquidado <span class="sort-icon" aria-hidden="true"></span></th>
+                  <th class="th-sortable" data-col="Mes" scope="col">Mês <span class="sort-icon" aria-hidden="true"></span></th>
+                  <th class="th-sortable" data-col="Ano" scope="col">Ano <span class="sort-icon" aria-hidden="true"></span></th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <tr><td colspan="12" class="table-loading" aria-live="polite">Carregando registros...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-footer">
+            <span class="table-info" id="tableInfo" aria-live="polite"></span>
+            <div class="table-pagination" id="tablePagination" role="navigation" aria-label="Paginação"></div>
+          </div>
+        </div>
+      </section>
 
     </main>
   </div>
-</div>
 
-<!-- Animação do spinner -->
-<style>
-@keyframes spin { to { transform: rotate(360deg); } }
-</style>
-
-<!-- Scripts — ordem importa: config → state → api → módulos → app -->
-<script src="assets/js/config.js"></script>
-<script src="assets/js/state.js"></script>
-<script src="assets/js/api.js"></script>
-<script src="assets/js/filters.js"></script>
-<script src="assets/js/kpis.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="assets/js/charts.js"></script>
-<script src="assets/js/tables.js"></script>
-<script src="assets/js/app.js"></script>
-<!-- Lucide icons (opcional — carregado por último para não bloquear) -->
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
-
-<script>
-  // Toggle sidebar
-  document.getElementById('btn-toggle-sidebar').addEventListener('click', () => {
-    const sidebar = document.getElementById('sidebar');
-    if (window.innerWidth <= 768) {
-      sidebar.classList.toggle('aberta');
-    } else {
-      sidebar.classList.toggle('colapsada');
-    }
-  });
-</script>
-
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/state.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/filters.js"></script>
+  <script src="assets/js/kpis.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script src="assets/js/tables.js"></script>
+  <script src="assets/js/app.js"></script>
 </body>
 </html>

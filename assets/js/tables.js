@@ -1,308 +1,225 @@
 /**
- * tables.js
- * Renderiza a tabela de registros com:
- *  - Paginação client-side
- *  - Ordenação por coluna (clique no cabeçalho)
- *  - Exportação para CSV
- *
- * Não acessa a API — recebe o array de registros já filtrados.
+ * tables.js — Tabela detalhada com paginação, ordenação e busca
  */
 
 const Tables = (() => {
+  // ----- Formatação -----
 
-  // Estado interno da tabela
-  let _dados       = [];
-  let _paginaAtual = 1;
-  let _porPagina   = 25;
-  let _ordemCol    = 'valor';
-  let _ordemDir    = 'desc'; // 'asc' | 'desc'
-
-  // IDs dos elementos no HTML
-  const ID_CORPO      = 'tabela-corpo';
-  const ID_PAGINACAO  = 'paginacao-principal';
-  const ID_BTN_CSV    = 'btn-exportar-tabela';
-
-  // Definição das colunas
-  const COLUNAS = [
-    { campo: 'sigla',         rotulo: 'Sigla',          formato: null },
-    { campo: 'departamento',  rotulo: 'Departamento',   formato: null },
-    { campo: 'despesa',       rotulo: 'Despesa',        formato: 'badge-despesa' },
-    { campo: 'classificacao', rotulo: 'Classificação',  formato: null },
-    { campo: 'tipo',          rotulo: 'Tipo',           formato: 'badge-tipo' },
-    { campo: 'placa',         rotulo: 'Placa',          formato: null },
-    { campo: 'mes',           rotulo: 'Mês',            formato: 'mes' },
-    { campo: 'ano',           rotulo: 'Ano',            formato: null },
-    { campo: 'valor',         rotulo: 'Valor',          formato: 'moeda', align: 'right' },
-  ];
-
-  // ── API pública ───────────────────────────────────────────────────
-
-  /**
-   * Renderiza a tabela com novos dados.
-   * Reinicia na página 1 e mantém a ordenação atual.
-   * @param {Array} dados - registros retornados pela API
-   */
-  function renderizar(dados) {
-    _dados       = Array.isArray(dados) ? dados : [];
-    _paginaAtual = 1;
-    _ordenar();
-    _renderTabela();
-    _renderPaginacao();
-    _registrarListeners();
-    _registrarBtnCsv();
+  function fBRL(v) {
+    return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
-  // ── Renderização ─────────────────────────────────────────────────
+  function badgeTipo(tipo) {
+    const cls = tipo === 'Veículo' ? 'badge-veiculo' : 'badge-maquina';
+    return `<span class="badge ${cls}">${tipo}</span>`;
+  }
 
-  function _renderTabela() {
-    const tbody = document.getElementById(ID_CORPO);
+  function badgeDespesa(despesa) {
+    const cls = despesa === 'Combustível' ? 'badge-combustivel' : 'badge-manutencao';
+    return `<span class="badge ${cls}">${despesa}</span>`;
+  }
+
+  // ----- Ordenação -----
+
+  function sortData(data) {
+    const { col, dir } = State.getTableSort();
+    if (!col) return data;
+
+    return [...data].sort((a, b) => {
+      const av = a[col];
+      const bv = b[col];
+      let cmp;
+      if (typeof av === 'number' && typeof bv === 'number') {
+        cmp = av - bv;
+      } else {
+        cmp = String(av).localeCompare(String(bv), 'pt-BR');
+      }
+      return dir === 'asc' ? cmp : -cmp;
+    });
+  }
+
+  // ----- Busca textual -----
+
+  function searchData(data) {
+    const term = State.getTableSearch();
+    if (!term) return data;
+    return data.filter(r =>
+      r.Placa.toLowerCase().includes(term)       ||
+      r.Modelo.toLowerCase().includes(term)      ||
+      r.Departamento.toLowerCase().includes(term)||
+      r.Sigla.toLowerCase().includes(term)
+    );
+  }
+
+  // ----- Renderização da tabela -----
+
+  function renderTable() {
+    const filtered  = State.getFilteredData();
+    const searched  = searchData(filtered);
+    const sorted    = sortData(searched);
+    const pageSize  = State.getTablePageSize();
+    const page      = State.getTablePage();
+    const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+    const safePage  = Math.min(page, totalPages);
+    if (safePage !== page) State.setTablePage(safePage);
+
+    const start = (safePage - 1) * pageSize;
+    const slice = sorted.slice(start, start + pageSize);
+
+    const tbody = document.getElementById('tableBody');
     if (!tbody) return;
 
-    const inicio  = (_paginaAtual - 1) * _porPagina;
-    const pagina  = _dados.slice(inicio, inicio + _porPagina);
-
-    if (pagina.length === 0) {
-      tbody.innerHTML = `
+    if (!slice.length) {
+      tbody.innerHTML = '<tr><td colspan="12" class="table-empty">Nenhum registro encontrado para os filtros aplicados.</td></tr>';
+    } else {
+      tbody.innerHTML = slice.map(r => `
         <tr>
-          <td colspan="${COLUNAS.length}" class="estado-vazio" style="text-align:center; padding: 32px;">
-            Nenhum registro encontrado para os filtros selecionados.
-          </td>
-        </tr>`;
-      return;
+          <td>${r.Empresa}</td>
+          <td><span class="sigla-badge">${r.Sigla}</span></td>
+          <td>${r.Departamento}</td>
+          <td>${badgeDespesa(r.Despesa)}</td>
+          <td>${r.Modelo}</td>
+          <td>${r.Classificacao}</td>
+          <td>${badgeTipo(r.Tipo)}</td>
+          <td class="td-mono">${r.Placa}</td>
+          <td class="td-number">${fBRL(r.Valor)}</td>
+          <td class="td-number">${r.Liquidado > 0 ? fBRL(r.Liquidado) : '—'}</td>
+          <td>${CONFIG.MESES[r.Mes] || r.Mes}</td>
+          <td>${r.Ano}</td>
+        </tr>
+      `).join('');
     }
 
-    tbody.innerHTML = pagina.map(_renderLinha).join('');
+    renderInfo(sorted.length, filtered.length, start, start + slice.length);
+    renderPagination(safePage, totalPages);
+    renderSortIcons();
   }
 
-  function _renderLinha(registro) {
-    const celulas = COLUNAS.map(col => {
-      const val  = registro[col.campo];
-      const html = _formatarCelula(val, col.formato);
-      const align = col.align === 'right' ? 'style="text-align:right"' : '';
-      return `<td class="${col.align === 'right' ? 'col-valor' : ''}" ${align}>${html}</td>`;
-    });
-    return `<tr>${celulas.join('')}</tr>`;
+  // ----- Info -----
+
+  function renderInfo(searched, filtered, from, to) {
+    const el = document.getElementById('tableInfo');
+    if (!el) return;
+    if (!searched) { el.textContent = 'Nenhum registro'; return; }
+    const showing = `Exibindo ${(from + 1).toLocaleString('pt-BR')}–${to.toLocaleString('pt-BR')} de ${searched.toLocaleString('pt-BR')}`;
+    el.textContent = searched < filtered ? `${showing} (filtrado de ${filtered.toLocaleString('pt-BR')})` : showing;
   }
 
-  function _formatarCelula(val, formato) {
-    if (val === null || val === undefined || val === '') return '<span class="text-muted">—</span>';
+  // ----- Paginação -----
 
-    switch (formato) {
-      case 'moeda':
-        return _fmtMoeda(val);
-
-      case 'mes':
-        return _fmtMes(val);
-
-      case 'badge-despesa': {
-        const cls = String(val).toLowerCase().includes('combustível')
-          ? 'badge-combustivel' : 'badge-manutencao';
-        return `<span class="badge ${cls}">${val}</span>`;
-      }
-
-      case 'badge-tipo': {
-        const cls = String(val).toLowerCase() === 'veículo' ? 'badge-veiculo' : 'badge-maquina';
-        return `<span class="badge ${cls}">${val}</span>`;
-      }
-
-      default:
-        return _escaparHtml(String(val));
-    }
-  }
-
-  // ── Paginação ─────────────────────────────────────────────────────
-
-  function _renderPaginacao() {
-    const container = document.getElementById(ID_PAGINACAO);
+  function renderPagination(current, total) {
+    const container = document.getElementById('tablePagination');
     if (!container) return;
+    if (total <= 1) { container.innerHTML = ''; return; }
 
-    const total       = _dados.length;
-    const totalPag    = Math.ceil(total / _porPagina);
-    const inicio      = (_paginaAtual - 1) * _porPagina + 1;
-    const fim         = Math.min(_paginaAtual * _porPagina, total);
+    const pages = [];
+    const addPage = (p) => pages.push(p);
+    const addEllipsis = () => pages.push('...');
 
-    if (total === 0) {
-      container.innerHTML = '';
-      return;
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) addPage(i);
+    } else {
+      addPage(1);
+      if (current > 3) addEllipsis();
+      for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) addPage(i);
+      if (current < total - 2) addEllipsis();
+      addPage(total);
     }
 
-    // Gera botões de página (máximo 5 visíveis)
-    const botoes = _gerarBotoesPaginacao(totalPag);
+    container.innerHTML = pages.map(p => {
+      if (p === '...') return `<span class="page-ellipsis">...</span>`;
+      const active = p === current ? 'page-btn--active' : '';
+      return `<button class="page-btn ${active}" data-page="${p}" aria-label="Página ${p}" ${p === current ? 'aria-current="page"' : ''}>${p}</button>`;
+    }).join('');
 
-    container.innerHTML = `
-      <span class="text-muted text-sm">
-        ${_fmtNum(inicio)}–${_fmtNum(fim)} de ${_fmtNum(total)} registros
-      </span>
-      <div class="paginacao-controles">
-        <button class="paginacao-btn" data-pag="prev" ${_paginaAtual === 1 ? 'disabled' : ''}>
-          ‹
-        </button>
-        ${botoes}
-        <button class="paginacao-btn" data-pag="next" ${_paginaAtual === totalPag ? 'disabled' : ''}>
-          ›
-        </button>
-      </div>
-    `;
-
-    // Listeners dos botões de página
-    container.querySelectorAll('.paginacao-btn').forEach(btn => {
+    container.querySelectorAll('[data-page]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const pag = btn.dataset.pag;
-        if (pag === 'prev' && _paginaAtual > 1) {
-          _paginaAtual--;
-        } else if (pag === 'next' && _paginaAtual < totalPag) {
-          _paginaAtual++;
-        } else if (!isNaN(pag)) {
-          _paginaAtual = parseInt(pag);
-        }
-        _renderTabela();
-        _renderPaginacao();
+        State.setTablePage(Number(btn.dataset.page));
+        renderTable();
       });
     });
   }
 
-  function _gerarBotoesPaginacao(totalPag) {
-    if (totalPag <= 7) {
-      return Array.from({ length: totalPag }, (_, i) => _btnPag(i + 1)).join('');
-    }
+  // ----- Ícones de ordenação -----
 
-    const paginas = new Set([1, totalPag, _paginaAtual]);
-    if (_paginaAtual > 1) paginas.add(_paginaAtual - 1);
-    if (_paginaAtual < totalPag) paginas.add(_paginaAtual + 1);
-
-    const ordenadas = [...paginas].sort((a, b) => a - b);
-    let html = '';
-    let anterior = 0;
-
-    ordenadas.forEach(p => {
-      if (p - anterior > 1) html += '<span style="padding:0 4px;color:var(--texto-terciario)">…</span>';
-      html += _btnPag(p);
-      anterior = p;
-    });
-
-    return html;
-  }
-
-  function _btnPag(n) {
-    return `<button class="paginacao-btn ${n === _paginaAtual ? 'ativo' : ''}" data-pag="${n}">${n}</button>`;
-  }
-
-  // ── Ordenação ─────────────────────────────────────────────────────
-
-  function _ordenar() {
-    _dados.sort((a, b) => {
-      const va = a[_ordemCol];
-      const vb = b[_ordemCol];
-
-      let cmp = 0;
-      if (typeof va === 'number' && typeof vb === 'number') {
-        cmp = va - vb;
+  function renderSortIcons() {
+    const { col, dir } = State.getTableSort();
+    document.querySelectorAll('.th-sortable').forEach(th => {
+      const icon = th.querySelector('.sort-icon');
+      if (!icon) return;
+      if (th.dataset.col === col) {
+        icon.textContent = dir === 'asc' ? ' ▲' : ' ▼';
+        th.setAttribute('aria-sort', dir === 'asc' ? 'ascending' : 'descending');
       } else {
-        cmp = String(va || '').localeCompare(String(vb || ''), 'pt-BR');
+        icon.textContent = '';
+        th.removeAttribute('aria-sort');
       }
-
-      return _ordemDir === 'asc' ? cmp : -cmp;
     });
   }
 
-  function _registrarListeners() {
-    const tabela = document.getElementById('tabela-principal');
-    if (!tabela) return;
+  // ----- Exportação CSV -----
 
-    tabela.querySelectorAll('th[data-col]').forEach(th => {
-      // Remove listener anterior clonando o nó
-      const novo = th.cloneNode(true);
-      th.parentNode.replaceChild(novo, th);
+  function exportCSV() {
+    const data = searchData(State.getFilteredData());
+    const headers = ['Empresa','Sigla','Departamento','Despesa','Modelo','Classificação','Tipo','Placa','Valor','Liquidado','Mês','Ano','Contrato'];
+    const rows = data.map(r => [
+      r.Empresa, r.Sigla, r.Departamento, r.Despesa, r.Modelo,
+      r.Classificacao, r.Tipo, r.Placa,
+      r.Valor.toFixed(2).replace('.', ','),
+      r.Liquidado.toFixed(2).replace('.', ','),
+      CONFIG.MESES[r.Mes] || r.Mes, r.Ano, r.Contrato,
+    ]);
 
-      novo.addEventListener('click', () => {
-        const col = novo.dataset.col;
-        if (_ordemCol === col) {
-          _ordemDir = _ordemDir === 'asc' ? 'desc' : 'asc';
-        } else {
-          _ordemCol = col;
-          _ordemDir = 'desc';
-        }
-        _ordenar();
-        _paginaAtual = 1;
-        _renderTabela();
-        _renderPaginacao();
+    const csv = [headers, ...rows]
+      .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';'))
+      .join('\n');
 
-        // Indicador visual de ordenação
-        tabela.querySelectorAll('th[data-col]').forEach(h => {
-          h.textContent = h.textContent.replace(' ▲', '').replace(' ▼', '');
-        });
-        novo.textContent += _ordemDir === 'asc' ? ' ▲' : ' ▼';
-      });
-    });
-  }
-
-  // ── Exportação CSV ────────────────────────────────────────────────
-
-  function _registrarBtnCsv() {
-    const btn = document.getElementById(ID_BTN_CSV);
-    if (!btn) return;
-
-    const novo = btn.cloneNode(true);
-    btn.parentNode.replaceChild(novo, btn);
-
-    novo.addEventListener('click', exportarCsv);
-  }
-
-  /**
-   * Exporta os dados filtrados (não apenas a página atual) para CSV.
-   */
-  function exportarCsv() {
-    if (_dados.length === 0) return;
-
-    const cabecalho = COLUNAS.map(c => `"${c.rotulo}"`).join(',');
-    const linhas    = _dados.map(r =>
-      COLUNAS.map(c => {
-        const val = r[c.campo];
-        if (val === null || val === undefined) return '""';
-        return `"${String(val).replace(/"/g, '""')}"`;
-      }).join(',')
-    );
-
-    const csv    = [cabecalho, ...linhas].join('\n');
-    const bom    = '\uFEFF'; // BOM para Excel abrir corretamente em PT-BR
-    const blob   = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
-    const url    = URL.createObjectURL(blob);
-    const link   = document.createElement('a');
-    const filtros = Filters.descricaoFiltrosAtivos().replace(/[^a-z0-9]/gi, '_').toLowerCase();
-
-    link.href     = url;
-    link.download = `gastos_${filtros}_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `despesas_frota_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
     URL.revokeObjectURL(url);
   }
 
-  // ── Formatadores ─────────────────────────────────────────────────
+  // ----- Events -----
 
-  const MESES_ABREV = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  function bindEvents() {
+    // Ordenação por coluna
+    document.querySelectorAll('.th-sortable').forEach(th => {
+      th.addEventListener('click', () => {
+        State.setTableSort(th.dataset.col);
+        renderTable();
+      });
+    });
 
-  function _fmtMoeda(v) {
-    return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    // Tamanho de página
+    const pageSizeEl = document.getElementById('tablePageSize');
+    if (pageSizeEl) {
+      pageSizeEl.addEventListener('change', () => {
+        State.setTablePageSize(pageSizeEl.value);
+        renderTable();
+      });
+    }
+
+    // Busca com debounce
+    let searchTimer;
+    const searchEl = document.getElementById('tableSearch');
+    if (searchEl) {
+      searchEl.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+          State.setTableSearch(searchEl.value);
+          renderTable();
+        }, 250);
+      });
+    }
+
+    // Exportar CSV
+    const csvBtn = document.getElementById('btnExportCSV');
+    if (csvBtn) csvBtn.addEventListener('click', exportCSV);
   }
 
-  function _fmtMes(v) {
-    return MESES_ABREV[parseInt(v)] || v;
-  }
-
-  function _fmtNum(v) {
-    return Number(v).toLocaleString('pt-BR');
-  }
-
-  function _escaparHtml(str) {
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  return {
-    renderizar,
-    exportarCsv,
-  };
-
+  return { renderTable, bindEvents };
 })();
