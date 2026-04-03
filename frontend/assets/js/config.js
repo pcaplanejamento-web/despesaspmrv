@@ -6,7 +6,8 @@
 const CONFIG = Object.freeze({
   // URL publicada do Google Apps Script (Web App)
   // Substitua após publicar o script — veja docs/apps-script-deploy.md
-  API_URL: 'https://script.google.com/macros/s/COLE_SUA_URL_AQUI/exec',
+
+  API_URL: 'https://script.google.com/macros/s/AKfycbzs3Xz8doXZ8b4mc-u1N4hfVM6NrwGiMffIPtbrZcvHCn3WqNK9ux7EfDpu2FQAwukIpg/exec',
 
   // Timeout máximo para chamadas à API (ms)
   API_TIMEOUT: 15000,
