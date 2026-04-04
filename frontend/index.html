@@ -286,37 +286,91 @@
       </div>
     </div>
 
-    <!-- Gráficos lado a lado -->
+    <!-- Gráficos lado a lado com banners estilo PCA -->
     <div class="charts-grid-2col">
-      <div class="card chart-card">
-        <p class="card-title">Despesas por Local (Secretaria)</p>
-        <div class="chart-wrap">
-          <div class="skeleton" id="skeletonSiglas"></div>
-          <canvas id="chartSiglas" aria-label="Gráfico de barras por secretaria"></canvas>
+      <!-- Siglas -->
+      <div class="chart-section-wrap">
+        <div class="chart-section-banner chart-banner-blue">
+          <div class="chart-banner-left">
+            <div class="chart-banner-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            </div>
+            <div>
+              <h3 class="chart-banner-title" data-chart-title="chartSiglas">Despesas por Secretaria</h3>
+              <p class="chart-banner-sub">Clique para ver detalhes completos</p>
+            </div>
+          </div>
+          <div class="chart-banner-controls">
+            <button class="chart-ctrl-btn" data-toggle-chart="chartSiglas" title="Mudar para pizza" aria-label="Alternar tipo de gráfico">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            </button>
+            <button class="chart-ctrl-btn" data-expand-chart="chartSiglas" title="Expandir gráfico" aria-label="Expandir gráfico">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+            </button>
+          </div>
         </div>
-        <div class="chart-hint">Clique em uma barra para ver detalhes</div>
+        <div class="chart-section-body">
+          <div class="chart-wrap">
+            <div class="skeleton" id="skeletonSiglas"></div>
+            <canvas id="chartSiglas" class="chart-ready" aria-label="Gráfico por secretaria"></canvas>
+          </div>
+        </div>
       </div>
-      <div class="card chart-card">
-        <p class="card-title">Despesas por Classificação</p>
-        <div class="chart-wrap">
-          <div class="skeleton" id="skeletonClassificacao"></div>
-          <canvas id="chartClassificacao" aria-label="Gráfico de barras por classificação"></canvas>
+      <!-- Classificação -->
+      <div class="chart-section-wrap">
+        <div class="chart-section-banner chart-banner-purple">
+          <div class="chart-banner-left">
+            <div class="chart-banner-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <div>
+              <h3 class="chart-banner-title" data-chart-title="chartClassificacao">Despesas por Classificação</h3>
+              <p class="chart-banner-sub">Clique para ver detalhes completos</p>
+            </div>
+          </div>
+          <div class="chart-banner-controls">
+            <button class="chart-ctrl-btn" data-toggle-chart="chartClassificacao" title="Mudar para pizza" aria-label="Alternar tipo de gráfico">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            </button>
+            <button class="chart-ctrl-btn" data-expand-chart="chartClassificacao" title="Expandir gráfico" aria-label="Expandir gráfico">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+            </button>
+          </div>
         </div>
-        <div class="chart-hint">Clique em uma barra para ver detalhes</div>
+        <div class="chart-section-body">
+          <div class="chart-wrap">
+            <div class="skeleton" id="skeletonClassificacao"></div>
+            <canvas id="chartClassificacao" class="chart-ready" aria-label="Gráfico por classificação"></canvas>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Evolução mensal (largura total) -->
-    <div class="card" style="margin-bottom:32px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
-        <p class="card-title" style="margin:0;">Evolução Mensal de Despesas</p>
-        <div id="evolucaoLegenda" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    <!-- Evolução mensal com banner verde -->
+    <div class="chart-section-wrap" style="margin-bottom:32px;">
+      <div class="chart-section-banner chart-banner-green">
+        <div class="chart-banner-left">
+          <div class="chart-banner-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div>
+            <h3 class="chart-banner-title" data-chart-title="chartEvolucao">Evolução Mensal de Despesas</h3>
+            <p class="chart-banner-sub">Clique em qualquer ponto para detalhes e análise anual</p>
+          </div>
+        </div>
+        <div class="chart-banner-controls">
+          <div id="evolucaoLegenda" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;"></div>
+          <button class="chart-ctrl-btn" data-expand-chart="chartEvolucao" title="Expandir gráfico" aria-label="Expandir gráfico">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          </button>
+        </div>
       </div>
-      <div class="chart-wrap chart-wrap-lg">
-        <div class="skeleton" id="skeletonEvolucao"></div>
-        <canvas id="chartEvolucao" aria-label="Gráfico de linha de evolução mensal"></canvas>
+      <div class="chart-section-body">
+        <div class="chart-wrap chart-wrap-lg">
+          <div class="skeleton" id="skeletonEvolucao"></div>
+          <canvas id="chartEvolucao" class="chart-ready" aria-label="Gráfico evolução mensal"></canvas>
+        </div>
       </div>
-      <div class="chart-hint">Clique em um ponto para ver os detalhes do mês</div>
     </div>
   </section>
 
@@ -336,22 +390,27 @@
 
     <div class="resumo-lista">
       <!-- Classificação -->
-      <div class="card resumo-card">
-        <div class="resumo-card-header">
-          <span class="resumo-card-icon rc-blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
-          <span class="resumo-card-title">Por Classificação</span>
+      <div class="resumo-card-wrap">
+        <div class="resumo-banner resumo-banner-blue">
+          <div class="resumo-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+          <span class="resumo-banner-title">Por Classificação</span>
         </div>
+        <div class="card resumo-card resumo-card-noborder-top">
         <div class="resumo-table-wrap">
           <table class="resumo-table" id="tabClassificacao">
             <thead><tr><th>Classificação</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
+        </div>
       </div>
       <!-- Mês -->
-      <div class="card resumo-card">
-        <div class="resumo-card-header">
-          <span class="resumo-card-icon rc-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+      <div class="resumo-card-wrap">
+        <div class="resumo-banner resumo-banner-green">
+          <div class="resumo-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <span class="resumo-banner-title">Por Mês</span>
+        </div>
+        <div class="card resumo-card resumo-card-noborder-top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
           <span class="resumo-card-title">Por Mês</span>
         </div>
         <div class="resumo-table-wrap">
@@ -361,10 +420,15 @@
           </table>
         </div>
       </div>
+      </div>
+      </div>
       <!-- Tipo -->
-      <div class="card resumo-card">
-        <div class="resumo-card-header">
-          <span class="resumo-card-icon rc-amber"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span>
+      <div class="resumo-card-wrap">
+        <div class="resumo-banner resumo-banner-amber">
+          <div class="resumo-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+          <span class="resumo-banner-title">Por Tipo de Frota</span>
+        </div>
+        <div class="card resumo-card resumo-card-noborder-top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span>
           <span class="resumo-card-title">Por Tipo de Frota</span>
         </div>
         <div class="resumo-table-wrap">
@@ -374,10 +438,15 @@
           </table>
         </div>
       </div>
+      </div>
+      </div>
       <!-- Despesa -->
-      <div class="card resumo-card">
-        <div class="resumo-card-header">
-          <span class="resumo-card-icon rc-rose"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/></svg></span>
+      <div class="resumo-card-wrap">
+        <div class="resumo-banner resumo-banner-rose">
+          <div class="resumo-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 3v18h18"/></svg></div>
+          <span class="resumo-banner-title">Por Tipo de Despesa</span>
+        </div>
+        <div class="card resumo-card resumo-card-noborder-top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/></svg></span>
           <span class="resumo-card-title">Por Tipo de Despesa</span>
         </div>
         <div class="resumo-table-wrap">
@@ -387,10 +456,15 @@
           </table>
         </div>
       </div>
-      <!-- Local — wide (2 colunas desktop) -->
-      <div class="card resumo-card">
-        <div class="resumo-card-header">
-          <span class="resumo-card-icon rc-purple"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
+      </div>
+      </div>
+      <!-- Local -->
+      <div class="resumo-card-wrap resumo-card-wrap-wide">
+        <div class="resumo-banner resumo-banner-purple">
+          <div class="resumo-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+          <span class="resumo-banner-title">Por Local (Secretaria)</span>
+        </div>
+        <div class="card resumo-card resumo-card-noborder-top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
           <span class="resumo-card-title">Por Local (Secretaria)</span>
         </div>
         <div class="resumo-table-wrap">
@@ -398,6 +472,7 @@
             <thead><tr><th>Sigla</th><th>Secretaria</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
             <tbody></tbody>
           </table>
+        </div>
         </div>
       </div>
     </div>
