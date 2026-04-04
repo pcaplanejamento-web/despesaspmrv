@@ -36,28 +36,52 @@ const Charts = (() => {
     return 'R$'+v;
   }
 
+  // FIX: noData não destrói o canvas — insere p no wrap sem tocar no canvas
   function noData(canvasId) {
-    const el = document.getElementById(canvasId);
-    if (el) el.parentElement.innerHTML = '<p class="chart-no-data">Sem dados para o período selecionado</p>';
+    const cv = document.getElementById(canvasId);
+    if (!cv) return;
+    cv.style.display = 'none';
+    const wrap = cv.closest('.chart-wrap');
+    if (wrap && !wrap.querySelector('.chart-no-data')) {
+      const p = document.createElement('p');
+      p.className = 'chart-no-data';
+      p.textContent = 'Sem dados para o período selecionado';
+      wrap.appendChild(p);
+    }
   }
 
+  // FIX: hideSkeleton oculta skeleton e adiciona .chart-ready ao canvas (dispara opacity 0→1)
   function hideSkeleton(id) {
-    const sk = document.getElementById('skeleton'+id.charAt(0).toUpperCase()+id.slice(1));
+    const name = id.charAt(0).toUpperCase()+id.slice(1);
+    const sk = document.getElementById('skeleton'+name);
     if (sk) sk.style.display = 'none';
-    const cv = document.getElementById('chart'+id.charAt(0).toUpperCase()+id.slice(1));
-    if (cv) cv.style.opacity = '1';
+    const cv = document.getElementById('chart'+name);
+    if (cv) { cv.style.display = ''; cv.classList.add('chart-ready'); }
+  }
+
+  // Limpa estado de erro anterior antes de re-renderizar
+  function resetCanvas(canvasId) {
+    const cv = document.getElementById(canvasId);
+    if (!cv) return;
+    cv.style.display = '';
+    cv.classList.remove('chart-ready');
+    const wrap = cv.closest('.chart-wrap');
+    if (wrap) wrap.querySelectorAll('.chart-no-data').forEach(el => el.remove());
   }
 
   function showSkeletons() {
     ['Siglas','Classificacao','Evolucao'].forEach(n => {
-      const sk = document.getElementById('skeleton'+n); if(sk) sk.style.display='block';
-      const cv = document.getElementById('chart'+n);    if(cv) cv.style.opacity='0';
+      const sk = document.getElementById('skeleton'+n);
+      if (sk) sk.style.display = 'block';
+      const cv = document.getElementById('chart'+n);
+      if (cv) cv.classList.remove('chart-ready');
     });
   }
 
   // ── Gráfico 1: Por Local (Sigla) ─────────────────────────────────────────
 
   function renderSiglas(data) {
+    resetCanvas('chartSiglas');
     hideSkeleton('siglas');
     destroy('chartSiglas');
     const canvas = document.getElementById('chartSiglas');
@@ -102,6 +126,7 @@ const Charts = (() => {
   // ── Gráfico 2: Por Classificação ─────────────────────────────────────────
 
   function renderClassificacao(data) {
+    resetCanvas('chartClassificacao');
     hideSkeleton('classificacao');
     destroy('chartClassificacao');
     const canvas = document.getElementById('chartClassificacao');
@@ -144,6 +169,7 @@ const Charts = (() => {
   // ── Gráfico 3: Evolução Mensal ────────────────────────────────────────────
 
   function renderEvolucao(data) {
+    resetCanvas('chartEvolucao');
     hideSkeleton('evolucao');
     destroy('chartEvolucao');
     const canvas = document.getElementById('chartEvolucao');

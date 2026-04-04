@@ -348,21 +348,43 @@ const App = (() => {
   }
 
   // ── Header height CSS var ─────────────────────────────────────────────────
-
+  // FIX: calcula top do pill-wrap + altura do header para --hdr-h correto
   function syncHeaderHeight() {
-    const hdr=document.querySelector('header'); if(!hdr) return;
-    const upd=()=>document.documentElement.style.setProperty('--hdr-h',(hdr.getBoundingClientRect().height+20)+'px');
-    upd(); new ResizeObserver(upd).observe(hdr);
+    const hdr  = document.querySelector('header');
+    const pill = document.querySelector('.header-pill-wrap');
+    if (!hdr) return;
+
+    function upd() {
+      const pillTop  = pill ? parseInt(getComputedStyle(pill).top) || 10 : 10;
+      const hdrH     = hdr.getBoundingClientRect().height;
+      // total = distância do topo da viewport até o fundo do header em posição sticky
+      const total    = pillTop + hdrH;
+      document.documentElement.style.setProperty('--hdr-h', total + 'px');
+    }
+    upd();
+    new ResizeObserver(upd).observe(hdr);
+    window.addEventListener('scroll', upd, { passive: true });
   }
 
   // ── Sticky search Registros ───────────────────────────────────────────────
+  // FIX: sentinel inserido ANTES do banner (ci-banner), não antes do search bar,
+  // para que is-stuck seja ativado assim que o banner sair da tela
 
   function initStickySearch() {
-    const bar=document.getElementById('tabelaSearchBar');
-    if(!bar||!('IntersectionObserver' in window)) return;
-    const s=document.createElement('div'); s.style.cssText='height:1px;margin-top:-1px;';
-    bar.parentNode.insertBefore(s,bar);
-    new IntersectionObserver(([e])=>bar.classList.toggle('is-stuck',!e.isIntersecting),{threshold:1}).observe(s);
+    const bar     = document.getElementById('tabelaSearchBar');
+    const section = document.getElementById('secaoRegistros');
+    if (!bar || !section || !('IntersectionObserver' in window)) return;
+
+    // Sentinela no topo da seção Registros — ativa is-stuck quando section sai de cima
+    const sentinel = document.createElement('div');
+    sentinel.setAttribute('aria-hidden', 'true');
+    sentinel.style.cssText = 'position:absolute;top:0;left:0;width:1px;height:1px;pointer-events:none;';
+    section.style.position = 'relative';
+    section.prepend(sentinel);
+
+    new IntersectionObserver(([e]) => {
+      bar.classList.toggle('is-stuck', !e.isIntersecting);
+    }, { threshold: 0, rootMargin: `-${document.documentElement.style.getPropertyValue('--hdr-h') || '68px'} 0px 0px 0px` }).observe(sentinel);
   }
 
   // ── KPI card click (Maior Despesa) ────────────────────────────────────────

@@ -150,18 +150,17 @@ const Tables = (() => {
     if (totalPages <= 1) { container.innerHTML=''; return; }
     const btns=[];
     const add=(label,pg,active=false,disabled=false)=>
-      btns.push(`<button ${disabled?'disabled':''} ${active?'class="ativa"':''} data-pg="${pg}">${label}</button>`);
+      btns.push(`<button class="pag-btn${active?' ativa':''}" ${disabled?'disabled':''} data-pg="${pg}" aria-label="Página ${pg}" ${active?'aria-current="page"':''}>${label}</button>`);
     add('«',1,false,current===1); add('‹',current-1,false,current===1);
     const W=2;
     for(let p=1;p<=totalPages;p++){
       if(p===1||p===totalPages||(p>=current-W&&p<=current+W)) add(p,p,p===current);
-      else if(p===current-W-1||p===current+W+1) btns.push(`<button disabled style="pointer-events:none;opacity:.5">…</button>`);
+      else if(p===current-W-1||p===current+W+1) btns.push(`<span class="pag-ellipsis">…</span>`);
     }
     add('›',current+1,false,current===totalPages); add('»',totalPages,false,current===totalPages);
-    container.innerHTML=`<div class="paginacao-btns">${btns.join('')}</div>`;
+    container.innerHTML=`<div class="paginacao">${btns.join('')}</div>`;
     container.querySelectorAll('button[data-pg]').forEach(btn=>
-      btn.addEventListener('click',()=>{ State.setTablePage(parseInt(btn.dataset.pg)); renderTable();
-        document.getElementById('secaoRegistros')?.scrollIntoView({behavior:'smooth',block:'start'}); })
+      btn.addEventListener('click',()=>{ State.setTablePage(parseInt(btn.dataset.pg)); renderTable(); })
     );
   }
 
