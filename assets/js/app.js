@@ -288,6 +288,8 @@ const App = (() => {
     Charts.renderAll();
     Tables.renderTable();
     Tables.renderSummaryTables();
+    if (typeof Alertas !== 'undefined') Alertas.renderizar();
+    if (typeof UrlHash !== 'undefined') UrlHash.push();
   }
 
   async function loadData(force=false) {
@@ -398,10 +400,41 @@ const App = (() => {
     Tables.bindEvents();
     initKpiClicks();
     initChartControls();
+    _initFerramentas();
     setTimeout(initStickySearch,300);
+    // Restaurar filtros da URL antes de carregar dados
+    if (typeof UrlHash !== 'undefined') {
+      UrlHash.init();
+      UrlHash.restore();
+    }
     loadData(false);
     const v=document.getElementById('versaoSidebar');
     if(v&&typeof CONFIG!=='undefined') v.textContent=CONFIG.VERSAO;
+  }
+
+  // ── Ferramentas — sidebar buttons ─────────────────────────────────────────
+  function _initFerramentas() {
+    document.getElementById('btnFichaVeiculo')?.addEventListener('click', () => {
+      if (typeof Veiculo !== 'undefined') Veiculo.abrirBusca();
+    });
+    document.getElementById('btnComparativo')?.addEventListener('click', () => {
+      if (typeof Comparativo !== 'undefined') Comparativo.abrir();
+    });
+    document.getElementById('btnExportXLSX')?.addEventListener('click', () => {
+      if (typeof Exportacao !== 'undefined') Exportacao.exportarXLSX();
+    });
+    document.getElementById('btnGerarPDF')?.addEventListener('click', () => {
+      if (typeof Exportacao !== 'undefined') Exportacao.gerarPDF();
+    });
+    document.getElementById('btnCopiarLink')?.addEventListener('click', () => {
+      if (typeof UrlHash !== 'undefined') UrlHash.copiarLink();
+    });
+
+    // Clique em placa na tabela → abre ficha
+    document.addEventListener('click', e => {
+      const placa = e.target.closest('[data-ficha-placa]')?.dataset.fichaPlaca;
+      if (placa && typeof Veiculo !== 'undefined') Veiculo.abrirFicha(placa);
+    });
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);

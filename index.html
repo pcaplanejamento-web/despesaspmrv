@@ -78,6 +78,35 @@
     <span>Registros Detalhados</span>
     <span class="menu-badge" id="sidebarRecordCount">0</span>
   </button>
+  <button class="side-menu-item" data-view="secaoAlertas" style="--i:5">
+    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+    <span>Alertas</span>
+    <span class="menu-badge" id="alertasBadge" style="background:#e11d48;display:none;"></span>
+  </button>
+
+  <div class="side-menu-divider"></div>
+  <div class="side-menu-section">Ferramentas</div>
+
+  <button class="side-menu-item" id="btnFichaVeiculo" style="--i:6">
+    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span>
+    <span>Ficha do Veículo</span>
+  </button>
+  <button class="side-menu-item" id="btnComparativo" style="--i:7">
+    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+    <span>Comparativo de Períodos</span>
+  </button>
+  <button class="side-menu-item" id="btnExportXLSX" style="--i:8">
+    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="8 13 12 17 16 13"/><line x1="12" y1="7" x2="12" y2="17"/></svg></span>
+    <span>Exportar XLSX</span>
+  </button>
+  <button class="side-menu-item" id="btnGerarPDF" style="--i:9">
+    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="11" y2="17"/><line x1="9" y1="9" x2="10" y2="9"/></svg></span>
+    <span>Relatório PDF</span>
+  </button>
+  <button class="side-menu-item" id="btnCopiarLink" style="--i:10">
+    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
+    <span>Compartilhar Link</span>
+  </button>
 
   <div class="side-menu-divider"></div>
 
@@ -650,6 +679,35 @@
     </div>
 
   </section>
+  <!-- ── 6. ALERTAS ───────────────────────────────────────────────────────── -->
+  <section id="secaoAlertas" aria-label="Dashboard de alertas">
+
+    <div class="chart-section-wrap" style="margin-bottom:32px;">
+      <div class="chart-section-banner" style="background:linear-gradient(135deg,#e11d48,#7c3aed);">
+        <div class="chart-banner-left">
+          <div class="chart-banner-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div>
+            <h3 class="chart-banner-title">Dashboard de Alertas</h3>
+            <p class="chart-banner-sub">Anomalias detectadas automaticamente nos dados do período</p>
+          </div>
+        </div>
+        <div class="chart-banner-controls">
+          <span class="ci-contador-pill" id="alertasTotalPill">0 alertas</span>
+        </div>
+      </div>
+      <div class="chart-section-body">
+        <div id="alertasCorpo" style="padding:20px;">
+          <div class="alertas-vazio">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <p>Carregando análise de alertas...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
 
 </main>
 
@@ -700,6 +758,11 @@
 <script src="assets/js/kpis.js"></script>
 <script src="assets/js/charts.js"></script>
 <script src="assets/js/tables.js"></script>
+<script src="assets/js/veiculo.js"></script>
+<script src="assets/js/alertas.js"></script>
+<script src="assets/js/comparativo.js"></script>
+<script src="assets/js/exportacao.js"></script>
+<script src="assets/js/urlhash.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>
