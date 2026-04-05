@@ -141,7 +141,8 @@ const Veiculo = (() => {
 
     // ── Secretarias onde o veículo apareceu
     const siglas = [...new Set(regs.map(r=>r.Sigla).filter(Boolean))];
-    const sl = typeof Filters !== 'undefined' ? Filters.siglaLabel : s=>s;
+    function _sl(s){try{const lbl=typeof Filters!=='undefined'?Filters.siglaLabel(s||''):s||'--';return(lbl!=null&&lbl!=='')?String(lbl):String(s||'--');}catch(e){return String(s||'--');}}
+    function _slShort(s){return _sl(s).split('—')[0].trim()||String(s||'--');}
 
     if (_chartFicha) { _chartFicha.destroy(); _chartFicha = null; }
 
@@ -172,7 +173,7 @@ const Veiculo = (() => {
           <div class="veiculo-kpi">
             <span class="veiculo-kpi-label">Identificação</span>
             <span class="veiculo-kpi-val" style="font-size:14px;line-height:1.3">${modelo}</span>
-            <span class="veiculo-kpi-sub">${tipo} · ${siglas.map(sl).map(s=>s.split('—')[0].trim()).join(', ')}</span>
+            <span class="veiculo-kpi-sub">${tipo} · ${siglas.map(_slShort).join(', ')}</span>
           </div>
           <div class="veiculo-kpi">
             <span class="veiculo-kpi-label">vs. Média da Frota (${tipo})</span>

@@ -400,7 +400,8 @@ const Visualizacoes = (() => {
 
     // Tooltip + clique
     const tip=document.getElementById('dispersaoTooltip');
-    const sl=typeof Filters!=='undefined'?Filters.siglaLabel:s=>s;
+    function _sl(s){try{const lbl=typeof Filters!=='undefined'?Filters.siglaLabel(s||''):s||'--';return(lbl!=null&&lbl!=='')?String(lbl):String(s||'--');}catch(e){return String(s||'--');}}
+    function _slShort(s){return _sl(s).split('—')[0].trim()||String(s||'--');}
     function hitTest(e){
       const rect=canvas.getBoundingClientRect();
       const mx=(e.clientX-rect.left)*(W/rect.width);
@@ -414,7 +415,7 @@ const Visualizacoes = (() => {
         tip.style.display='block';
         tip.style.left=(e.clientX+14)+'px';
         tip.style.top=(e.clientY-40)+'px';
-        tip.innerHTML=`<strong>${h.v.placa}</strong> — ${h.v.modelo}<br>${sl(h.v.sigla).split('—')[0].trim()}<br>${fmtBRL(h.v.total)} · ${h.v.count} registros`;
+        tip.innerHTML=`<strong>${h.v.placa}</strong> — ${h.v.modelo}<br>${_slShort(h.v.sigla)}<br>${fmtBRL(h.v.total)} · ${h.v.count} registros`;
       } else { canvas.style.cursor='default'; if(tip) tip.style.display='none'; }
     };
     canvas.onmouseleave=()=>{ if(tip) tip.style.display='none'; };

@@ -545,7 +545,8 @@ function _renderSazonalidade(data){
 // ── Score de Saúde ────────────────────────────────────────────
 function _renderScore(data){
   const fmtBRL=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-  const sl=typeof Filters!=='undefined'?Filters.siglaLabel:s=>s;
+  function _sl(sigla){try{const s=sigla!=null?String(sigla):'';if(!s)return'--';const label=typeof Filters!=='undefined'?Filters.siglaLabel(s):s;return(label!=null&&label!=='')?String(label):s;}catch(e){return String(sigla||'--');}}
+  function _slShort(sigla){return _sl(sigla).split('—')[0].trim()||String(sigla||'--');}
   const veics={};
   data.forEach(r=>{if(!r.Placa)return;if(!veics[r.Placa])veics[r.Placa]={placa:r.Placa,modelo:r.Modelo||r.Placa,tipo:r.Tipo||'--',sigla:r.Sigla||'--',total:0,manu:0,comb:0,meses:new Set(),gastos:[]};const v=veics[r.Placa];v.total+=r.Valor||0;v.meses.add(`${r.Ano}-${r.Mes}`);v.gastos.push(r);if((r.Despesa||'').toLowerCase().startsWith('manut'))v.manu+=r.Valor||0;if((r.Despesa||'').toLowerCase().startsWith('combust'))v.comb+=r.Valor||0;});
   const totalGeral=data.reduce((s,r)=>s+r.Valor,0);
@@ -573,7 +574,7 @@ function _renderScore(data){
           <span style="font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">${s.modelo}</span>
           <span style="background:${n.bg};color:${n.cor};font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px">${n.label}</span>
         </div>
-        <div style="font-size:11px;color:var(--text-muted)">${sl(s.sigla).split('—')[0].trim()} · ${s.tipo} · ${fmtBRL(s.total)} · ${s.pctManu}% manutenção</div>
+        <div style="font-size:11px;color:var(--text-muted)">${_slShort(s.sigla)} · ${s.tipo} · ${fmtBRL(s.total)} · ${s.pctManu}% manutenção</div>
         <div style="height:4px;background:var(--surface3);border-radius:2px;margin-top:6px;overflow:hidden"><div style="width:${s.score}%;height:100%;background:${n.cor};border-radius:2px;transition:width .4s"></div></div>
       </div>
     </div>`;
@@ -582,7 +583,8 @@ function _renderScore(data){
 
 // ── Rastreamento ──────────────────────────────────────────────
 function _renderRastreamento(data){
-  const sl=typeof Filters!=='undefined'?Filters.siglaLabel:s=>s;
+  function _sl(sigla){try{const s=sigla!=null?String(sigla):'';if(!s)return'--';const label=typeof Filters!=='undefined'?Filters.siglaLabel(s):s;return(label!=null&&label!=='')?String(label):s;}catch(e){return String(sigla||'--');}}
+  function _slShort(sigla){return _sl(sigla).split('—')[0].trim()||String(sigla||'--');}
   const fmtBRL=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
   const fmtM=m=>(CONFIG.MESES[m]||String(m)).substring(0,3);
   const placasSiglas={};
@@ -608,7 +610,7 @@ function _renderRastreamento(data){
             </div>
             <div class="rastr-conteudo">
               <div class="rastr-sec-analise">${s.sigla}</div>
-              <div class="rastr-periodo-analise">${sl(s.sigla).split('—')[0].trim()} · ${decodeNum(s.primeiro)} – ${decodeNum(s.ultimo)}</div>
+              <div class="rastr-periodo-analise">${_slShort(s.sigla)} · ${decodeNum(s.primeiro)} – ${decodeNum(s.ultimo)}</div>
               <div class="rastr-total-analise">${fmtBRL(s.total)}</div>
             </div>
           </div>`).join('')}
