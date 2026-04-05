@@ -288,8 +288,51 @@ const App = (() => {
     Charts.renderAll();
     Tables.renderTable();
     Tables.renderSummaryTables();
-    if (typeof Alertas !== 'undefined') Alertas.renderizar();
-    if (typeof UrlHash !== 'undefined') UrlHash.push();
+    if (typeof Analise !== 'undefined')       Analise.renderAll();
+    if (typeof Visualizacoes !== 'undefined') Visualizacoes.renderAll();
+  }
+
+  // ── Ferramentas da sidebar ────────────────────────────────────────────────
+  function _initFerramentas() {
+    document.getElementById('btnFichaVeiculo')?.addEventListener('click', () => {
+      if (typeof Veiculo !== 'undefined') Veiculo.abrirBusca();
+    });
+
+    // Tabs de Análises
+    document.querySelectorAll('.analise-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.analise-tab').forEach(t => t.classList.remove('ativa'));
+        document.querySelectorAll('.analise-painel').forEach(p => p.classList.remove('ativo'));
+        tab.classList.add('ativa');
+        document.getElementById('painel-'+tab.dataset.painel)?.classList.add('ativo');
+        // Re-renderizar se necessário
+        if (tab.dataset.painel==='projecao')     Analise?.renderAll();
+        if (tab.dataset.painel==='sazonalidade') Analise?.renderAll();
+      });
+    });
+
+    // Tabs de Visualizações
+    document.querySelectorAll('.vis-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.vis-tab').forEach(t => t.classList.remove('ativa'));
+        document.querySelectorAll('.vis-painel').forEach(p => p.classList.remove('ativo'));
+        tab.classList.add('ativa');
+        document.getElementById('vis-'+tab.dataset.vis)?.classList.add('ativo');
+        if (typeof Visualizacoes !== 'undefined') Visualizacoes.renderAll();
+      });
+    });
+
+    // Filtros de Score — delegação de evento (itens são renderizados dinamicamente)
+    document.getElementById('painel-score')?.addEventListener('click', e => {
+      const btn = e.target.closest('.score-filtro-btn');
+      if (!btn) return;
+      document.querySelectorAll('.score-filtro-btn').forEach(b => b.classList.remove('ativo'));
+      btn.classList.add('ativo');
+      const nivel = btn.dataset.nivel;
+      document.querySelectorAll('#scoresSaude .score-item').forEach(item => {
+        item.style.display = (nivel==='todos' || item.dataset.nivel===nivel) ? '' : 'none';
+      });
+    });
   }
 
   async function loadData(force=false) {
@@ -401,40 +444,11 @@ const App = (() => {
     initKpiClicks();
     initChartControls();
     _initFerramentas();
+    if (typeof UX !== 'undefined') UX.init();
     setTimeout(initStickySearch,300);
-    // Restaurar filtros da URL antes de carregar dados
-    if (typeof UrlHash !== 'undefined') {
-      UrlHash.init();
-      UrlHash.restore();
-    }
     loadData(false);
     const v=document.getElementById('versaoSidebar');
     if(v&&typeof CONFIG!=='undefined') v.textContent=CONFIG.VERSAO;
-  }
-
-  // ── Ferramentas — sidebar buttons ─────────────────────────────────────────
-  function _initFerramentas() {
-    document.getElementById('btnFichaVeiculo')?.addEventListener('click', () => {
-      if (typeof Veiculo !== 'undefined') Veiculo.abrirBusca();
-    });
-    document.getElementById('btnComparativo')?.addEventListener('click', () => {
-      if (typeof Comparativo !== 'undefined') Comparativo.abrir();
-    });
-    document.getElementById('btnExportXLSX')?.addEventListener('click', () => {
-      if (typeof Exportacao !== 'undefined') Exportacao.exportarXLSX();
-    });
-    document.getElementById('btnGerarPDF')?.addEventListener('click', () => {
-      if (typeof Exportacao !== 'undefined') Exportacao.gerarPDF();
-    });
-    document.getElementById('btnCopiarLink')?.addEventListener('click', () => {
-      if (typeof UrlHash !== 'undefined') UrlHash.copiarLink();
-    });
-
-    // Clique em placa na tabela → abre ficha
-    document.addEventListener('click', e => {
-      const placa = e.target.closest('[data-ficha-placa]')?.dataset.fichaPlaca;
-      if (placa && typeof Veiculo !== 'undefined') Veiculo.abrirFicha(placa);
-    });
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);

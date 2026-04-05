@@ -19,6 +19,7 @@
 <link rel="stylesheet" href="assets/css/main.css">
 <link rel="stylesheet" href="assets/css/layout.css">
 <link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/extras.css">
 </head>
 <body>
 
@@ -78,35 +79,44 @@
     <span>Registros Detalhados</span>
     <span class="menu-badge" id="sidebarRecordCount">0</span>
   </button>
-  <button class="side-menu-item" data-view="secaoAlertas" style="--i:5">
-    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
-    <span>Alertas</span>
-    <span class="menu-badge" id="alertasBadge" style="background:#e11d48;display:none;"></span>
+  <button class="side-menu-item" data-view="secaoAnalise" style="--i:5">
+    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+    <span>Análises Avançadas</span>
+  </button>
+  <button class="side-menu-item" data-view="secaoVisualizacoes" style="--i:6">
+    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+    <span>Visualizações</span>
   </button>
 
   <div class="side-menu-divider"></div>
   <div class="side-menu-section">Ferramentas</div>
 
-  <button class="side-menu-item" id="btnFichaVeiculo" style="--i:6">
+  <button class="side-menu-item" id="btnFichaVeiculo" style="--i:7">
     <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span>
     <span>Ficha do Veículo</span>
   </button>
-  <button class="side-menu-item" id="btnComparativo" style="--i:7">
-    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
-    <span>Comparativo de Períodos</span>
+  <button class="side-menu-item" id="btnModoApresentacao" style="--i:8">
+    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+    <span>Modo Apresentação</span>
   </button>
-  <button class="side-menu-item" id="btnExportXLSX" style="--i:8">
-    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="8 13 12 17 16 13"/><line x1="12" y1="7" x2="12" y2="17"/></svg></span>
-    <span>Exportar XLSX</span>
+  <button class="side-menu-item" id="btnSalvarFavorito" style="--i:9">
+    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+    <span>Salvar Filtros Favoritos</span>
   </button>
-  <button class="side-menu-item" id="btnGerarPDF" style="--i:9">
-    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="11" y2="17"/><line x1="9" y1="9" x2="10" y2="9"/></svg></span>
-    <span>Relatório PDF</span>
+  <button class="side-menu-item" id="btnAjudaAtalhos" style="--i:10">
+    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg></span>
+    <span>Atalhos de Teclado (?)</span>
   </button>
-  <button class="side-menu-item" id="btnCopiarLink" style="--i:10">
-    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
-    <span>Compartilhar Link</span>
+  <button class="side-menu-item" id="btnIniciarTour" style="--i:11">
+    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
+    <span>Tour do Sistema</span>
   </button>
+
+  <!-- Favoritos salvos -->
+  <div class="side-menu-favs">
+    <span class="side-menu-favs-label">Favoritos</span>
+    <div id="favoritosContainer"><span class="favs-vazio">Nenhum favorito salvo</span></div>
+  </div>
 
   <div class="side-menu-divider"></div>
 
@@ -679,37 +689,129 @@
     </div>
 
   </section>
-  <!-- ── 6. ALERTAS ───────────────────────────────────────────────────────── -->
-  <section id="secaoAlertas" aria-label="Dashboard de alertas">
-
-    <div class="chart-section-wrap" style="margin-bottom:32px;">
-      <div class="chart-section-banner" style="background:linear-gradient(135deg,#e11d48,#7c3aed);">
+  <!-- ── 6. ANÁLISES AVANÇADAS ─────────────────────────────────────────── -->
+  <section id="secaoAnalise" aria-label="Análises avançadas">
+    <div class="chart-section-wrap" style="margin-bottom:0">
+      <div class="chart-section-banner" style="background:linear-gradient(135deg,#0ea872,#0ea0a0);">
         <div class="chart-banner-left">
-          <div class="chart-banner-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          </div>
+          <div class="chart-banner-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
           <div>
-            <h3 class="chart-banner-title">Dashboard de Alertas</h3>
-            <p class="chart-banner-sub">Anomalias detectadas automaticamente nos dados do período</p>
+            <h3 class="chart-banner-title">Análises Avançadas</h3>
+            <p class="chart-banner-sub">Projeção · Sazonalidade · Score de Saúde · Rastreamento de Frota</p>
           </div>
-        </div>
-        <div class="chart-banner-controls">
-          <span class="ci-contador-pill" id="alertasTotalPill">0 alertas</span>
         </div>
       </div>
-      <div class="chart-section-body">
-        <div id="alertasCorpo" style="padding:20px;">
-          <div class="alertas-vazio">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            <p>Carregando análise de alertas...</p>
+      <div class="chart-section-body" style="padding:24px;">
+        <!-- Tabs -->
+        <div class="analise-tabs">
+          <button class="analise-tab ativa" data-painel="projecao">📈 Projeção</button>
+          <button class="analise-tab" data-painel="sazonalidade">📅 Sazonalidade</button>
+          <button class="analise-tab" data-painel="score">🏥 Score de Saúde</button>
+          <button class="analise-tab" data-painel="rastreamento">🗺 Rastreamento <span id="rastreamentoBadge" class="menu-badge" style="display:none;background:#7c3aed;margin-left:4px"></span></button>
+        </div>
+
+        <!-- Projeção -->
+        <div class="analise-painel ativo" id="painel-projecao">
+          <div id="projValores" class="proj-kpis" style="margin-bottom:16px"></div>
+          <div style="position:relative;height:260px;margin-bottom:8px;">
+            <canvas id="chartProjecao"></canvas>
+          </div>
+          <p style="font-size:11px;color:var(--text-muted);text-align:center;font-style:italic">Linha tracejada = projeção baseada em média móvel dos últimos 3 meses + ajuste sazonal</p>
+        </div>
+
+        <!-- Sazonalidade -->
+        <div class="analise-painel" id="painel-sazonalidade">
+          <div style="position:relative;height:220px;margin-bottom:16px;">
+            <canvas id="chartSazonalidade"></canvas>
+          </div>
+          <div id="sazonalidadeInsights"></div>
+        </div>
+
+        <!-- Score de Saúde -->
+        <div class="analise-painel" id="painel-score">
+          <div class="score-filtros">
+            <button class="score-filtro-btn ativo" data-nivel="todos">Todos</button>
+            <button class="score-filtro-btn" data-nivel="critico">⚡ Crítico</button>
+            <button class="score-filtro-btn" data-nivel="ruim">↓ Ruim</button>
+            <button class="score-filtro-btn" data-nivel="alerta">⚠ Atenção</button>
+            <button class="score-filtro-btn" data-nivel="bom">✓ Saudável</button>
+          </div>
+          <div id="scoresSaude"></div>
+        </div>
+
+        <!-- Rastreamento -->
+        <div class="analise-painel" id="painel-rastreamento">
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Veículos detectados em <strong>mais de uma secretaria</strong> ao longo do histórico. Indica cedência ou remanejamento de frota.</p>
+          <div id="rastreamentoLista"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 7. VISUALIZAÇÕES ───────────────────────────────────────────────── -->
+  <section id="secaoVisualizacoes" aria-label="Visualizações avançadas" style="margin-top:32px;">
+    <div class="chart-section-wrap" style="margin-bottom:32px">
+      <div class="chart-section-banner" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
+        <div class="chart-banner-left">
+          <div class="chart-banner-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+          <div>
+            <h3 class="chart-banner-title">Visualizações Especiais</h3>
+            <p class="chart-banner-sub">Heatmap · Treemap · Dispersão · Waterfall — clique nos elementos para interagir</p>
+          </div>
+        </div>
+      </div>
+      <div class="chart-section-body" style="padding:24px;">
+        <!-- Tabs de visualização -->
+        <div class="vis-tabs">
+          <button class="vis-tab ativa" data-vis="heatmap">🔥 Heatmap Mensal</button>
+          <button class="vis-tab" data-vis="treemap">📦 Treemap</button>
+          <button class="vis-tab" data-vis="dispersao">🎯 Dispersão</button>
+          <button class="vis-tab" data-vis="waterfall">💧 Waterfall</button>
+        </div>
+
+        <!-- Heatmap -->
+        <div class="vis-painel ativo" id="vis-heatmap">
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Intensidade de cor representa o volume de gastos: <span style="color:#1e90ff">azul frio = menor</span> · <span style="color:#e11d48">vermelho = maior</span>. Passe o mouse para ver o valor exato.</p>
+          <div class="canvas-vis-wrap">
+            <canvas id="canvasHeatmap"></canvas>
+          </div>
+        </div>
+
+        <!-- Treemap -->
+        <div class="vis-painel" id="vis-treemap">
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Área de cada bloco proporcional ao gasto total da secretaria. <strong>Clique em um bloco</strong> para filtrar por aquela secretaria.</p>
+          <div class="canvas-vis-wrap">
+            <canvas id="canvasTreemap" style="height:360px;"></canvas>
+          </div>
+        </div>
+
+        <!-- Dispersão -->
+        <div class="vis-painel" id="vis-dispersao">
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Eixo X = frequência (nº de registros) · Eixo Y = custo total. <span style="color:#e11d48">Vermelho = quadrante crítico</span> (alto custo + alta frequência). <strong>Clique em qualquer ponto</strong> para ver a Ficha do Veículo.</p>
+          <div class="canvas-vis-wrap">
+            <canvas id="canvasDispersao" style="height:360px;"></canvas>
+          </div>
+        </div>
+
+        <!-- Waterfall -->
+        <div class="vis-painel" id="vis-waterfall">
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Variação de gastos por secretaria entre os dois anos mais recentes. <span style="color:#e11d48">Vermelho = aumento</span> · <span style="color:#059669">Verde = redução</span>.</p>
+          <p id="waterfallSub" style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px"></p>
+          <div id="waterfallVazio"></div>
+          <div class="canvas-vis-wrap">
+            <canvas id="canvasWaterfall" style="height:320px;"></canvas>
           </div>
         </div>
       </div>
     </div>
-
   </section>
 
 </main>
+
+<!-- Tooltips flutuantes para Canvas -->
+<div id="heatmapTooltip"  class="vis-tooltip"></div>
+<div id="treemapTooltip"  class="vis-tooltip"></div>
+<div id="dispersaoTooltip" class="vis-tooltip"></div>
 
 <!-- ── Toast ─────────────────────────────────────────────────────────────── -->
 <div id="toast" role="alert" aria-live="assertive" aria-atomic="true">
@@ -759,10 +861,9 @@
 <script src="assets/js/charts.js"></script>
 <script src="assets/js/tables.js"></script>
 <script src="assets/js/veiculo.js"></script>
-<script src="assets/js/alertas.js"></script>
-<script src="assets/js/comparativo.js"></script>
-<script src="assets/js/exportacao.js"></script>
-<script src="assets/js/urlhash.js"></script>
+<script src="assets/js/analise.js"></script>
+<script src="assets/js/visualizacoes.js"></script>
+<script src="assets/js/ux.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>
