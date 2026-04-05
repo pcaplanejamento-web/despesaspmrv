@@ -23,10 +23,7 @@
 </head>
 <body>
 
-<!-- ── Overlay ────────────────────────────────────────────────────────────── -->
 <div class="menu-overlay" id="menuOverlay" aria-hidden="true"></div>
-
-<!-- ── Modal (criado dinamicamente pelo app.js) ──────────────────────────── -->
 
 <!-- ── Side Menu ──────────────────────────────────────────────────────────── -->
 <nav class="side-menu" id="sideMenu" aria-label="Menu principal">
@@ -42,7 +39,6 @@
     </button>
   </div>
 
-  <!-- Status + Sync no sidebar -->
   <div class="side-menu-status">
     <div class="status-indicator" id="statusIndicator" role="status" aria-live="polite">
       <span class="status-dot" id="statusDot"></span>
@@ -79,52 +75,42 @@
     <span>Registros Detalhados</span>
     <span class="menu-badge" id="sidebarRecordCount">0</span>
   </button>
-  <button class="side-menu-item" data-view="secaoAnalise" style="--i:5">
-    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
-    <span>Análises Avançadas</span>
-  </button>
-  <button class="side-menu-item" data-view="secaoVisualizacoes" style="--i:6">
-    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
-    <span>Visualizações</span>
-  </button>
 
   <div class="side-menu-divider"></div>
   <div class="side-menu-section">Ferramentas</div>
 
-  <button class="side-menu-item" id="btnFichaVeiculo" style="--i:7">
+  <a href="analise.html" class="side-menu-item side-menu-item-link" style="--i:5">
+    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 20h20M5 20V8l7-5 7 5v12"/><path d="M9 20v-5h6v5"/></svg></span>
+    <span>Análise Avançada</span>
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="opacity:.4;margin-left:auto;flex-shrink:0"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+  </a>
+  <button class="side-menu-item" id="btnFichaVeiculo" style="--i:6">
     <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span>
     <span>Ficha do Veículo</span>
   </button>
-  <button class="side-menu-item" id="btnModoApresentacao" style="--i:8">
+  <button class="side-menu-item" id="btnModoApresentacao" style="--i:7">
     <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
     <span>Modo Apresentação</span>
   </button>
-  <button class="side-menu-item" id="btnSalvarFavorito" style="--i:9">
-    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
-    <span>Salvar Filtros Favoritos</span>
-  </button>
-  <button class="side-menu-item" id="btnAjudaAtalhos" style="--i:10">
-    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg></span>
-    <span>Atalhos de Teclado (?)</span>
-  </button>
-  <button class="side-menu-item" id="btnIniciarTour" style="--i:11">
+  <button class="side-menu-item" id="btnIniciarTour" style="--i:8">
     <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
     <span>Tour do Sistema</span>
   </button>
 
-  <!-- Favoritos salvos -->
   <div class="side-menu-favs">
-    <span class="side-menu-favs-label">Favoritos</span>
+    <span class="side-menu-favs-label">Filtros Favoritos</span>
     <div id="favoritosContainer"><span class="favs-vazio">Nenhum favorito salvo</span></div>
+    <button class="side-menu-fav-add" id="btnSalvarFavorito">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Salvar filtros atuais
+    </button>
   </div>
 
   <div class="side-menu-divider"></div>
-
-  <a href="https://pcaplanejamento-web.github.io/pca/" class="side-menu-pca-link" style="--i:5">
+  <a href="https://pcaplanejamento-web.github.io/pca/" class="side-menu-pca-link" style="--i:9">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
     Voltar ao PCA
   </a>
-
   <div class="side-menu-footer">Gastos RV v<span id="versaoSidebar"></span> — PMRV</div>
 </nav>
 
@@ -154,7 +140,7 @@
 <!-- ── Page Content ──────────────────────────────────────────────────────── -->
 <main class="page-content" id="pageContent" role="main">
 
-  <!-- ── 1. KPIs — TOPO ─────────────────────────────────────────────────── -->
+  <!-- 1. KPIs -->
   <section id="secaoKpis" aria-label="Indicadores gerais">
     <div class="section-header">
       <div class="section-header-left">
@@ -162,162 +148,122 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
         </div>
         <div>
-          <h2 class="section-header-title">Indicadores Gerais — KPIs</h2>
-          <p class="section-header-sub">Totais e estatísticas baseadas na seleção atual</p>
+          <h2 class="section-header-title">Indicadores Gerais</h2>
+          <p class="section-header-sub">Totais baseados na seleção atual</p>
         </div>
       </div>
     </div>
-
     <div class="kpi-grid" id="kpiGrid">
       <div class="kpi-card kpi-blue">
         <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
         <div class="kpi-label">Total de Despesas</div>
         <div class="kpi-value" id="kpiTotalGeralValue">R$ 0,00</div>
-        <div class="kpi-sub"   id="kpiTotalGeralSub">0 registros</div>
+        <div class="kpi-sub" id="kpiTotalGeralSub">0 registros</div>
       </div>
       <div class="kpi-card kpi-green">
         <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
         <div class="kpi-label">Quantidade de Despesas</div>
         <div class="kpi-value" id="kpiQtdeValue">0</div>
-        <div class="kpi-sub"   id="kpiQtdeSub">sem dados no período</div>
+        <div class="kpi-sub" id="kpiQtdeSub">sem dados no período</div>
       </div>
       <div class="kpi-card kpi-amber">
         <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
         <div class="kpi-label">Média Mensal</div>
         <div class="kpi-value" id="kpiMediaValue">R$ 0,00</div>
-        <div class="kpi-sub"   id="kpiMediaSub">por mês com dados</div>
+        <div class="kpi-sub" id="kpiMediaSub">por mês com dados</div>
       </div>
       <div class="kpi-card kpi-rose" id="kpiMaiorCard" role="button" tabindex="0" aria-label="Clique para ver detalhes da maior despesa">
         <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div>
         <div class="kpi-label">Maior Despesa</div>
         <div class="kpi-value" id="kpiMaiorValue">R$ 0,00</div>
-        <div class="kpi-sub"   id="kpiMaiorSub">item mais caro</div>
+        <div class="kpi-sub" id="kpiMaiorSub">item mais caro</div>
         <div class="kpi-click-hint">Clique para ver detalhes</div>
       </div>
     </div>
   </section>
 
-  <!-- ── 2. FILTROS ─────────────────────────────────────────────────────── -->
-  <section id="secaoFiltros" aria-label="Filtros de seleção" class="filtros-section">
-
-    <!-- Resumo de filtros ativos -->
+  <!-- 2. FILTROS -->
+  <section id="secaoFiltros" aria-label="Filtros" class="filtros-section">
     <div class="filtros-resumo" id="filtrosResumo" aria-live="polite"></div>
-
-    <!-- Painel de filtros estilo PCA "Filtrar por Local" -->
     <div class="filtros-painel" role="search" aria-label="Filtros">
-
-      <!-- Linha de chips: contador -->
       <div class="filtro-chips-row">
         <div class="filtro-chips-label">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
           Filtrar por
         </div>
         <span class="filtro-record-count" id="filterRecordCount">0 registros</span>
       </div>
-
-      <!-- Grade de multi-selects -->
       <div class="filtros-grade">
-
-        <!-- Ano -->
         <div class="filtro-item">
-          <label class="filtro-item-label">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Ano
-          </label>
+          <label class="filtro-item-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Ano</label>
           <div class="ms-wrap" id="msAnos" data-key="anos">
             <button class="ms-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
               <span class="ms-label">Todos os anos</span>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="ms-dropdown" role="listbox" aria-multiselectable="true" aria-label="Selecionar anos"></div>
+            <div class="ms-dropdown" role="listbox" aria-multiselectable="true"></div>
           </div>
         </div>
-
-        <!-- Tipo de Despesa -->
         <div class="filtro-item">
-          <label class="filtro-item-label">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 3v18h18"/></svg>
-            Tipo de Despesa
-          </label>
+          <label class="filtro-item-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 3v18h18"/></svg> Tipo de Despesa</label>
           <div class="ms-wrap" id="msDespesas" data-key="despesas">
             <button class="ms-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
               <span class="ms-label">Todos os tipos</span>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="ms-dropdown" role="listbox" aria-multiselectable="true" aria-label="Selecionar tipo de despesa"></div>
+            <div class="ms-dropdown" role="listbox" aria-multiselectable="true"></div>
           </div>
         </div>
-
-        <!-- Tipo de Frota -->
         <div class="filtro-item">
-          <label class="filtro-item-label">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-            Tipo de Frota
-          </label>
+          <label class="filtro-item-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> Tipo de Frota</label>
           <div class="ms-wrap" id="msTipos" data-key="tipos">
             <button class="ms-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
               <span class="ms-label">Todos os tipos</span>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="ms-dropdown" role="listbox" aria-multiselectable="true" aria-label="Selecionar tipo de frota"></div>
+            <div class="ms-dropdown" role="listbox" aria-multiselectable="true"></div>
           </div>
         </div>
-
-        <!-- Secretaria -->
         <div class="filtro-item">
-          <label class="filtro-item-label">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-            Secretaria / Local
-          </label>
+          <label class="filtro-item-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Secretaria</label>
           <div class="ms-wrap" id="msSecretarias" data-key="secretarias">
             <button class="ms-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
               <span class="ms-label">Todas as secretarias</span>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="ms-dropdown" role="listbox" aria-multiselectable="true" aria-label="Selecionar secretaria"></div>
+            <div class="ms-dropdown" role="listbox" aria-multiselectable="true"></div>
           </div>
         </div>
-
-        <!-- Classificação -->
         <div class="filtro-item">
-          <label class="filtro-item-label">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            Classificação
-          </label>
+          <label class="filtro-item-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Classificação</label>
           <div class="ms-wrap" id="msClassificacoes" data-key="classificacoes">
             <button class="ms-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
               <span class="ms-label">Todas as categorias</span>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="ms-dropdown" role="listbox" aria-multiselectable="true" aria-label="Selecionar classificação"></div>
+            <div class="ms-dropdown" role="listbox" aria-multiselectable="true"></div>
           </div>
         </div>
-
-      </div><!-- /filtros-grade -->
-
-      <!-- Ações -->
+      </div>
       <div class="filtros-acoes">
         <div class="filtro-acao-spacer"></div>
-        <button class="btn-limpar-filtros hidden" id="btnClearFilters" aria-label="Limpar todos os filtros">
+        <button class="btn-limpar-filtros hidden" id="btnClearFilters">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           Limpar Filtros
         </button>
-        <button class="btn-exportar" id="btnExport" aria-label="Exportar CSV">
+        <button class="btn-exportar" id="btnExport">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Exportar CSV
         </button>
       </div>
-
-    </div><!-- /filtros-painel -->
+    </div>
   </section>
 
-  <!-- ── 3. GRÁFICOS ────────────────────────────────────────────────────── -->
+  <!-- 3. GRÁFICOS -->
   <section id="secaoGraficos" aria-label="Análise gráfica">
     <div class="section-header">
       <div class="section-header-left">
-        <div class="section-header-icon" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
-        </div>
+        <div class="section-header-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div>
         <div>
           <h2 class="section-header-title">Análise Gráfica</h2>
           <p class="section-header-sub">Clique em qualquer barra ou ponto para ver detalhes</p>
@@ -325,210 +271,174 @@
       </div>
     </div>
 
-    <!-- Gráficos lado a lado com banners estilo PCA -->
     <div class="charts-grid-2col">
-      <!-- Siglas -->
       <div class="chart-section-wrap">
         <div class="chart-section-banner chart-banner-blue">
           <div class="chart-banner-left">
-            <div class="chart-banner-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-            </div>
+            <div class="chart-banner-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
             <div>
               <h3 class="chart-banner-title" data-chart-title="chartSiglas">Despesas por Secretaria</h3>
-              <p class="chart-banner-sub">Clique para ver detalhes completos</p>
+              <p class="chart-banner-sub">Clique para ver detalhes</p>
             </div>
           </div>
           <div class="chart-banner-controls">
-            <button class="chart-ctrl-btn" data-toggle-chart="chartSiglas" title="Mudar para pizza" aria-label="Alternar tipo de gráfico">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-            </button>
-            <button class="chart-ctrl-btn" data-expand-chart="chartSiglas" title="Expandir gráfico" aria-label="Expandir gráfico">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-            </button>
+            <button class="chart-ctrl-btn" data-toggle-chart="chartSiglas" title="Alternar tipo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></button>
+            <button class="chart-ctrl-btn" data-expand-chart="chartSiglas" title="Expandir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
           </div>
         </div>
         <div class="chart-section-body">
           <div class="chart-wrap">
             <div class="skeleton" id="skeletonSiglas"></div>
-            <canvas id="chartSiglas" class="chart-ready" aria-label="Gráfico por secretaria"></canvas>
+            <canvas id="chartSiglas" class="chart-ready"></canvas>
           </div>
         </div>
       </div>
-      <!-- Classificação -->
       <div class="chart-section-wrap">
         <div class="chart-section-banner chart-banner-purple">
           <div class="chart-banner-left">
-            <div class="chart-banner-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            </div>
+            <div class="chart-banner-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
             <div>
-              <h3 class="chart-banner-title" data-chart-title="chartClassificacao">Despesas por Classificação</h3>
-              <p class="chart-banner-sub">Clique para ver detalhes completos</p>
+              <h3 class="chart-banner-title" data-chart-title="chartClassificacao">Por Classificação</h3>
+              <p class="chart-banner-sub">Clique para ver detalhes</p>
             </div>
           </div>
           <div class="chart-banner-controls">
-            <button class="chart-ctrl-btn" data-toggle-chart="chartClassificacao" title="Mudar para pizza" aria-label="Alternar tipo de gráfico">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-            </button>
-            <button class="chart-ctrl-btn" data-expand-chart="chartClassificacao" title="Expandir gráfico" aria-label="Expandir gráfico">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-            </button>
+            <button class="chart-ctrl-btn" data-toggle-chart="chartClassificacao" title="Alternar tipo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></button>
+            <button class="chart-ctrl-btn" data-expand-chart="chartClassificacao" title="Expandir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
           </div>
         </div>
         <div class="chart-section-body">
           <div class="chart-wrap">
             <div class="skeleton" id="skeletonClassificacao"></div>
-            <canvas id="chartClassificacao" class="chart-ready" aria-label="Gráfico por classificação"></canvas>
+            <canvas id="chartClassificacao" class="chart-ready"></canvas>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Evolução mensal com banner verde -->
+    <!-- Evolução — altura fixa, responsiva -->
     <div class="chart-section-wrap" style="margin-bottom:32px;">
       <div class="chart-section-banner chart-banner-green">
         <div class="chart-banner-left">
-          <div class="chart-banner-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          </div>
+          <div class="chart-banner-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
           <div>
             <h3 class="chart-banner-title" data-chart-title="chartEvolucao">Evolução Mensal de Despesas</h3>
-            <p class="chart-banner-sub">Clique em qualquer ponto para detalhes e análise anual</p>
+            <p class="chart-banner-sub">Clique em qualquer ponto para ver detalhes e análise YoY</p>
           </div>
         </div>
         <div class="chart-banner-controls">
           <div id="evolucaoLegenda" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;"></div>
-          <button class="chart-ctrl-btn" data-expand-chart="chartEvolucao" title="Expandir gráfico" aria-label="Expandir gráfico">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-          </button>
+          <button class="chart-ctrl-btn" data-expand-chart="chartEvolucao" title="Expandir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
         </div>
       </div>
       <div class="chart-section-body">
-        <div class="chart-wrap chart-wrap-lg">
+        <div class="chart-wrap chart-wrap-evolucao">
           <div class="skeleton" id="skeletonEvolucao"></div>
-          <canvas id="chartEvolucao" class="chart-ready" aria-label="Gráfico evolução mensal"></canvas>
+          <canvas id="chartEvolucao" class="chart-ready"></canvas>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ── 4. RESUMOS ─────────────────────────────────────────────────────── -->
+  <!-- 4. RESUMOS -->
   <section id="secaoTabSumarizadas" aria-label="Resumos por categoria">
     <div class="section-header">
       <div class="section-header-left">
-        <div class="section-header-icon" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
-        </div>
+        <div class="section-header-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg></div>
         <div>
           <h2 class="section-header-title">Resumos por Categoria</h2>
-          <p class="section-header-sub">Totais agregados — todas as linhas visíveis</p>
+          <p class="section-header-sub">Clique em qualquer linha para ver os registros do período</p>
         </div>
       </div>
     </div>
 
     <div class="resumo-lista">
-      <!-- Classificação -->
       <div class="resumo-card-wrap">
         <div class="resumo-banner resumo-banner-blue">
           <div class="resumo-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
           <span class="resumo-banner-title">Por Classificação</span>
         </div>
         <div class="card resumo-card resumo-card-noborder-top">
-        <div class="resumo-table-wrap">
-          <table class="resumo-table" id="tabClassificacao">
-            <thead><tr><th>Classificação</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
+          <div class="resumo-table-wrap">
+            <table class="resumo-table resumo-clickable" id="tabClassificacao" data-tipo="classificacao">
+              <thead><tr><th>Classificação</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
       </div>
-      <!-- Mês -->
+
+      <!-- Mês — colunas Mês e Ano separadas -->
       <div class="resumo-card-wrap">
         <div class="resumo-banner resumo-banner-green">
           <div class="resumo-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
           <span class="resumo-banner-title">Por Mês</span>
         </div>
-        <div class="card resumo-card resumo-card-noborder-top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
-          <span class="resumo-card-title">Por Mês</span>
+        <div class="card resumo-card resumo-card-noborder-top">
+          <div class="resumo-table-wrap">
+            <table class="resumo-table resumo-clickable" id="tabMes" data-tipo="mes">
+              <thead><tr><th>Mês</th><th>Ano</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
-        <div class="resumo-table-wrap">
-          <table class="resumo-table" id="tabMes">
-            <thead><tr><th>Mês / Ano</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
       </div>
-      </div>
-      </div>
-      <!-- Tipo -->
+
       <div class="resumo-card-wrap">
         <div class="resumo-banner resumo-banner-amber">
           <div class="resumo-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
           <span class="resumo-banner-title">Por Tipo de Frota</span>
         </div>
-        <div class="card resumo-card resumo-card-noborder-top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span>
-          <span class="resumo-card-title">Por Tipo de Frota</span>
+        <div class="card resumo-card resumo-card-noborder-top">
+          <div class="resumo-table-wrap">
+            <table class="resumo-table resumo-clickable" id="tabTipo" data-tipo="tipo">
+              <thead><tr><th>Tipo</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
-        <div class="resumo-table-wrap">
-          <table class="resumo-table" id="tabTipo">
-            <thead><tr><th>Tipo</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
       </div>
-      </div>
-      </div>
-      <!-- Despesa -->
+
       <div class="resumo-card-wrap">
         <div class="resumo-banner resumo-banner-rose">
           <div class="resumo-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 3v18h18"/></svg></div>
           <span class="resumo-banner-title">Por Tipo de Despesa</span>
         </div>
-        <div class="card resumo-card resumo-card-noborder-top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/></svg></span>
-          <span class="resumo-card-title">Por Tipo de Despesa</span>
+        <div class="card resumo-card resumo-card-noborder-top">
+          <div class="resumo-table-wrap">
+            <table class="resumo-table resumo-clickable" id="tabDespesa" data-tipo="despesa">
+              <thead><tr><th>Despesa</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
-        <div class="resumo-table-wrap">
-          <table class="resumo-table" id="tabDespesa">
-            <thead><tr><th>Despesa</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
       </div>
-      </div>
-      </div>
-      <!-- Local -->
-      <div class="resumo-card-wrap resumo-card-wrap-wide">
+
+      <div class="resumo-card-wrap">
         <div class="resumo-banner resumo-banner-purple">
           <div class="resumo-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
           <span class="resumo-banner-title">Por Local (Secretaria)</span>
         </div>
-        <div class="card resumo-card resumo-card-noborder-top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
-          <span class="resumo-card-title">Por Local (Secretaria)</span>
-        </div>
-        <div class="resumo-table-wrap">
-          <table class="resumo-table" id="tabLocal">
-            <thead><tr><th>Sigla</th><th>Secretaria</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
+        <div class="card resumo-card resumo-card-noborder-top">
+          <div class="resumo-table-wrap">
+            <table class="resumo-table resumo-clickable" id="tabLocal" data-tipo="local">
+              <thead><tr><th>Sigla</th><th>Secretaria</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ── 5. REGISTROS DETALHADOS ────────────────────────────────────────── -->
+  <!-- 5. REGISTROS DETALHADOS -->
   <section id="secaoRegistros" class="tabela-section" aria-label="Registros detalhados">
-
-    <!-- Banner estilo ci-banner do PCA -->
     <div class="ci-banner">
       <div class="ci-banner-left">
-        <div class="ci-banner-icon" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        </div>
+        <div class="ci-banner-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
         <div>
           <h2 class="ci-banner-title">Registros Detalhados</h2>
-          <p class="ci-banner-sub">Clique em qualquer linha para ver todos os dados do registro</p>
+          <p class="ci-banner-sub">Clique em qualquer linha para ver todos os dados</p>
         </div>
       </div>
       <div class="ci-banner-right">
@@ -536,136 +446,57 @@
       </div>
     </div>
 
-    <!-- Barra de busca sticky (padrão ci-search-banner do PCA) -->
     <div class="ci-search-banner" id="tabelaSearchBar">
       <div class="ci-search-wrap" role="search">
-        <span class="ci-search-leading" aria-hidden="true">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </span>
-        <input type="text" id="tableSearch" class="ci-search-input" placeholder="Busca global: placa, modelo, classificação, departamento..." aria-label="Busca global nos registros">
-        <button class="ci-search-clear" id="searchClear" aria-label="Limpar busca">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+        <span class="ci-search-leading"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+        <input type="text" id="tableSearch" class="ci-search-input" placeholder="Busca global: placa, modelo, classificação, departamento..." aria-label="Busca global">
+        <button class="ci-search-clear" id="searchClear" aria-label="Limpar busca"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         <button class="ci-search-btn" id="searchBtn">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <span>Buscar</span>
         </button>
       </div>
     </div>
 
-    <!-- Painel de filtros de coluna (ci-filtros-painel do PCA) -->
     <div class="ci-filtros-painel">
       <div class="ci-filtros-grade">
-        <div class="ci-filtro-item">
-          <label class="ci-filtro-item-label">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-            Local
-          </label>
-          <input class="ci-filtro-text-input col-filter-input" data-col="Sigla" placeholder="Filtrar..." aria-label="Filtrar por local">
-        </div>
-        <div class="ci-filtro-item">
-          <label class="ci-filtro-item-label">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 7H4M15 12H4M10 17H4"/></svg>
-            Departamento
-          </label>
-          <input class="ci-filtro-text-input col-filter-input" data-col="Departamento" placeholder="Filtrar..." aria-label="Filtrar por departamento">
-        </div>
-        <div class="ci-filtro-item">
-          <label class="ci-filtro-item-label">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 3v18h18"/></svg>
-            Despesa
-          </label>
-          <select class="ci-filtro-native-select col-filter-select" data-col="Despesa" aria-label="Filtrar por tipo de despesa">
-            <option value="">Tudo</option>
-          </select>
-        </div>
-        <div class="ci-filtro-item">
-          <label class="ci-filtro-item-label">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/></svg>
-            Tipo
-          </label>
-          <select class="ci-filtro-native-select col-filter-select" data-col="Tipo" aria-label="Filtrar por tipo de frota">
-            <option value="">Tudo</option>
-            <option value="Veiculo">Veículo</option>
-            <option value="Maquina">Máquina</option>
-          </select>
-        </div>
-        <div class="ci-filtro-item">
-          <label class="ci-filtro-item-label">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            Placa
-          </label>
-          <input class="ci-filtro-text-input col-filter-input td-mono" data-col="Placa" placeholder="ABC-1234..." aria-label="Filtrar por placa">
-        </div>
-        <div class="ci-filtro-item">
-          <label class="ci-filtro-item-label">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
-            Modelo
-          </label>
-          <input class="ci-filtro-text-input col-filter-input" data-col="Modelo" placeholder="Filtrar..." aria-label="Filtrar por modelo">
-        </div>
-        <div class="ci-filtro-item">
-          <label class="ci-filtro-item-label">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            Classificação
-          </label>
-          <input class="ci-filtro-text-input col-filter-input" data-col="Classificacao" placeholder="Filtrar..." aria-label="Filtrar por classificação">
-        </div>
-        <div class="ci-filtro-item">
-          <label class="ci-filtro-item-label">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Mês
-          </label>
-          <select class="ci-filtro-native-select col-filter-select" data-col="Mes" aria-label="Filtrar por mês">
-            <option value="">Tudo</option>
-          </select>
-        </div>
-        <div class="ci-filtro-item">
-          <label class="ci-filtro-item-label">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Ano
-          </label>
-          <select class="ci-filtro-native-select col-filter-select" data-col="Ano" aria-label="Filtrar por ano">
-            <option value="">Tudo</option>
-          </select>
-        </div>
+        <div class="ci-filtro-item"><label class="ci-filtro-item-label"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Local</label><input class="ci-filtro-text-input col-filter-input" data-col="Sigla" placeholder="Filtrar..."></div>
+        <div class="ci-filtro-item"><label class="ci-filtro-item-label"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 7H4M15 12H4M10 17H4"/></svg> Departamento</label><input class="ci-filtro-text-input col-filter-input" data-col="Departamento" placeholder="Filtrar..."></div>
+        <div class="ci-filtro-item"><label class="ci-filtro-item-label"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 3v18h18"/></svg> Despesa</label><select class="ci-filtro-native-select col-filter-select" data-col="Despesa"><option value="">Tudo</option></select></div>
+        <div class="ci-filtro-item"><label class="ci-filtro-item-label"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/></svg> Tipo</label><select class="ci-filtro-native-select col-filter-select" data-col="Tipo"><option value="">Tudo</option><option value="Veiculo">Veículo</option><option value="Maquina">Máquina</option></select></div>
+        <div class="ci-filtro-item"><label class="ci-filtro-item-label"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Placa</label><input class="ci-filtro-text-input col-filter-input td-mono" data-col="Placa" placeholder="ABC-1234..."></div>
+        <div class="ci-filtro-item"><label class="ci-filtro-item-label"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> Modelo</label><input class="ci-filtro-text-input col-filter-input" data-col="Modelo" placeholder="Filtrar..."></div>
+        <div class="ci-filtro-item"><label class="ci-filtro-item-label"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Classificação</label><input class="ci-filtro-text-input col-filter-input" data-col="Classificacao" placeholder="Filtrar..."></div>
+        <div class="ci-filtro-item"><label class="ci-filtro-item-label"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Mês</label><select class="ci-filtro-native-select col-filter-select" data-col="Mes"><option value="">Tudo</option></select></div>
+        <div class="ci-filtro-item"><label class="ci-filtro-item-label"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Ano</label><select class="ci-filtro-native-select col-filter-select" data-col="Ano"><option value="">Tudo</option></select></div>
       </div>
-
       <div class="ci-filtros-vis">
         <div class="ci-vis-spacer"></div>
-        <button class="btn btn-ghost" id="btnClearColFilters" style="font-size:12px;padding:8px 16px;display:none;" aria-label="Limpar filtros de coluna">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          Limpar filtros
-        </button>
+        <button class="btn btn-ghost" id="btnClearColFilters" style="font-size:12px;padding:8px 16px;display:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Limpar filtros</button>
         <div style="display:flex;align-items:center;gap:8px;padding:0 20px;">
           <label for="tablePageSize" style="font-size:11px;color:var(--text-muted);white-space:nowrap;font-weight:600;">Por página:</label>
-          <select id="tablePageSize" style="padding:5px 8px;font-size:12px;border-radius:8px;min-width:64px;" aria-label="Registros por página">
-            <option value="25">25</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
+          <select id="tablePageSize" style="padding:5px 8px;font-size:12px;border-radius:8px;min-width:64px;">
+            <option value="25">25</option><option value="50">50</option><option value="100">100</option>
           </select>
         </div>
       </div>
     </div>
 
-    <!-- Tabela -->
     <div class="tabela-moderna-wrap">
       <div class="table-wrapper">
         <table role="grid" aria-label="Registros de despesas de frota">
-          <thead>
-            <tr>
-              <th class="th-sortable" data-col="Sigla">Local<span class="sort-icon"></span></th>
-              <th class="th-sortable" data-col="Departamento">Departamento<span class="sort-icon"></span></th>
-              <th class="th-sortable" data-col="Despesa">Despesa<span class="sort-icon"></span></th>
-              <th class="th-sortable" data-col="Tipo">Tipo<span class="sort-icon"></span></th>
-              <th class="th-sortable" data-col="Placa">Placa<span class="sort-icon"></span></th>
-              <th class="th-sortable" data-col="Modelo">Modelo<span class="sort-icon"></span></th>
-              <th class="th-sortable" data-col="Classificacao">Classificação<span class="sort-icon"></span></th>
-              <th class="th-sortable th-number" data-col="Valor">Valor<span class="sort-icon"></span></th>
-              <th class="th-sortable" data-col="Mes">Mês<span class="sort-icon"></span></th>
-              <th class="th-sortable" data-col="Ano">Ano<span class="sort-icon"></span></th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th class="th-sortable" data-col="Sigla">Local<span class="sort-icon"></span></th>
+            <th class="th-sortable" data-col="Departamento">Departamento<span class="sort-icon"></span></th>
+            <th class="th-sortable" data-col="Despesa">Despesa<span class="sort-icon"></span></th>
+            <th class="th-sortable" data-col="Tipo">Tipo<span class="sort-icon"></span></th>
+            <th class="th-sortable" data-col="Placa">Placa<span class="sort-icon"></span></th>
+            <th class="th-sortable" data-col="Modelo">Modelo<span class="sort-icon"></span></th>
+            <th class="th-sortable" data-col="Classificacao">Classificação<span class="sort-icon"></span></th>
+            <th class="th-sortable th-number" data-col="Valor">Valor<span class="sort-icon"></span></th>
+            <th class="th-sortable" data-col="Mes">Mês<span class="sort-icon"></span></th>
+            <th class="th-sortable" data-col="Ano">Ano<span class="sort-icon"></span></th>
+          </tr></thead>
           <tbody id="tableBody">
             <tr><td colspan="10" class="table-estado">
               <div class="table-estado-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
@@ -674,7 +505,6 @@
           </tbody>
         </table>
       </div>
-
       <div class="tabela-footer">
         <div class="tabela-footer-total">
           <span class="tabela-footer-total-label">Total filtrado</span>
@@ -683,137 +513,14 @@
         <div class="paginacao" id="tablePagination" role="navigation" aria-label="Paginação"></div>
       </div>
     </div>
-
     <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 4px 0;flex-wrap:wrap;gap:8px;">
       <span class="paginacao-info" id="tableInfo" aria-live="polite"></span>
-    </div>
-
-  </section>
-  <!-- ── 6. ANÁLISES AVANÇADAS ─────────────────────────────────────────── -->
-  <section id="secaoAnalise" aria-label="Análises avançadas">
-    <div class="chart-section-wrap" style="margin-bottom:0">
-      <div class="chart-section-banner" style="background:linear-gradient(135deg,#0ea872,#0ea0a0);">
-        <div class="chart-banner-left">
-          <div class="chart-banner-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-          <div>
-            <h3 class="chart-banner-title">Análises Avançadas</h3>
-            <p class="chart-banner-sub">Projeção · Sazonalidade · Score de Saúde · Rastreamento de Frota</p>
-          </div>
-        </div>
-      </div>
-      <div class="chart-section-body" style="padding:24px;">
-        <!-- Tabs -->
-        <div class="analise-tabs">
-          <button class="analise-tab ativa" data-painel="projecao">📈 Projeção</button>
-          <button class="analise-tab" data-painel="sazonalidade">📅 Sazonalidade</button>
-          <button class="analise-tab" data-painel="score">🏥 Score de Saúde</button>
-          <button class="analise-tab" data-painel="rastreamento">🗺 Rastreamento <span id="rastreamentoBadge" class="menu-badge" style="display:none;background:#7c3aed;margin-left:4px"></span></button>
-        </div>
-
-        <!-- Projeção -->
-        <div class="analise-painel ativo" id="painel-projecao">
-          <div id="projValores" class="proj-kpis" style="margin-bottom:16px"></div>
-          <div style="position:relative;height:260px;margin-bottom:8px;">
-            <canvas id="chartProjecao"></canvas>
-          </div>
-          <p style="font-size:11px;color:var(--text-muted);text-align:center;font-style:italic">Linha tracejada = projeção baseada em média móvel dos últimos 3 meses + ajuste sazonal</p>
-        </div>
-
-        <!-- Sazonalidade -->
-        <div class="analise-painel" id="painel-sazonalidade">
-          <div style="position:relative;height:220px;margin-bottom:16px;">
-            <canvas id="chartSazonalidade"></canvas>
-          </div>
-          <div id="sazonalidadeInsights"></div>
-        </div>
-
-        <!-- Score de Saúde -->
-        <div class="analise-painel" id="painel-score">
-          <div class="score-filtros">
-            <button class="score-filtro-btn ativo" data-nivel="todos">Todos</button>
-            <button class="score-filtro-btn" data-nivel="critico">⚡ Crítico</button>
-            <button class="score-filtro-btn" data-nivel="ruim">↓ Ruim</button>
-            <button class="score-filtro-btn" data-nivel="alerta">⚠ Atenção</button>
-            <button class="score-filtro-btn" data-nivel="bom">✓ Saudável</button>
-          </div>
-          <div id="scoresSaude"></div>
-        </div>
-
-        <!-- Rastreamento -->
-        <div class="analise-painel" id="painel-rastreamento">
-          <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Veículos detectados em <strong>mais de uma secretaria</strong> ao longo do histórico. Indica cedência ou remanejamento de frota.</p>
-          <div id="rastreamentoLista"></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── 7. VISUALIZAÇÕES ───────────────────────────────────────────────── -->
-  <section id="secaoVisualizacoes" aria-label="Visualizações avançadas" style="margin-top:32px;">
-    <div class="chart-section-wrap" style="margin-bottom:32px">
-      <div class="chart-section-banner" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
-        <div class="chart-banner-left">
-          <div class="chart-banner-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
-          <div>
-            <h3 class="chart-banner-title">Visualizações Especiais</h3>
-            <p class="chart-banner-sub">Heatmap · Treemap · Dispersão · Waterfall — clique nos elementos para interagir</p>
-          </div>
-        </div>
-      </div>
-      <div class="chart-section-body" style="padding:24px;">
-        <!-- Tabs de visualização -->
-        <div class="vis-tabs">
-          <button class="vis-tab ativa" data-vis="heatmap">🔥 Heatmap Mensal</button>
-          <button class="vis-tab" data-vis="treemap">📦 Treemap</button>
-          <button class="vis-tab" data-vis="dispersao">🎯 Dispersão</button>
-          <button class="vis-tab" data-vis="waterfall">💧 Waterfall</button>
-        </div>
-
-        <!-- Heatmap -->
-        <div class="vis-painel ativo" id="vis-heatmap">
-          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Intensidade de cor representa o volume de gastos: <span style="color:#1e90ff">azul frio = menor</span> · <span style="color:#e11d48">vermelho = maior</span>. Passe o mouse para ver o valor exato.</p>
-          <div class="canvas-vis-wrap">
-            <canvas id="canvasHeatmap"></canvas>
-          </div>
-        </div>
-
-        <!-- Treemap -->
-        <div class="vis-painel" id="vis-treemap">
-          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Área de cada bloco proporcional ao gasto total da secretaria. <strong>Clique em um bloco</strong> para filtrar por aquela secretaria.</p>
-          <div class="canvas-vis-wrap">
-            <canvas id="canvasTreemap" style="height:360px;"></canvas>
-          </div>
-        </div>
-
-        <!-- Dispersão -->
-        <div class="vis-painel" id="vis-dispersao">
-          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Eixo X = frequência (nº de registros) · Eixo Y = custo total. <span style="color:#e11d48">Vermelho = quadrante crítico</span> (alto custo + alta frequência). <strong>Clique em qualquer ponto</strong> para ver a Ficha do Veículo.</p>
-          <div class="canvas-vis-wrap">
-            <canvas id="canvasDispersao" style="height:360px;"></canvas>
-          </div>
-        </div>
-
-        <!-- Waterfall -->
-        <div class="vis-painel" id="vis-waterfall">
-          <p style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Variação de gastos por secretaria entre os dois anos mais recentes. <span style="color:#e11d48">Vermelho = aumento</span> · <span style="color:#059669">Verde = redução</span>.</p>
-          <p id="waterfallSub" style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px"></p>
-          <div id="waterfallVazio"></div>
-          <div class="canvas-vis-wrap">
-            <canvas id="canvasWaterfall" style="height:320px;"></canvas>
-          </div>
-        </div>
-      </div>
     </div>
   </section>
 
 </main>
 
-<!-- Tooltips flutuantes para Canvas -->
-<div id="heatmapTooltip"  class="vis-tooltip"></div>
-<div id="treemapTooltip"  class="vis-tooltip"></div>
-<div id="dispersaoTooltip" class="vis-tooltip"></div>
-
-<!-- ── Toast ─────────────────────────────────────────────────────────────── -->
+<!-- Toast -->
 <div id="toast" role="alert" aria-live="assertive" aria-atomic="true">
   <div id="toast-accent"></div>
   <div id="toast-bar" style="transform:scaleX(0)"></div>
@@ -821,12 +528,10 @@
     <div id="toast-icon-wrap"></div>
     <div id="toast-text"><span id="toast-title"></span><span id="toast-sub"></span></div>
   </div>
-  <button id="toast-close" aria-label="Fechar">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-  </button>
+  <button id="toast-close" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
 </div>
 
-<!-- ── Loading Banner ────────────────────────────────────────────────────── -->
+<!-- Loading Banner -->
 <div id="loadingBanner" role="status" aria-live="polite">
   <div class="lb-progress-bar"><div class="lb-progress-fill indeterminate" id="lbProgressFill"></div></div>
   <div class="lb-body">
@@ -852,7 +557,7 @@
   </div>
 </div>
 
-<!-- ── Scripts ──────────────────────────────────────────────────────────── -->
+<!-- Scripts -->
 <script src="assets/js/config.js"></script>
 <script src="assets/js/state.js"></script>
 <script src="assets/js/api.js"></script>
@@ -861,8 +566,6 @@
 <script src="assets/js/charts.js"></script>
 <script src="assets/js/tables.js"></script>
 <script src="assets/js/veiculo.js"></script>
-<script src="assets/js/analise.js"></script>
-<script src="assets/js/visualizacoes.js"></script>
 <script src="assets/js/ux.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
