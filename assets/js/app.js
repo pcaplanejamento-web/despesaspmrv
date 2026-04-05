@@ -1,8 +1,8 @@
 /**
- * app.js — v4.0
- * Modal: sem botão "Fechar" no footer, só X.
- * Top 10: clique em linha abre detalhe completo.
- * Evolução: modal com todos os anos do ponto + análise YoY.
+ * app.js — v5.0
+ * Modal evolução: botão "Abrir na Análise Avançada"
+ * Menu: sem "Salvar filtros favoritos" e "Atalhos de teclado" como itens separados
+ * Ferramentas: Ficha do Veículo, Modo Apresentação, Tour, Favoritos
  */
 
 // ── Modal Utility ─────────────────────────────────────────────────────────
@@ -32,7 +32,6 @@ const Modal = (() => {
     ov.classList.add('open');
     ov.querySelector('.'+panelClass.split(' ')[0]).style.animation='lgDrop .4s cubic-bezier(.22,1,.36,1) both';
     document.body.style.overflow='hidden';
-    // Binds
     ov.querySelectorAll('[data-modal-close]').forEach(btn=>btn.addEventListener('click',close));
     if (_closeHandler) document.removeEventListener('keydown',_closeHandler);
     _closeHandler = e => { if(e.key==='Escape') close(); };
@@ -98,7 +97,7 @@ const Modal = (() => {
       </div>`);
   }
 
-  // ── Detalhe de Gráfico (barra/fatia clicada) ──────────────────────────────
+  // ── Detalhe de Gráfico ────────────────────────────────────────────────────
   function _openChart(d) {
     const {titulo, registros, tipo} = d;
     const total = registros.reduce((s,r)=>s+r.Valor,0);
@@ -111,7 +110,7 @@ const Modal = (() => {
           </div>
           <div>
             <div class="modal-tag">${tipo==='local'?'Por Secretaria':'Por Classificação'}</div>
-            <h2 class="modal-title">${titulo}</h2>
+            <h2 class="modal-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px">${titulo}</h2>
           </div>
         </div>
         <button class="modal-close-btn" data-modal-close aria-label="Fechar">
@@ -141,19 +140,15 @@ const Modal = (() => {
         </div>
       </div>
       <div class="modal-footer modal-footer-only-hint">
-        <span class="modal-footer-hint">${registros.length} registros nesta categoria — ESC para fechar</span>
+        <span class="modal-footer-hint">${registros.length} registros — ESC para fechar</span>
       </div>`);
 
-    // Click em linha → abre detalhe do registro
     document.querySelectorAll('.modal-table-row').forEach((tr,i)=>{
-      tr.addEventListener('click',()=>{
-        const r = top10[parseInt(tr.dataset.idx)];
-        if (r) _openRegistro(r);
-      });
+      tr.addEventListener('click',()=>{ const r=top10[parseInt(tr.dataset.idx)]; if(r) _openRegistro(r); });
     });
   }
 
-  // ── Detalhe de Evolução com YoY ───────────────────────────────────────────
+  // ── Detalhe de Evolução com botão "Abrir na Análise Avançada" ────────────
   function _openEvolucao(d) {
     const { mes, dadosMes, topSiglas, yoyHtml, registros } = d;
     const mesNome = fmtMes(mes);
@@ -167,6 +162,10 @@ const Modal = (() => {
         <span class="modal-ano-qtde">${registros.filter(r=>String(r.Ano)===String(dd.ano)).length} reg.</span>
       </div>`
     ).join('');
+
+    // Montar parâmetros para link da análise avançada
+    const anos = dadosMes.map(d=>d.ano).join(',');
+    const analiseUrl = `analise.html#mes=${mes}&anos=${encodeURIComponent(anos)}`;
 
     openRaw(`
       <div class="modal-header">
@@ -184,30 +183,26 @@ const Modal = (() => {
         </button>
       </div>
       <div class="modal-body">
-
-        <!-- Resumo por ano -->
         <div class="modal-anos-grid">${resumoAnos}</div>
-
-        ${yoyHtml ? `
-        <div class="modal-secao-titulo">Análise de Variação Anual (YoY)</div>
-        <div class="modal-yoy-wrap">${yoyHtml}</div>
-        ` : ''}
-
+        ${yoyHtml?`<div class="modal-secao-titulo">Variação Anual (YoY)</div><div class="modal-yoy-wrap">${yoyHtml}</div>`:''}
         <div class="modal-grid-2col" style="margin-top:16px;">
           <div>
             <div class="modal-secao-titulo">Principais Secretarias</div>
             ${topSiglas.map(([s,v])=>`<div class="modal-row-bar"><span>${sl(s)}</span><span class="tr">${fmtBRL(v)}</span></div>`).join('')||'<p style="font-size:12px;color:var(--text-muted)">Sem dados</p>'}
           </div>
           <div>
-            <div class="modal-secao-titulo">Total geral no mês</div>
+            <div class="modal-secao-titulo">Total no mês</div>
             <div style="font-size:22px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;">${fmtBRL(totalGeral)}</div>
             <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${registros.length.toLocaleString('pt-BR')} registros</div>
           </div>
         </div>
-
       </div>
-      <div class="modal-footer modal-footer-only-hint">
+      <div class="modal-footer" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <span class="modal-footer-hint">${mesNome} — ESC para fechar</span>
+        <a href="${analiseUrl}" class="btn-modal-analise" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M2 20h20M5 20V8l7-5 7 5v12"/></svg>
+          Abrir na Análise Avançada
+        </a>
       </div>`);
   }
 
@@ -226,7 +221,7 @@ const App = (() => {
     info:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
   };
 
-  function showToast(tipo,titulo,sub='',dur=3500) {
+  function showToast(tipo,titulo,sub='',dur=3500){
     const toast=document.getElementById('toast'); if(!toast) return;
     if(_toastTimer){clearTimeout(_toastTimer);_toastTimer=null;}
     const map={success:'success',ok:'success',error:'error',erro:'error',warn:'warn',info:'info'};
@@ -245,97 +240,52 @@ const App = (() => {
   const STEP_LABELS=['Conectando ao Apps Script...','Lendo planilha GERAL...','Normalizando registros...','Renderizando painel...'];
   let _sIdx=0,_sTimer=null;
 
-  function lbShow() {
+  function lbShow(){
     const b=document.getElementById('loadingBanner'); if(!b) return;
     _sIdx=0;
-    STEPS.forEach((id,i)=>{ const el=document.getElementById(id); if(el) el.className='lb-step'+(i===0?' active':''); });
+    STEPS.forEach((id,i)=>{const el=document.getElementById(id);if(el) el.className='lb-step'+(i===0?' active':'');});
     _s('lbTitle','Carregando dados'); _s('lbStatus',STEP_LABELS[0]);
-    const p=document.getElementById('lbProgressFill'); if(p){p.classList.add('indeterminate');p.style.width='';}
-    const w=document.getElementById('lbSpinnerWrap'); if(w) w.className='lb-spinner-wrap';
+    const p=document.getElementById('lbProgressFill');if(p){p.classList.add('indeterminate');p.style.width='';}
+    const w=document.getElementById('lbSpinnerWrap');if(w) w.className='lb-spinner-wrap';
     document.getElementById('lbRetry')?.classList.remove('visivel');
     document.getElementById('lbRecordCount')?.classList.remove('visivel');
     b.classList.remove('hidden'); b.classList.add('visible');
-    _sTimer=setInterval(()=>{ if(_sIdx<STEPS.length-1){ const pv=document.getElementById(STEPS[_sIdx]); if(pv){pv.classList.remove('active');pv.classList.add('done');} _sIdx++; const nx=document.getElementById(STEPS[_sIdx]); if(nx) nx.classList.add('active'); _s('lbStatus',STEP_LABELS[_sIdx]||''); } },1200);
+    _sTimer=setInterval(()=>{if(_sIdx<STEPS.length-1){const pv=document.getElementById(STEPS[_sIdx]);if(pv){pv.classList.remove('active');pv.classList.add('done');}_sIdx++;const nx=document.getElementById(STEPS[_sIdx]);if(nx) nx.classList.add('active');_s('lbStatus',STEP_LABELS[_sIdx]||'');}},1200);
   }
 
-  function lbSuccess(n) {
+  function lbSuccess(n){
     const b=document.getElementById('loadingBanner'); if(!b) return;
     if(_sTimer){clearInterval(_sTimer);_sTimer=null;}
-    STEPS.forEach(id=>{ const el=document.getElementById(id); if(el){el.classList.remove('active');el.classList.add('done');} });
+    STEPS.forEach(id=>{const el=document.getElementById(id);if(el){el.classList.remove('active');el.classList.add('done');}});
     _s('lbTitle','Dados carregados'); _s('lbStatus','Painel atualizado');
-    const p=document.getElementById('lbProgressFill'); if(p){p.classList.remove('indeterminate');p.style.width='100%';}
-    const w=document.getElementById('lbSpinnerWrap'); if(w) w.className='lb-spinner-wrap success';
-    const ne=document.getElementById('lbRecordNum'); if(ne) ne.textContent=n.toLocaleString('pt-BR');
+    const p=document.getElementById('lbProgressFill');if(p){p.classList.remove('indeterminate');p.style.width='100%';}
+    const w=document.getElementById('lbSpinnerWrap');if(w) w.className='lb-spinner-wrap success';
+    const ne=document.getElementById('lbRecordNum');if(ne) ne.textContent=n.toLocaleString('pt-BR');
     document.getElementById('lbRecordCount')?.classList.add('visivel');
-    setTimeout(()=>{ b.classList.remove('visible'); b.classList.add('hidden'); },3000);
+    setTimeout(()=>{b.classList.remove('visible');b.classList.add('hidden');},3000);
   }
 
-  function lbError(msg) {
+  function lbError(msg){
     const b=document.getElementById('loadingBanner'); if(!b) return;
     if(_sTimer){clearInterval(_sTimer);_sTimer=null;}
     _s('lbTitle','Falha no carregamento'); _s('lbStatus',msg||'Erro de conexão');
-    const p=document.getElementById('lbProgressFill'); if(p){p.classList.remove('indeterminate');p.style.width='0';}
-    const w=document.getElementById('lbSpinnerWrap'); if(w) w.className='lb-spinner-wrap error';
+    const p=document.getElementById('lbProgressFill');if(p){p.classList.remove('indeterminate');p.style.width='0';}
+    const w=document.getElementById('lbSpinnerWrap');if(w) w.className='lb-spinner-wrap error';
     document.getElementById('lbRetry')?.classList.add('visivel');
   }
 
-  function _s(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
+  function _s(id,v){const el=document.getElementById(id);if(el) el.textContent=v;}
 
   // ── Data ──────────────────────────────────────────────────────────────────
 
-  function refresh() {
+  function refresh(){
     Kpis.render();
     Charts.renderAll();
     Tables.renderTable();
     Tables.renderSummaryTables();
-    if (typeof Analise !== 'undefined')       Analise.renderAll();
-    if (typeof Visualizacoes !== 'undefined') Visualizacoes.renderAll();
   }
 
-  // ── Ferramentas da sidebar ────────────────────────────────────────────────
-  function _initFerramentas() {
-    document.getElementById('btnFichaVeiculo')?.addEventListener('click', () => {
-      if (typeof Veiculo !== 'undefined') Veiculo.abrirBusca();
-    });
-
-    // Tabs de Análises
-    document.querySelectorAll('.analise-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.analise-tab').forEach(t => t.classList.remove('ativa'));
-        document.querySelectorAll('.analise-painel').forEach(p => p.classList.remove('ativo'));
-        tab.classList.add('ativa');
-        document.getElementById('painel-'+tab.dataset.painel)?.classList.add('ativo');
-        // Re-renderizar se necessário
-        if (tab.dataset.painel==='projecao')     Analise?.renderAll();
-        if (tab.dataset.painel==='sazonalidade') Analise?.renderAll();
-      });
-    });
-
-    // Tabs de Visualizações
-    document.querySelectorAll('.vis-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.vis-tab').forEach(t => t.classList.remove('ativa'));
-        document.querySelectorAll('.vis-painel').forEach(p => p.classList.remove('ativo'));
-        tab.classList.add('ativa');
-        document.getElementById('vis-'+tab.dataset.vis)?.classList.add('ativo');
-        if (typeof Visualizacoes !== 'undefined') Visualizacoes.renderAll();
-      });
-    });
-
-    // Filtros de Score — delegação de evento (itens são renderizados dinamicamente)
-    document.getElementById('painel-score')?.addEventListener('click', e => {
-      const btn = e.target.closest('.score-filtro-btn');
-      if (!btn) return;
-      document.querySelectorAll('.score-filtro-btn').forEach(b => b.classList.remove('ativo'));
-      btn.classList.add('ativo');
-      const nivel = btn.dataset.nivel;
-      document.querySelectorAll('#scoresSaude .score-item').forEach(item => {
-        item.style.display = (nivel==='todos' || item.dataset.nivel===nivel) ? '' : 'none';
-      });
-    });
-  }
-
-  async function loadData(force=false) {
+  async function loadData(force=false){
     lbShow();
     Charts.showSkeletons();
     try {
@@ -357,17 +307,17 @@ const App = (() => {
     }
   }
 
-  async function sync() { await loadData(true); }
+  async function sync(){ await loadData(true); }
 
   // ── Sidebar ───────────────────────────────────────────────────────────────
-  function initSidebar() {
+  function initSidebar(){
     const menu=document.getElementById('sideMenu');
     const ov=document.getElementById('menuOverlay');
     const hb=document.getElementById('hamburgerBtn');
     const cb=document.getElementById('sideMenuClose');
     if(!menu) return;
-    function openM() { menu.classList.add('open');ov?.classList.add('open');hb?.classList.add('open');hb?.setAttribute('aria-expanded','true'); }
-    function closeM(){ menu.classList.remove('open');ov?.classList.remove('open');hb?.classList.remove('open');hb?.setAttribute('aria-expanded','false'); }
+    function openM(){menu.classList.add('open');ov?.classList.add('open');hb?.classList.add('open');hb?.setAttribute('aria-expanded','true');}
+    function closeM(){menu.classList.remove('open');ov?.classList.remove('open');hb?.classList.remove('open');hb?.setAttribute('aria-expanded','false');}
     hb?.addEventListener('click',()=>menu.classList.contains('open')?closeM():openM());
     cb?.addEventListener('click',closeM);
     ov?.addEventListener('click',closeM);
@@ -379,16 +329,39 @@ const App = (() => {
         if(window.innerWidth<768) closeM();
       });
     });
-    document.getElementById('btnSidebarSync')?.addEventListener('click',()=>{ sync(); if(window.innerWidth<768) closeM(); });
+    document.getElementById('btnSidebarSync')?.addEventListener('click',()=>{sync();if(window.innerWidth<768) closeM();});
   }
 
-  // ── Chart controls (expand + toggle) ─────────────────────────────────────
-  function initChartControls() {
+  // ── Chart controls ────────────────────────────────────────────────────────
+  function initChartControls(){
     document.querySelectorAll('[data-expand-chart]').forEach(btn=>{
       btn.addEventListener('click',()=>Charts.expandChart(btn.dataset.expandChart));
     });
     document.querySelectorAll('[data-toggle-chart]').forEach(btn=>{
       btn.addEventListener('click',()=>Charts.toggleChartType(btn.dataset.toggleChart));
+    });
+  }
+
+  // ── Ferramentas ───────────────────────────────────────────────────────────
+  function _initFerramentas(){
+    // Ficha do Veículo
+    document.getElementById('btnFichaVeiculo')?.addEventListener('click',()=>{
+      if(typeof Veiculo!=='undefined') Veiculo.abrirBusca();
+    });
+
+    // Modo Apresentação
+    document.getElementById('btnModoApresentacao')?.addEventListener('click',()=>{
+      if(typeof UX!=='undefined') UX.toggleApresentacao();
+    });
+
+    // Tour
+    document.getElementById('btnIniciarTour')?.addEventListener('click',()=>{
+      if(typeof UX!=='undefined') UX.iniciarTour(true);
+    });
+
+    // Salvar favorito — botão no bloco de favoritos da sidebar
+    document.getElementById('btnSalvarFavorito')?.addEventListener('click',()=>{
+      if(typeof UX!=='undefined') UX.abrirModalSalvarFavorito();
     });
   }
 
@@ -434,7 +407,7 @@ const App = (() => {
     document.getElementById('toast-close')?.addEventListener('click',()=>document.getElementById('toast')?.classList.remove('show'));
   });
 
-  function init() {
+  function init(){
     initSidebar();
     initScrollCompact();
     initTheme();
@@ -444,7 +417,7 @@ const App = (() => {
     initKpiClicks();
     initChartControls();
     _initFerramentas();
-    if (typeof UX !== 'undefined') UX.init();
+    if(typeof UX!=='undefined') UX.init();
     setTimeout(initStickySearch,300);
     loadData(false);
     const v=document.getElementById('versaoSidebar');

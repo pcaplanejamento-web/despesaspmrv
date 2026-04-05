@@ -120,7 +120,7 @@ const UX = (() => {
       <div class="apres-btns">
         <button onclick="UX.slidePrev()" title="Slide anterior">‹</button>
         <button onclick="UX.slideNext()" title="Próximo slide">›</button>
-        <button onclick="UX.pararApresentacao()" title="Encerrar (ESC)">✕</button>
+        <button onclick="UX.pararApresentacao()" title="Encerrar (ESC)"></button>
       </div>
       <div class="apres-progress"><div id="apresProgressBar"></div></div>`;
     document.body.appendChild(ctrl);

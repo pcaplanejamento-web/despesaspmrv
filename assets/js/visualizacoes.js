@@ -16,6 +16,8 @@ const Visualizacoes = (() => {
   const fg      = () => isDark()?'rgba(232,237,245,.75)':'rgba(26,31,54,.70)';
   const fgDim   = () => isDark()?'rgba(255,255,255,.30)':'rgba(26,31,54,.30)';
   const accentCor = () => isDark()?'#5b78ff':'#4361ee';
+  const gridColor = () => isDark()?'rgba(255,255,255,.07)':'rgba(67,97,238,.07)';
+  const textColor = () => isDark()?'rgba(232,237,245,.75)':'rgba(26,31,54,.70)';
 
   // ── Helpers Canvas ────────────────────────────────────
 
