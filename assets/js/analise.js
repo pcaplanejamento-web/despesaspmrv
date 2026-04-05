@@ -16,6 +16,14 @@ const Analise = (() => {
   const textColor = () => isDark() ? 'rgba(232,237,245,.75)' : 'rgba(26,31,54,.70)';
   const gridColor = () => isDark() ? 'rgba(255,255,255,.07)' : 'rgba(67,97,238,.07)';
   function kFmt(v){ if(v>=1e6) return 'R$'+(v/1e6).toFixed(1).replace('.',',')+'M'; if(v>=1e3) return 'R$'+(v/1e3).toFixed(0)+'k'; return 'R$'+v; }
+  // Helpers defensivos: nunca quebram com siglas null/undefined
+  function _sl(sigla) {
+    const s = sigla != null ? String(sigla) : '';
+    if (!s) return '--';
+    try { const l = typeof Filters !== 'undefined' ? Filters.siglaLabel(s) : s; return (l!=null&&l!=='') ? String(l) : s; }
+    catch(e) { return s; }
+  }
+  function _slShort(sigla) { return _sl(sigla).split('—')[0].trim() || String(sigla||'--'); }
   // Helper robusto: sempre retorna string, nunca quebra em .split()
   function _sl(sigla) {
     const s = sigla != null ? String(sigla) : '';

@@ -54,6 +54,14 @@ const Modal = (() => {
 
   // ── Detalhe de Registro ───────────────────────────────────────────────────
   function _openRegistro(r) {
+    const _rp=new URLSearchParams();
+    if(r.Sigla)         _rp.set('sigla',r.Sigla);
+    if(r.Despesa)       _rp.set('despesa',r.Despesa);
+    if(r.Tipo)          _rp.set('tipo',r.Tipo);
+    if(r.Classificacao) _rp.set('classif',r.Classificacao);
+    if(r.Ano)           _rp.set('ano',r.Ano);
+    if(r.Mes)           _rp.set('mes',r.Mes);
+    const _analiseUrl='analise.html?'+_rp.toString();
     openRaw(`
       <div class="modal-header">
         <div class="modal-header-left">
@@ -92,8 +100,12 @@ const Modal = (() => {
           <div class="modal-campo"><span class="modal-campo-label">Empresa</span><span class="modal-campo-valor">${r.Empresa||'--'}</span></div>
         </div>
       </div>
-      <div class="modal-footer modal-footer-only-hint">
+      <div class="modal-footer" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <span class="modal-footer-hint">ESC ou clique fora para fechar</span>
+        <a href="${_analiseUrl}" class="btn-modal-analise" target="_blank" title="Abrir Análise Avançada com filtros desta despesa">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M2 20h20M5 20V8l7-5 7 5v12"/></svg>
+          Ir para Análise Avançada
+        </a>
       </div>`);
   }
 
@@ -250,6 +262,7 @@ const App = (() => {
     document.getElementById('lbRetry')?.classList.remove('visivel');
     document.getElementById('lbRecordCount')?.classList.remove('visivel');
     b.classList.remove('hidden'); b.classList.add('visible');
+    const _blocker=document.getElementById('uiBlocker');if(_blocker) _blocker.classList.add('active');
     _sTimer=setInterval(()=>{if(_sIdx<STEPS.length-1){const pv=document.getElementById(STEPS[_sIdx]);if(pv){pv.classList.remove('active');pv.classList.add('done');}_sIdx++;const nx=document.getElementById(STEPS[_sIdx]);if(nx) nx.classList.add('active');_s('lbStatus',STEP_LABELS[_sIdx]||'');}},1200);
   }
 
@@ -262,6 +275,7 @@ const App = (() => {
     const w=document.getElementById('lbSpinnerWrap');if(w) w.className='lb-spinner-wrap success';
     const ne=document.getElementById('lbRecordNum');if(ne) ne.textContent=n.toLocaleString('pt-BR');
     document.getElementById('lbRecordCount')?.classList.add('visivel');
+    const _bl2=document.getElementById('uiBlocker');if(_bl2) _bl2.classList.remove('active');
     setTimeout(()=>{b.classList.remove('visible');b.classList.add('hidden');},3000);
   }
 
@@ -272,6 +286,7 @@ const App = (() => {
     const p=document.getElementById('lbProgressFill');if(p){p.classList.remove('indeterminate');p.style.width='0';}
     const w=document.getElementById('lbSpinnerWrap');if(w) w.className='lb-spinner-wrap error';
     document.getElementById('lbRetry')?.classList.add('visivel');
+    const _bl3=document.getElementById('uiBlocker');if(_bl3) _bl3.classList.remove('active');
   }
 
   function _s(id,v){const el=document.getElementById(id);if(el) el.textContent=v;}
@@ -363,6 +378,11 @@ const App = (() => {
     document.getElementById('btnSalvarFavorito')?.addEventListener('click',()=>{
       if(typeof UX!=='undefined') UX.abrirModalSalvarFavorito();
     });
+
+    // Relatório / Impressão
+    const _openPrint=()=>{ if(typeof Impressao!=='undefined') Impressao.abrir(); };
+    document.getElementById('btnRelatorio')?.addEventListener('click',_openPrint);
+    document.getElementById('btnPrint')?.addEventListener('click',_openPrint);
   }
 
   // ── Outras inits ──────────────────────────────────────────────────────────
@@ -419,6 +439,7 @@ const App = (() => {
     _initFerramentas();
     if(typeof UX!=='undefined') UX.init();
     setTimeout(initStickySearch,300);
+    document.getElementById('btnExport')?.addEventListener('click',()=>Tables.exportCSV());
     loadData(false);
     const v=document.getElementById('versaoSidebar');
     if(v&&typeof CONFIG!=='undefined') v.textContent=CONFIG.VERSAO;
