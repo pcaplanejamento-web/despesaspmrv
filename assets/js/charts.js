@@ -38,7 +38,7 @@ const Charts = (() => {
     titleFont:{weight:'700',size:13}, bodyFont:{size:12},
   });
 
-  const BASE = { animation:{duration:350,easing:'easeOutQuart'}, responsive:true, maintainAspectRatio:false };
+  const BASE = { animation:{duration:350,easing:'easeOutQuart'}, responsive:true, maintainAspectRatio:true };
 
   function destroy(id) { if (_inst[id]) { _inst[id].destroy(); delete _inst[id]; } }
 
