@@ -1,5 +1,18 @@
 # Changelog
 
+## v3.0.1 — Correção crítica: split is not a function — 2026-04-05
+
+### Corrigido
+- **`analise.js`** — erro `a.label.split is not a function` na tela "Análise Avançada de Frota": `Filters.siglaLabel()` retornava `undefined` quando a sigla era `null`, `undefined` ou não mapeada, e a chamada subsequente a `.split('—')` lançava exceção. Adicionados helpers `_sl()` e `_slShort()` com proteção completa (null-check, conversão para string, try/catch, fallback).
+- **`analise.html`** — mesma correção aplicada inline nas funções `_renderScore` e `_renderRastreamento`.
+- **`veiculo.js`** — padrão `siglas.map(sl).map(s=>s.split('—')[0].trim())` substituído por `siglas.map(_slShort)` com helper defensivo local.
+- **`visualizacoes.js`** — tooltip do gráfico de dispersão usava `sl(h.v.sigla).split('—')[0].trim()`; substituído por `_slShort()` com helper defensivo local.
+
+### Documentação
+- `changelog.md` atualizado
+
+---
+
 ## v3.0.0 — Redesign completo — 2026-04-03
 
 ### Adicionado

@@ -16,6 +16,16 @@ const Analise = (() => {
   const textColor = () => isDark() ? 'rgba(232,237,245,.75)' : 'rgba(26,31,54,.70)';
   const gridColor = () => isDark() ? 'rgba(255,255,255,.07)' : 'rgba(67,97,238,.07)';
   function kFmt(v){ if(v>=1e6) return 'R$'+(v/1e6).toFixed(1).replace('.',',')+'M'; if(v>=1e3) return 'R$'+(v/1e3).toFixed(0)+'k'; return 'R$'+v; }
+  // Helper robusto: sempre retorna string, nunca quebra em .split()
+  function _sl(sigla) {
+    const s = sigla != null ? String(sigla) : '';
+    if (!s) return '--';
+    try {
+      const label = typeof Filters !== 'undefined' ? Filters.siglaLabel(s) : s;
+      return (label != null && label !== '') ? String(label) : s;
+    } catch(e) { return s; }
+  }
+  function _slShort(sigla) { return _sl(sigla).split('—')[0].trim() || String(sigla||'--'); }
 
   let _charts = {};
   function _destroyChart(id) { if(_charts[id]){_charts[id].destroy();delete _charts[id];} }
@@ -371,8 +381,6 @@ const Analise = (() => {
       ruim:   {cor:'#e11d48',bg:'rgba(225,29,72,.10)',label:'Ruim',icon:'↓'},
       critico:{cor:'#7c3aed',bg:'rgba(124,58,237,.10)',label:'Crítico',icon:'⚡'},
     };
-    const sl = typeof Filters!=='undefined' ? Filters.siglaLabel : s=>s;
-
     listaEl.innerHTML = scores.map(s => {
       const n = NIVEL[s.nivel]||NIVEL.alerta;
       return `
@@ -389,7 +397,7 @@ const Analise = (() => {
               <span class="score-nivel" style="background:${n.bg};color:${n.cor}">${n.icon} ${n.label}</span>
             </div>
             <div class="score-meta">
-              <span>${sl(s.sigla).split('—')[0].trim()}</span>
+              <span>${_slShort(s.sigla)}</span>
               <span>·</span>
               <span>${s.tipo}</span>
               <span>·</span>
@@ -450,7 +458,6 @@ const Analise = (() => {
       return;
     }
 
-    const sl = typeof Filters!=='undefined' ? Filters.siglaLabel : s=>s;
     function decodeData(num){ const ano=Math.floor(num/100),mes=num%100; return `${fmtMes3(mes)}/${String(ano).slice(2)}`; }
 
     listaEl.innerHTML = registros.slice(0,25).map(r => `
@@ -465,8 +472,8 @@ const Analise = (() => {
             <div class="rastr-etapa">
               ${i>0?'<div class="rastr-seta">→</div>':''}
               <div class="rastr-sec">
-                <span class="rastr-sec-sigla">${s.sigla}</span>
-                <span class="rastr-sec-nome">${sl(s.sigla).split('—')[0].trim()}</span>
+                <span class="rastr-sec-sigla">${s.sigla||'--'}</span>
+                <span class="rastr-sec-nome">${_slShort(s.sigla)}</span>
                 <span class="rastr-sec-periodo">${decodeData(s.primeiro)}–${decodeData(s.ultimo)}</span>
                 <span class="rastr-sec-total">${fmtBRL(s.total)}</span>
               </div>
