@@ -229,7 +229,7 @@ const Tables = (() => {
       tr.className='resumo-row-clickable';
       tr.title='Clique para ver os registros do mês';
       tr.innerHTML=`<td>${fmtMes(parseInt(mes))}</td><td>${ano}</td><td class="tr">${row.qtde.toLocaleString('pt-BR')}</td><td class="tr">${fmtBRL(row.total)}</td>`;
-      tr.addEventListener('click',()=>_openResumoModal('mes',row));
+      tr.addEventListener('click',()=>_openResumoModal('mes',row,sorted));
       frag.appendChild(tr);
     });
     const tot=document.createElement('tr');
@@ -261,15 +261,29 @@ const Tables = (() => {
     tbody.innerHTML=''; tbody.appendChild(frag);
   }
 
-  function _openResumoModal(tipo,row){
-    const registros=row._registros||[]; if(!registros.length) return;
-    const total=registros.reduce((s,r)=>s+r.Valor,0);
-    const top=[...registros].sort((a,b)=>b.Valor-a.Valor).slice(0,50);
-    const TITULOS={classificacao:'Classificação',mes:'Mês',tipo:'Tipo de Frota',despesa:'Tipo de Despesa',local:'Secretaria'};
-    const tag=TITULOS[tipo]||'Resumo';
-    let titulo=row.label;
-    if(tipo==='mes'){const [ano,mes]=row.label.split('-');titulo=`${fmtMes(parseInt(mes))} / ${ano}`;}
-    else if(tipo==='local') titulo=`${row.label} — ${row.nome||''}`;
+  // Navegação entre itens no modal (ex: entre meses)
+  let _modalCtx = { tipo:'', rows:[], currentIdx:0 };
+
+  function _openResumoModal(tipo, row, allRows) {
+    const registros = row._registros||[]; if(!registros.length) return;
+    const total = registros.reduce((s,r)=>s+r.Valor,0);
+    const top = [...registros].sort((a,b)=>b.Valor-a.Valor).slice(0,50);
+    const TITULOS = {classificacao:'Classificação',mes:'Mês',tipo:'Tipo de Frota',despesa:'Tipo de Despesa',local:'Secretaria'};
+    const tag = TITULOS[tipo]||'Resumo';
+
+    if(allRows) _modalCtx = { tipo, rows: allRows, currentIdx: allRows.indexOf(row) };
+    const curIdx = _modalCtx.currentIdx;
+
+    let titulo = row.label, tituloMes = '', tituloAno = '';
+    if(tipo==='mes') {
+      const [ano,mes] = row.label.split('-');
+      tituloMes = fmtMes(parseInt(mes)); tituloAno = ano;
+      titulo = `${tituloMes} / ${tituloAno}`;
+    } else if(tipo==='local') titulo = `${row.label} — ${row.nome||''}`;
+
+    const hasNav = tipo==='mes' && _modalCtx.rows.length > 1;
+    const hasPrev = hasNav && curIdx > 0;
+    const hasNext = hasNav && curIdx < _modalCtx.rows.length-1;
 
     Modal.openRaw(`
       <div class="modal-header">
@@ -279,12 +293,21 @@ const Tables = (() => {
           </div>
           <div>
             <div class="modal-tag">${tag}</div>
-            <h2 class="modal-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:380px">${titulo}</h2>
+            <h2 class="modal-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px">${titulo}</h2>
           </div>
         </div>
-        <button class="modal-close-btn" data-modal-close aria-label="Fechar">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+        <div style="display:flex;align-items:center;gap:6px;">
+          ${hasNav?`
+            <button id="modalNavPrev" class="modal-nav-btn" ${hasPrev?'':'disabled'} title="Período anterior">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <button id="modalNavNext" class="modal-nav-btn" ${hasNext?'':'disabled'} title="Próximo período">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>`:''}
+          <button class="modal-close-btn" data-modal-close aria-label="Fechar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
       </div>
       <div class="modal-body">
         <div class="modal-value-destaque">
@@ -294,14 +317,15 @@ const Tables = (() => {
         </div>
         <div class="modal-table-wrap">
           <table class="modal-table modal-table-clickable">
-            <thead><tr><th>Local</th><th>Placa</th><th>Modelo</th><th>Despesa</th><th>Mês/Ano</th><th class="tr">Valor</th></tr></thead>
+            <thead><tr><th>Local</th><th>Placa</th><th>Modelo</th><th>Despesa</th><th>Mês</th><th>Ano</th><th class="tr">Valor</th></tr></thead>
             <tbody>
               ${top.map((r,i)=>`<tr class="modal-table-row" data-idx="${i}" title="Clique para detalhes completos">
                 <td class="mono" style="font-size:11px">${r.Sigla||'--'}</td>
                 <td class="mono">${r.Placa||'--'}</td>
-                <td class="td-truncate" style="max-width:140px">${r.Modelo||'--'}</td>
+                <td class="td-truncate" style="max-width:130px">${r.Modelo||'--'}</td>
                 <td style="font-size:11px">${r.Despesa||'--'}</td>
-                <td style="white-space:nowrap">${fmtMes(r.Mes)}/${r.Ano||'--'}</td>
+                <td>${fmtMes(r.Mes)}</td>
+                <td class="fw-600">${r.Ano||'--'}</td>
                 <td class="tr fw-700">${fmtBRL(r.Valor)}</td>
               </tr>`).join('')}
             </tbody>
@@ -309,13 +333,23 @@ const Tables = (() => {
         </div>
       </div>
       <div class="modal-footer modal-footer-only-hint">
-        <span class="modal-footer-hint">Clique em uma linha para ver todos os dados — ESC para fechar</span>
+        <span class="modal-footer-hint">Clique em uma linha para detalhes completos — ESC para fechar</span>
       </div>`,'modal-panel modal-panel-wide');
 
     document.querySelectorAll('.modal-table-row').forEach(tr=>{
-      tr.addEventListener('click',()=>{const r=top[parseInt(tr.dataset.idx)]; if(r) Modal.open('detalheRegistro',r);});
+      tr.addEventListener('click',()=>{ const r=top[parseInt(tr.dataset.idx)]; if(r) Modal.open('detalheRegistro',r); });
     });
+
+    if(hasNav) {
+      document.getElementById('modalNavPrev')?.addEventListener('click',()=>{
+        const p=_modalCtx.rows[curIdx-1]; if(p){_modalCtx.currentIdx=curIdx-1;_openResumoModal(tipo,p,_modalCtx.rows);}
+      });
+      document.getElementById('modalNavNext')?.addEventListener('click',()=>{
+        const n=_modalCtx.rows[curIdx+1]; if(n){_modalCtx.currentIdx=curIdx+1;_openResumoModal(tipo,n,_modalCtx.rows);}
+      });
+    }
   }
+
 
   function exportCSV(){
     let rows=applySearchAndColFilters(State.getFilteredData());

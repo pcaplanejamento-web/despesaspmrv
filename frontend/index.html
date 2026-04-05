@@ -96,6 +96,10 @@
     <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
     <span>Tour do Sistema</span>
   </button>
+  <button class="side-menu-item" id="btnRelatorio" style="--i:9">
+    <span class="menu-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span>
+    <span>Relatório / Imprimir</span>
+  </button>
 
   <div class="side-menu-favs">
     <span class="side-menu-favs-label">Filtros Favoritos</span>
@@ -254,6 +258,10 @@
         <button class="btn-exportar" id="btnExport">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Exportar CSV
+        </button>
+        <button id="btnPrint" title="Gerar relatório de impressão">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Imprimir
         </button>
       </div>
     </div>
@@ -557,6 +565,9 @@
   </div>
 </div>
 
+<!-- UI Blocker -->
+<div id="uiBlocker" aria-hidden="true"></div>
+
 <!-- Scripts -->
 <script src="assets/js/config.js"></script>
 <script src="assets/js/state.js"></script>
@@ -567,6 +578,7 @@
 <script src="assets/js/tables.js"></script>
 <script src="assets/js/veiculo.js"></script>
 <script src="assets/js/ux.js"></script>
+<script src="assets/js/impressao.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>
