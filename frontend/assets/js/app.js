@@ -1,8 +1,8 @@
 /**
- * app.js — v5.0
- * Modal evolução: botão "Abrir na Análise Avançada"
- * Menu: sem "Salvar filtros favoritos" e "Atalhos de teclado" como itens separados
- * Ferramentas: Ficha do Veículo, Modo Apresentação, Tour, Favoritos
+ * app.js — v4.0
+ * Modal: sem botão "Fechar" no footer, só X.
+ * Top 10: clique em linha abre detalhe completo.
+ * Evolução: modal com todos os anos do ponto + análise YoY.
  */
 
 // ── Modal Utility ─────────────────────────────────────────────────────────
@@ -32,6 +32,7 @@ const Modal = (() => {
     ov.classList.add('open');
     ov.querySelector('.'+panelClass.split(' ')[0]).style.animation='lgDrop .4s cubic-bezier(.22,1,.36,1) both';
     document.body.style.overflow='hidden';
+    // Binds
     ov.querySelectorAll('[data-modal-close]').forEach(btn=>btn.addEventListener('click',close));
     if (_closeHandler) document.removeEventListener('keydown',_closeHandler);
     _closeHandler = e => { if(e.key==='Escape') close(); };
@@ -54,14 +55,6 @@ const Modal = (() => {
 
   // ── Detalhe de Registro ───────────────────────────────────────────────────
   function _openRegistro(r) {
-    const _rp=new URLSearchParams();
-    if(r.Sigla)         _rp.set('sigla',r.Sigla);
-    if(r.Despesa)       _rp.set('despesa',r.Despesa);
-    if(r.Tipo)          _rp.set('tipo',r.Tipo);
-    if(r.Classificacao) _rp.set('classif',r.Classificacao);
-    if(r.Ano)           _rp.set('ano',r.Ano);
-    if(r.Mes)           _rp.set('mes',r.Mes);
-    const _analiseUrl='analise.html?'+_rp.toString();
     openRaw(`
       <div class="modal-header">
         <div class="modal-header-left">
@@ -100,16 +93,12 @@ const Modal = (() => {
           <div class="modal-campo"><span class="modal-campo-label">Empresa</span><span class="modal-campo-valor">${r.Empresa||'--'}</span></div>
         </div>
       </div>
-      <div class="modal-footer" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div class="modal-footer modal-footer-only-hint">
         <span class="modal-footer-hint">ESC ou clique fora para fechar</span>
-        <a href="${_analiseUrl}" class="btn-modal-analise" target="_blank" title="Abrir Análise Avançada com filtros desta despesa">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M2 20h20M5 20V8l7-5 7 5v12"/></svg>
-          Ir para Análise Avançada
-        </a>
       </div>`);
   }
 
-  // ── Detalhe de Gráfico ────────────────────────────────────────────────────
+  // ── Detalhe de Gráfico (barra/fatia clicada) ──────────────────────────────
   function _openChart(d) {
     const {titulo, registros, tipo} = d;
     const total = registros.reduce((s,r)=>s+r.Valor,0);
@@ -122,7 +111,7 @@ const Modal = (() => {
           </div>
           <div>
             <div class="modal-tag">${tipo==='local'?'Por Secretaria':'Por Classificação'}</div>
-            <h2 class="modal-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px">${titulo}</h2>
+            <h2 class="modal-title">${titulo}</h2>
           </div>
         </div>
         <button class="modal-close-btn" data-modal-close aria-label="Fechar">
@@ -152,15 +141,19 @@ const Modal = (() => {
         </div>
       </div>
       <div class="modal-footer modal-footer-only-hint">
-        <span class="modal-footer-hint">${registros.length} registros — ESC para fechar</span>
+        <span class="modal-footer-hint">${registros.length} registros nesta categoria — ESC para fechar</span>
       </div>`);
 
+    // Click em linha → abre detalhe do registro
     document.querySelectorAll('.modal-table-row').forEach((tr,i)=>{
-      tr.addEventListener('click',()=>{ const r=top10[parseInt(tr.dataset.idx)]; if(r) _openRegistro(r); });
+      tr.addEventListener('click',()=>{
+        const r = top10[parseInt(tr.dataset.idx)];
+        if (r) _openRegistro(r);
+      });
     });
   }
 
-  // ── Detalhe de Evolução com botão "Abrir na Análise Avançada" ────────────
+  // ── Detalhe de Evolução com YoY ───────────────────────────────────────────
   function _openEvolucao(d) {
     const { mes, dadosMes, topSiglas, yoyHtml, registros } = d;
     const mesNome = fmtMes(mes);
@@ -174,10 +167,6 @@ const Modal = (() => {
         <span class="modal-ano-qtde">${registros.filter(r=>String(r.Ano)===String(dd.ano)).length} reg.</span>
       </div>`
     ).join('');
-
-    // Montar parâmetros para link da análise avançada
-    const anos = dadosMes.map(d=>d.ano).join(',');
-    const analiseUrl = `analise.html#mes=${mes}&anos=${encodeURIComponent(anos)}`;
 
     openRaw(`
       <div class="modal-header">
@@ -195,26 +184,30 @@ const Modal = (() => {
         </button>
       </div>
       <div class="modal-body">
+
+        <!-- Resumo por ano -->
         <div class="modal-anos-grid">${resumoAnos}</div>
-        ${yoyHtml?`<div class="modal-secao-titulo">Variação Anual (YoY)</div><div class="modal-yoy-wrap">${yoyHtml}</div>`:''}
+
+        ${yoyHtml ? `
+        <div class="modal-secao-titulo">Análise de Variação Anual (YoY)</div>
+        <div class="modal-yoy-wrap">${yoyHtml}</div>
+        ` : ''}
+
         <div class="modal-grid-2col" style="margin-top:16px;">
           <div>
             <div class="modal-secao-titulo">Principais Secretarias</div>
             ${topSiglas.map(([s,v])=>`<div class="modal-row-bar"><span>${sl(s)}</span><span class="tr">${fmtBRL(v)}</span></div>`).join('')||'<p style="font-size:12px;color:var(--text-muted)">Sem dados</p>'}
           </div>
           <div>
-            <div class="modal-secao-titulo">Total no mês</div>
+            <div class="modal-secao-titulo">Total geral no mês</div>
             <div style="font-size:22px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;">${fmtBRL(totalGeral)}</div>
             <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${registros.length.toLocaleString('pt-BR')} registros</div>
           </div>
         </div>
+
       </div>
-      <div class="modal-footer" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div class="modal-footer modal-footer-only-hint">
         <span class="modal-footer-hint">${mesNome} — ESC para fechar</span>
-        <a href="${analiseUrl}" class="btn-modal-analise" target="_blank">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M2 20h20M5 20V8l7-5 7 5v12"/></svg>
-          Abrir na Análise Avançada
-        </a>
       </div>`);
   }
 
@@ -233,7 +226,7 @@ const App = (() => {
     info:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
   };
 
-  function showToast(tipo,titulo,sub='',dur=3500){
+  function showToast(tipo,titulo,sub='',dur=3500) {
     const toast=document.getElementById('toast'); if(!toast) return;
     if(_toastTimer){clearTimeout(_toastTimer);_toastTimer=null;}
     const map={success:'success',ok:'success',error:'error',erro:'error',warn:'warn',info:'info'};
@@ -252,55 +245,54 @@ const App = (() => {
   const STEP_LABELS=['Conectando ao Apps Script...','Lendo planilha GERAL...','Normalizando registros...','Renderizando painel...'];
   let _sIdx=0,_sTimer=null;
 
-  function lbShow(){
+  function lbShow() {
     const b=document.getElementById('loadingBanner'); if(!b) return;
     _sIdx=0;
-    STEPS.forEach((id,i)=>{const el=document.getElementById(id);if(el) el.className='lb-step'+(i===0?' active':'');});
+    STEPS.forEach((id,i)=>{ const el=document.getElementById(id); if(el) el.className='lb-step'+(i===0?' active':''); });
     _s('lbTitle','Carregando dados'); _s('lbStatus',STEP_LABELS[0]);
-    const p=document.getElementById('lbProgressFill');if(p){p.classList.add('indeterminate');p.style.width='';}
-    const w=document.getElementById('lbSpinnerWrap');if(w) w.className='lb-spinner-wrap';
+    const p=document.getElementById('lbProgressFill'); if(p){p.classList.add('indeterminate');p.style.width='';}
+    const w=document.getElementById('lbSpinnerWrap'); if(w) w.className='lb-spinner-wrap';
     document.getElementById('lbRetry')?.classList.remove('visivel');
     document.getElementById('lbRecordCount')?.classList.remove('visivel');
     b.classList.remove('hidden'); b.classList.add('visible');
-    const _blocker=document.getElementById('uiBlocker');if(_blocker) _blocker.classList.add('active');
-    _sTimer=setInterval(()=>{if(_sIdx<STEPS.length-1){const pv=document.getElementById(STEPS[_sIdx]);if(pv){pv.classList.remove('active');pv.classList.add('done');}_sIdx++;const nx=document.getElementById(STEPS[_sIdx]);if(nx) nx.classList.add('active');_s('lbStatus',STEP_LABELS[_sIdx]||'');}},1200);
+    _sTimer=setInterval(()=>{ if(_sIdx<STEPS.length-1){ const pv=document.getElementById(STEPS[_sIdx]); if(pv){pv.classList.remove('active');pv.classList.add('done');} _sIdx++; const nx=document.getElementById(STEPS[_sIdx]); if(nx) nx.classList.add('active'); _s('lbStatus',STEP_LABELS[_sIdx]||''); } },1200);
   }
 
-  function lbSuccess(n){
+  function lbSuccess(n) {
     const b=document.getElementById('loadingBanner'); if(!b) return;
     if(_sTimer){clearInterval(_sTimer);_sTimer=null;}
-    STEPS.forEach(id=>{const el=document.getElementById(id);if(el){el.classList.remove('active');el.classList.add('done');}});
+    STEPS.forEach(id=>{ const el=document.getElementById(id); if(el){el.classList.remove('active');el.classList.add('done');} });
     _s('lbTitle','Dados carregados'); _s('lbStatus','Painel atualizado');
-    const p=document.getElementById('lbProgressFill');if(p){p.classList.remove('indeterminate');p.style.width='100%';}
-    const w=document.getElementById('lbSpinnerWrap');if(w) w.className='lb-spinner-wrap success';
-    const ne=document.getElementById('lbRecordNum');if(ne) ne.textContent=n.toLocaleString('pt-BR');
+    const p=document.getElementById('lbProgressFill'); if(p){p.classList.remove('indeterminate');p.style.width='100%';}
+    const w=document.getElementById('lbSpinnerWrap'); if(w) w.className='lb-spinner-wrap success';
+    const ne=document.getElementById('lbRecordNum'); if(ne) ne.textContent=n.toLocaleString('pt-BR');
     document.getElementById('lbRecordCount')?.classList.add('visivel');
-    const _bl2=document.getElementById('uiBlocker');if(_bl2) _bl2.classList.remove('active');
-    setTimeout(()=>{b.classList.remove('visible');b.classList.add('hidden');},3000);
+    setTimeout(()=>{ b.classList.remove('visible'); b.classList.add('hidden'); },3000);
   }
 
-  function lbError(msg){
+  function lbError(msg) {
     const b=document.getElementById('loadingBanner'); if(!b) return;
     if(_sTimer){clearInterval(_sTimer);_sTimer=null;}
     _s('lbTitle','Falha no carregamento'); _s('lbStatus',msg||'Erro de conexão');
-    const p=document.getElementById('lbProgressFill');if(p){p.classList.remove('indeterminate');p.style.width='0';}
-    const w=document.getElementById('lbSpinnerWrap');if(w) w.className='lb-spinner-wrap error';
+    const p=document.getElementById('lbProgressFill'); if(p){p.classList.remove('indeterminate');p.style.width='0';}
+    const w=document.getElementById('lbSpinnerWrap'); if(w) w.className='lb-spinner-wrap error';
     document.getElementById('lbRetry')?.classList.add('visivel');
-    const _bl3=document.getElementById('uiBlocker');if(_bl3) _bl3.classList.remove('active');
   }
 
-  function _s(id,v){const el=document.getElementById(id);if(el) el.textContent=v;}
+  function _s(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
 
   // ── Data ──────────────────────────────────────────────────────────────────
 
-  function refresh(){
+  function refresh() {
     Kpis.render();
     Charts.renderAll();
     Tables.renderTable();
     Tables.renderSummaryTables();
+    if (typeof Alertas !== 'undefined') Alertas.renderizar();
+    if (typeof UrlHash !== 'undefined') UrlHash.push();
   }
 
-  async function loadData(force=false){
+  async function loadData(force=false) {
     lbShow();
     Charts.showSkeletons();
     try {
@@ -322,17 +314,17 @@ const App = (() => {
     }
   }
 
-  async function sync(){ await loadData(true); }
+  async function sync() { await loadData(true); }
 
   // ── Sidebar ───────────────────────────────────────────────────────────────
-  function initSidebar(){
+  function initSidebar() {
     const menu=document.getElementById('sideMenu');
     const ov=document.getElementById('menuOverlay');
     const hb=document.getElementById('hamburgerBtn');
     const cb=document.getElementById('sideMenuClose');
     if(!menu) return;
-    function openM(){menu.classList.add('open');ov?.classList.add('open');hb?.classList.add('open');hb?.setAttribute('aria-expanded','true');}
-    function closeM(){menu.classList.remove('open');ov?.classList.remove('open');hb?.classList.remove('open');hb?.setAttribute('aria-expanded','false');}
+    function openM() { menu.classList.add('open');ov?.classList.add('open');hb?.classList.add('open');hb?.setAttribute('aria-expanded','true'); }
+    function closeM(){ menu.classList.remove('open');ov?.classList.remove('open');hb?.classList.remove('open');hb?.setAttribute('aria-expanded','false'); }
     hb?.addEventListener('click',()=>menu.classList.contains('open')?closeM():openM());
     cb?.addEventListener('click',closeM);
     ov?.addEventListener('click',closeM);
@@ -344,45 +336,17 @@ const App = (() => {
         if(window.innerWidth<768) closeM();
       });
     });
-    document.getElementById('btnSidebarSync')?.addEventListener('click',()=>{sync();if(window.innerWidth<768) closeM();});
+    document.getElementById('btnSidebarSync')?.addEventListener('click',()=>{ sync(); if(window.innerWidth<768) closeM(); });
   }
 
-  // ── Chart controls ────────────────────────────────────────────────────────
-  function initChartControls(){
+  // ── Chart controls (expand + toggle) ─────────────────────────────────────
+  function initChartControls() {
     document.querySelectorAll('[data-expand-chart]').forEach(btn=>{
       btn.addEventListener('click',()=>Charts.expandChart(btn.dataset.expandChart));
     });
     document.querySelectorAll('[data-toggle-chart]').forEach(btn=>{
       btn.addEventListener('click',()=>Charts.toggleChartType(btn.dataset.toggleChart));
     });
-  }
-
-  // ── Ferramentas ───────────────────────────────────────────────────────────
-  function _initFerramentas(){
-    // Ficha do Veículo
-    document.getElementById('btnFichaVeiculo')?.addEventListener('click',()=>{
-      if(typeof Veiculo!=='undefined') Veiculo.abrirBusca();
-    });
-
-    // Modo Apresentação
-    document.getElementById('btnModoApresentacao')?.addEventListener('click',()=>{
-      if(typeof UX!=='undefined') UX.toggleApresentacao();
-    });
-
-    // Tour
-    document.getElementById('btnIniciarTour')?.addEventListener('click',()=>{
-      if(typeof UX!=='undefined') UX.iniciarTour(true);
-    });
-
-    // Salvar favorito — botão no bloco de favoritos da sidebar
-    document.getElementById('btnSalvarFavorito')?.addEventListener('click',()=>{
-      if(typeof UX!=='undefined') UX.abrirModalSalvarFavorito();
-    });
-
-    // Relatório / Impressão
-    const _openPrint=()=>{ if(typeof Impressao!=='undefined') Impressao.abrir(); };
-    document.getElementById('btnRelatorio')?.addEventListener('click',_openPrint);
-    document.getElementById('btnPrint')?.addEventListener('click',_openPrint);
   }
 
   // ── Outras inits ──────────────────────────────────────────────────────────
@@ -427,7 +391,7 @@ const App = (() => {
     document.getElementById('toast-close')?.addEventListener('click',()=>document.getElementById('toast')?.classList.remove('show'));
   });
 
-  function init(){
+  function init() {
     initSidebar();
     initScrollCompact();
     initTheme();
@@ -437,12 +401,40 @@ const App = (() => {
     initKpiClicks();
     initChartControls();
     _initFerramentas();
-    if(typeof UX!=='undefined') UX.init();
     setTimeout(initStickySearch,300);
-    document.getElementById('btnExport')?.addEventListener('click',()=>Tables.exportCSV());
+    // Restaurar filtros da URL antes de carregar dados
+    if (typeof UrlHash !== 'undefined') {
+      UrlHash.init();
+      UrlHash.restore();
+    }
     loadData(false);
     const v=document.getElementById('versaoSidebar');
     if(v&&typeof CONFIG!=='undefined') v.textContent=CONFIG.VERSAO;
+  }
+
+  // ── Ferramentas — sidebar buttons ─────────────────────────────────────────
+  function _initFerramentas() {
+    document.getElementById('btnFichaVeiculo')?.addEventListener('click', () => {
+      if (typeof Veiculo !== 'undefined') Veiculo.abrirBusca();
+    });
+    document.getElementById('btnComparativo')?.addEventListener('click', () => {
+      if (typeof Comparativo !== 'undefined') Comparativo.abrir();
+    });
+    document.getElementById('btnExportXLSX')?.addEventListener('click', () => {
+      if (typeof Exportacao !== 'undefined') Exportacao.exportarXLSX();
+    });
+    document.getElementById('btnGerarPDF')?.addEventListener('click', () => {
+      if (typeof Exportacao !== 'undefined') Exportacao.gerarPDF();
+    });
+    document.getElementById('btnCopiarLink')?.addEventListener('click', () => {
+      if (typeof UrlHash !== 'undefined') UrlHash.copiarLink();
+    });
+
+    // Clique em placa na tabela → abre ficha
+    document.addEventListener('click', e => {
+      const placa = e.target.closest('[data-ficha-placa]')?.dataset.fichaPlaca;
+      if (placa && typeof Veiculo !== 'undefined') Veiculo.abrirFicha(placa);
+    });
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
