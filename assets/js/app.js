@@ -55,6 +55,116 @@ const Modal = (() => {
 
   // ── Detalhe de Registro ───────────────────────────────────────────────────
   function _openRegistro(r) {
+    // ── Histórico do veículo ─────────────────────────────────────────────────
+    const placaKey = (r.Placa||'').toUpperCase().trim();
+    const histRegs = placaKey && placaKey !== '--'
+      ? State.getRawData().filter(r2 => (r2.Placa||'').toUpperCase().trim() === placaKey)
+      : [];
+
+    // Siglas únicas + período de cada uma
+    const siglaMap = {};
+    histRegs.forEach(r2 => {
+      const s = r2.Sigla||'--';
+      const k = `${r2.Ano||0}-${String(r2.Mes||0).padStart(2,'0')}`;
+      if (!siglaMap[s]) siglaMap[s] = { sigla: s, min: k, max: k };
+      if (k < siglaMap[s].min) siglaMap[s].min = k;
+      if (k > siglaMap[s].max) siglaMap[s].max = k;
+    });
+    const siglasList = Object.values(siglaMap).sort((a,b) => a.min < b.min ? -1 : 1);
+
+    function _fmtPeriodo(key) {
+      const [ano, mes] = key.split('-');
+      return `${fmtMes(parseInt(mes)).substring(0,3)}/${ano}`;
+    }
+
+    // Seção A — pills de secretarias
+    let secaoSiglas = '';
+    if (!placaKey || placaKey === '--') {
+      secaoSiglas = `<p style="font-size:12px;color:var(--text-muted)">Identificador não disponível para busca de histórico.</p>`;
+    } else if (!siglasList.length) {
+      secaoSiglas = `<p style="font-size:12px;color:var(--text-muted)">Nenhum registro encontrado para esta placa.</p>`;
+    } else {
+      const nota = siglasList.length > 1
+        ? `<p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Veículo transitou por <strong style="color:var(--text)">${siglasList.length}</strong> secretarias</p>`
+        : `<p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Secretaria única no período</p>`;
+      const pills = siglasList.map(s => {
+        const nomeCompleto = sl(s.sigla);
+        const periodo = s.min === s.max
+          ? _fmtPeriodo(s.min)
+          : `${_fmtPeriodo(s.min)} – ${_fmtPeriodo(s.max)}`;
+        const nomeLabel = nomeCompleto.length > 32 ? nomeCompleto.substring(0,32)+'…' : nomeCompleto;
+        return `<span class="rp-tag" title="${nomeCompleto}" style="display:inline-flex;flex-direction:column;gap:2px;padding:6px 11px;border-radius:9px;max-width:190px;min-width:0">
+          <span style="font-size:11px;font-weight:700;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.sigla}</span>
+          <span style="font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.85">${periodo}</span>
+        </span>`;
+      }).join('');
+      secaoSiglas = nota + `<div style="display:flex;flex-wrap:wrap;gap:6px">${pills}</div>`;
+    }
+
+    // Histórico de despesas — ordenado decrescente
+    const histSorted = [...histRegs].sort((a, b) => {
+      const ka = `${b.Ano||0}-${String(b.Mes||0).padStart(2,'0')}`;
+      const kb = `${a.Ano||0}-${String(a.Mes||0).padStart(2,'0')}`;
+      return ka < kb ? -1 : ka > kb ? 1 : 0;
+    });
+    const totalHist = histRegs.reduce((s, r2) => s + r2.Valor, 0);
+    const MAX_VIS = 10;
+    const temMais = histSorted.length > MAX_VIS;
+    const visiveis = histSorted.slice(0, MAX_VIS);
+    const extras   = histSorted.slice(MAX_VIS);
+
+    function _isAtual(r2) {
+      return r2.Mes === r.Mes && r2.Ano === r.Ano &&
+        (r2.Sigla||'') === (r.Sigla||'') &&
+        (r2.Despesa||'') === (r.Despesa||'') &&
+        Math.abs((r2.Valor||0) - (r.Valor||0)) < 0.01;
+    }
+
+    function _rowHtml(r2, isAtual) {
+      const isComb = (r2.Despesa||'').toLowerCase().startsWith('combust');
+      const badge  = isComb
+        ? `<span class="badge badge-combustivel" style="white-space:nowrap">${r2.Despesa||'--'}</span>`
+        : `<span class="badge badge-manutencao" style="white-space:nowrap">${r2.Despesa||'--'}</span>`;
+      const rowStyle = isAtual
+        ? 'style="background:var(--accent-soft);border-left:3px solid var(--accent);"'
+        : '';
+      return `<tr ${rowStyle}>
+        <td style="white-space:nowrap">${fmtMes(r2.Mes).substring(0,3)}/${r2.Ano||'--'}</td>
+        <td>${badge}</td>
+        <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r2.Classificacao||''}">${r2.Classificacao||'--'}</td>
+        <td style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--accent);white-space:nowrap">${r2.Sigla||'--'}</td>
+        <td class="tr fw-700">${fmtBRL(r2.Valor)}</td>
+      </tr>`;
+    }
+
+    const rowsVisiveis = visiveis.map(r2 => _rowHtml(r2, _isAtual(r2))).join('');
+    const rowsExtras   = extras.map(r2 => _rowHtml(r2, _isAtual(r2))).join('');
+
+    let secaoHist = '';
+    if (!placaKey || placaKey === '--') {
+      secaoHist = `<p style="font-size:12px;color:var(--text-muted)">Histórico indisponível — identificador não informado.</p>`;
+    } else if (!histSorted.length) {
+      secaoHist = `<p style="font-size:12px;color:var(--text-muted)">Nenhum registro encontrado para esta placa.</p>`;
+    } else {
+      secaoHist = `
+        <div class="modal-table-wrap">
+          <table class="modal-table">
+            <thead><tr><th>Período</th><th>Tipo</th><th>Classificação</th><th>Sigla</th><th class="tr">Valor</th></tr></thead>
+            <tbody>${rowsVisiveis}</tbody>
+            ${temMais ? `<tbody id="mhExtra" style="display:none">${rowsExtras}</tbody>` : ''}
+          </table>
+        </div>
+        ${temMais ? `<button id="mhToggle" style="margin-top:8px;font-size:12px;font-weight:700;color:var(--accent);background:none;border:none;cursor:pointer;padding:4px 0;display:flex;align-items:center;gap:4px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          Ver todos (${histSorted.length} registros)
+        </button>` : ''}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0 0;border-top:1px solid var(--border-dim);margin-top:6px;gap:8px">
+          <span style="font-size:12px;color:var(--text-muted)">${histSorted.length.toLocaleString('pt-BR')} registros no histórico</span>
+          <span style="font-size:13px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap">${fmtBRL(totalHist)}</span>
+        </div>`;
+    }
+
+    // ── Render do modal ──────────────────────────────────────────────────────
     openRaw(`
       <div class="modal-header">
         <div class="modal-header-left">
@@ -63,7 +173,7 @@ const Modal = (() => {
           </div>
           <div>
             <div class="modal-tag">Registro de Despesa</div>
-            <h2 class="modal-title">${r.Modelo||r.Placa||'Detalhes do Registro'}</h2>
+            <h2 class="modal-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.Modelo||r.Placa||'Detalhes do Registro'}</h2>
           </div>
         </div>
         <button class="modal-close-btn" data-modal-close aria-label="Fechar">
@@ -77,25 +187,50 @@ const Modal = (() => {
           ${r.Liquidado?`<span class="modal-value-sub">Liquidado: ${fmtBRL(r.Liquidado)}</span>`:''}
         </div>
         <div class="modal-grid">
-          <div class="modal-campo"><span class="modal-campo-label">Placa</span><span class="modal-campo-valor mono">${r.Placa||'--'}</span></div>
-          <div class="modal-campo"><span class="modal-campo-label">Modelo</span><span class="modal-campo-valor">${r.Modelo||'--'}</span></div>
+          <div class="modal-campo"><span class="modal-campo-label">Placa</span><span class="modal-campo-valor mono" style="overflow:hidden;text-overflow:ellipsis">${r.Placa||'--'}</span></div>
+          <div class="modal-campo"><span class="modal-campo-label">Modelo</span><span class="modal-campo-valor" style="overflow:hidden;text-overflow:ellipsis">${r.Modelo||'--'}</span></div>
           <div class="modal-campo"><span class="modal-campo-label">Tipo</span><span class="modal-campo-valor">${r.Tipo||'--'}</span></div>
-          <div class="modal-campo"><span class="modal-campo-label">Despesa</span><span class="modal-campo-valor">${r.Despesa||'--'}</span></div>
+          <div class="modal-campo"><span class="modal-campo-label">Despesa</span><span class="modal-campo-valor" style="overflow:hidden;text-overflow:ellipsis">${r.Despesa||'--'}</span></div>
           <div class="modal-campo"><span class="modal-campo-label">Período</span><span class="modal-campo-valor">${fmtMes(r.Mes)} / ${r.Ano||'--'}</span></div>
-          <div class="modal-campo"><span class="modal-campo-label">Contrato</span><span class="modal-campo-valor">${r.Contrato||'--'}</span></div>
+          <div class="modal-campo"><span class="modal-campo-label">Contrato</span><span class="modal-campo-valor" style="overflow:hidden;text-overflow:ellipsis">${r.Contrato||'--'}</span></div>
         </div>
         <div class="modal-secao-titulo">Localização</div>
         <div class="modal-grid modal-grid-2">
-          <div class="modal-campo"><span class="modal-campo-label">Secretaria</span><span class="modal-campo-valor">${sl(r.Sigla)}</span></div>
-          <div class="modal-campo"><span class="modal-campo-label">Departamento</span><span class="modal-campo-valor">${r.Departamento||'--'}</span></div>
-          <div class="modal-campo"><span class="modal-campo-label">Centro de Custo</span><span class="modal-campo-valor">${r.CentroCusto||'--'}</span></div>
-          <div class="modal-campo"><span class="modal-campo-label">Classificação</span><span class="modal-campo-valor">${r.Classificacao||'--'}</span></div>
-          <div class="modal-campo"><span class="modal-campo-label">Empresa</span><span class="modal-campo-valor">${r.Empresa||'--'}</span></div>
+          <div class="modal-campo"><span class="modal-campo-label">Secretaria</span><span class="modal-campo-valor" style="overflow:hidden;text-overflow:ellipsis" title="${sl(r.Sigla)}">${sl(r.Sigla)}</span></div>
+          <div class="modal-campo"><span class="modal-campo-label">Departamento</span><span class="modal-campo-valor" style="overflow:hidden;text-overflow:ellipsis" title="${r.Departamento||''}">${r.Departamento||'--'}</span></div>
+          <div class="modal-campo"><span class="modal-campo-label">Centro de Custo</span><span class="modal-campo-valor" style="overflow:hidden;text-overflow:ellipsis" title="${r.CentroCusto||''}">${r.CentroCusto||'--'}</span></div>
+          <div class="modal-campo"><span class="modal-campo-label">Classificação</span><span class="modal-campo-valor" style="overflow:hidden;text-overflow:ellipsis" title="${r.Classificacao||''}">${r.Classificacao||'--'}</span></div>
+          <div class="modal-campo"><span class="modal-campo-label">Empresa</span><span class="modal-campo-valor" style="overflow:hidden;text-overflow:ellipsis" title="${r.Empresa||''}">${r.Empresa||'--'}</span></div>
         </div>
+
+        <div class="modal-secao-titulo" style="margin-top:18px;display:flex;align-items:center;gap:6px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          Secretarias do Veículo
+        </div>
+        ${secaoSiglas}
+
+        <div class="modal-secao-titulo" style="margin-top:18px;display:flex;align-items:center;gap:6px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.4"/></svg>
+          Histórico de Despesas${placaKey && placaKey !== '--' ? ` — <span style="font-family:var(--font-mono);color:var(--accent)">${r.Placa}</span>` : ''}
+        </div>
+        ${secaoHist}
       </div>
       <div class="modal-footer modal-footer-only-hint">
         <span class="modal-footer-hint">ESC ou clique fora para fechar</span>
       </div>`);
+
+    // Bind toggle expandir histórico
+    const toggleBtn  = document.getElementById('mhToggle');
+    const extraTbody = document.getElementById('mhExtra');
+    if (toggleBtn && extraTbody) {
+      toggleBtn.addEventListener('click', () => {
+        const aberto = extraTbody.style.display !== 'none';
+        extraTbody.style.display = aberto ? 'none' : '';
+        toggleBtn.innerHTML = aberto
+          ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg> Ver todos (${histSorted.length} registros)`
+          : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg> Recolher`;
+      });
+    }
   }
 
   // ── Detalhe de Gráfico (barra/fatia clicada) ──────────────────────────────
