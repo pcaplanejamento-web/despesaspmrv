@@ -295,16 +295,11 @@ const Tables = (() => {
     if (!rows.length) { tbody.innerHTML='<tr><td colspan="4" class="resumo-empty">Sem dados</td></tr>'; return; }
     const frag = document.createDocumentFragment();
     rows.forEach(row => {
-      const r0 = row.label; // raw data record for month/year
-      // Extract mes and ano from key format "YYYY-MM"
-      const parts = Object.values ? null : null;
+
       const tr = document.createElement('tr');
       tr.className = 'resumo-row-clickable';
       tr.title = 'Clique para ver detalhes deste mês';
-      // Reconstruct mes/ano from key (stored as "YYYY-MM" key)
-      const keyParts = row.label && row.label.includes ? null : null;
-      // We stored label as the formatted string — need to store mes/ano separately
-      tr.innerHTML = \`<td>\${row.mesNome||'--'}</td><td class="fw-600">\${row.anoNum||'--'}</td><td class="tr">\${row.qtde.toLocaleString('pt-BR')}</td><td class="tr fw-700" style="color:var(--accent)">\${fmtBRL(row.total)}</td>\`;
+      tr.innerHTML = `<td>${row.mesNome||'--'}</td><td class="fw-600">${row.anoNum||'--'}</td><td class="tr">${row.qtde.toLocaleString('pt-BR')}</td><td class="tr fw-700" style="color:var(--accent)">${fmtBRL(row.total)}</td>`;
       tr.addEventListener('click', () => _openMesModal(row, fmtMes, fmtBRL));
       frag.appendChild(tr);
     });
@@ -313,7 +308,7 @@ const Tables = (() => {
     totRow.className = 'resumo-total-row';
     const totalAmt = rows.reduce((s,r)=>s+r.total, 0);
     const totalQtd = rows.reduce((s,r)=>s+r.qtde, 0);
-    totRow.innerHTML = \`<td>TOTAL</td><td></td><td class="tr">\${totalQtd.toLocaleString('pt-BR')}</td><td class="tr fw-700" style="color:var(--accent)">\${fmtBRL(totalAmt)}</td>\`;
+    totRow.innerHTML = `<td>TOTAL</td><td></td><td class="tr">${totalQtd.toLocaleString('pt-BR')}</td><td class="tr fw-700" style="color:var(--accent)">${fmtBRL(totalAmt)}</td>`;
     frag.appendChild(totRow);
     tbody.innerHTML = '';
     tbody.appendChild(frag);
@@ -326,7 +321,7 @@ const Tables = (() => {
     const sl = typeof Filters !== 'undefined' ? Filters.siglaLabel : s => s;
     const top10 = [...regs].sort((a,b)=>b.Valor-a.Valor).slice(0,10);
     if (typeof Modal !== 'undefined') {
-      Modal.open('chartDetalhe', { titulo: \`\${row.mesNome} / \${row.anoNum}\`, registros: regs, tipo: 'mes' });
+      Modal.open('chartDetalhe', { titulo: `${row.mesNome} / ${row.anoNum}`, registros: regs, tipo: 'mes' });
     }
   }
 
