@@ -426,7 +426,7 @@
           <span class="resumo-banner-title">Por Classificação</span>
         </div>
         <div class="resumo-table-wrap">
-          <table class="resumo-table resumo-clickable" id="tabClassificacao" data-resumo="Classificacao">
+          <table class="resumo-table" id="tabClassificacao" data-resumo="Classificacao">
             <thead><tr><th>Classificação</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
             <tbody></tbody>
           </table>
@@ -440,7 +440,7 @@
           <span class="resumo-banner-title">Por Mês</span>
         </div>
         <div class="resumo-table-wrap">
-          <table class="resumo-table resumo-clickable" id="tabMes" data-resumo="Mes">
+          <table class="resumo-table" id="tabMes" data-resumo="Mes">
             <thead><tr><th>Mês / Ano</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
             <tbody></tbody>
           </table>
@@ -454,7 +454,7 @@
           <span class="resumo-banner-title">Por Tipo de Frota</span>
         </div>
         <div class="resumo-table-wrap">
-          <table class="resumo-table resumo-clickable" id="tabTipo" data-resumo="Tipo">
+          <table class="resumo-table" id="tabTipo" data-resumo="Tipo">
             <thead><tr><th>Tipo</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
             <tbody></tbody>
           </table>
@@ -468,7 +468,7 @@
           <span class="resumo-banner-title">Por Tipo de Despesa</span>
         </div>
         <div class="resumo-table-wrap">
-          <table class="resumo-table resumo-clickable" id="tabDespesa" data-resumo="Despesa">
+          <table class="resumo-table" id="tabDespesa" data-resumo="Despesa">
             <thead><tr><th>Despesa</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
             <tbody></tbody>
           </table>
@@ -482,7 +482,7 @@
           <span class="resumo-banner-title">Por Local (Secretaria)</span>
         </div>
         <div class="resumo-table-wrap">
-          <table class="resumo-table resumo-clickable" id="tabLocal" data-resumo="Sigla">
+          <table class="resumo-table" id="tabLocal" data-resumo="Sigla">
             <thead><tr><th>Sigla</th><th>Secretaria</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
             <tbody></tbody>
           </table>
@@ -492,25 +492,25 @@
     </div>
   </section>
 
-  <!-- ── Painel flutuante de detalhes (resumo click) ───────────────────────── -->
-  <div id="resumoPainel" class="resumo-painel" role="dialog" aria-modal="true" aria-label="Detalhes da seleção" hidden>
-    <div class="resumo-painel-backdrop" id="resumoPainelBackdrop"></div>
-    <div class="resumo-painel-sheet">
-      <div class="resumo-painel-header">
-        <div class="resumo-painel-header-info">
-          <span class="resumo-painel-badge" id="resumoPainelBadge"></span>
-          <div>
-            <p class="resumo-painel-titulo" id="resumoPainelTitulo"></p>
-            <p class="resumo-painel-sub" id="resumoPainelSub"></p>
+  <!-- ── Painel Flutuante Resumo ──────────────────────────────────────────── -->
+  <div id="rpPainel" class="rp-painel" aria-hidden="true">
+    <div class="rp-backdrop" id="rpBackdrop"></div>
+    <aside class="rp-sheet" role="dialog" aria-modal="true" aria-labelledby="rpTitulo">
+      <div class="rp-header">
+        <div class="rp-header-info">
+          <span class="rp-badge" id="rpBadge"></span>
+          <div class="rp-header-text">
+            <h2 class="rp-titulo" id="rpTitulo"></h2>
+            <p class="rp-sub" id="rpSub"></p>
           </div>
         </div>
-        <button class="resumo-painel-close" id="resumoPainelClose" aria-label="Fechar">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <button class="rp-close" id="rpClose" aria-label="Fechar painel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-      <div class="resumo-painel-kpis" id="resumoPainelKpis"></div>
-      <div class="resumo-painel-body" id="resumoPainelBody"></div>
-    </div>
+      <div class="rp-kpis" id="rpKpis"></div>
+      <div class="rp-body" id="rpBody"></div>
+    </aside>
   </div>
 
   <!-- ── 5. REGISTROS DETALHADOS ────────────────────────────────────────── -->
