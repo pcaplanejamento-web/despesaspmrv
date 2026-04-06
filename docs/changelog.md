@@ -1,3 +1,32 @@
+## v4.0.0 — Análise Avançada + Painel de Alertas + Melhorias — 2026-04-05
+
+### Adicionado
+- **Página Análise Avançada** (`secaoAnaliseAvancada`) — nova seção no sistema com filtros próprios e completamente independentes dos filtros principais; permite análise por veículo, secretaria, período e tipo de despesa
+- **`analise.js`** — novo módulo responsável por toda a lógica da Análise Avançada (filtros, aggreaação, gráficos, tabela de registros); sem dependência dos filtros principais nem dos filtros de Registros Detalhados
+- **Item "Análise Avançada" no menu lateral** — substitui o item "Alertas" que foi movido para painel flutuante
+- **Painel flutuante de Alertas** (`#alertsPanel`) — slide-in pelo lado direito com categorias (Todos / Críticos / Atenção / Info), botão no header pill ao lado do tema
+- **Botão de alertas no header** (`btn-alerts-header`) com badge indicando alertas críticos
+- **Tabela "Por Mês" com Mês e Ano em colunas separadas** — nova estrutura com `aggMes()` em `tables.js`
+- **Click em tabelas resumo** — todas as tabelas de resumo (Classificação, Mês, Tipo, Despesa, Local) abrem modal detalhado ao clicar em qualquer linha
+- **Botão "Análise Avançada" no modal de Evolução Mensal** — navega e pré-preenche filtros da nova página
+- **Auto-fechar dropdowns ao tirar mouse** — comportamento consistente em todos os multi-selects
+- **ResizeObserver no gráfico de Evolução Mensal** — corrige perda de proporção ao redimensionar
+- **`getUltimosAlertas()`** em `alertas.js` — expõe cache de alertas para o painel flutuante
+
+### Alterado
+- **Menu lateral** — item "Alertas" removido da navegação; substituído por "Análise Avançada"; painel de alertas acessível pelo botão no header
+- **`components.css`** — novos estilos para: painel de alertas, botão header, Análise Avançada, tabelas resumo clicáveis, fix overflow de títulos em banners de gráficos
+- **`app.js`** — integração com Analise.init(), Analise.onDataReady(), Tables.bindResumoClickable(), painel flutuante de alertas
+- **`filters.js`** — adicionado auto-close com delay de 280ms ao tirar mouse do dropdown
+- **`charts.js`** — ResizeObserver no wrapper do gráfico de evolução para redimensionamento correto
+- **`tables.js`** — função `aggMes()` separada, `_fillMes()` com colunas Mês/Ano distintas, `_bindResumoClickable()` para click nas tabelas resumo
+
+### Documentação
+- `changelog.md` atualizado
+- `arquitetura.md` atualizado
+
+---
+
 # Changelog
 
 ## v3.0.0 — Redesign completo — 2026-04-03
