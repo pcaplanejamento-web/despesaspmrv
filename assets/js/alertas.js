@@ -160,14 +160,11 @@ const Alertas = (() => {
 
   // ── Renderizar seção de alertas ───────────────────────
 
-  let _ultimosAlertas = [];
-
-  function getUltimosAlertas() { return _ultimosAlertas; }
-
   function renderizar() {
+    const secao = document.getElementById('secaoAlertas');
+    if (!secao) return;
     const data = State.getFilteredData();
     const lista = calcular(data);
-    _ultimosAlertas = lista;
 
     const badge = document.getElementById('alertasBadge');
     const count = document.getElementById('alertasCount');
@@ -221,5 +218,5 @@ const Alertas = (() => {
     }).join('');
   }
 
-  return { calcular, renderizar, getUltimosAlertas };
+  return { calcular, renderizar };
 })();

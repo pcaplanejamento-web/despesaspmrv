@@ -206,29 +206,9 @@ const Modal = (() => {
         </div>
 
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer modal-footer-only-hint">
         <span class="modal-footer-hint">${mesNome} — ESC para fechar</span>
-        <button class="btn btn-ghost" style="font-size:12px;padding:7px 14px;" id="btnAbrirAnalise" aria-label="Abrir no módulo de Análise Avançada">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          Análise Avançada
-        </button>
       </div>`);
-
-    // Bind botão "Abrir na Análise Avançada"
-    setTimeout(() => {
-      const btnAA = document.getElementById('btnAbrirAnalise');
-      if (btnAA) {
-        btnAA.addEventListener('click', () => {
-          close();
-          if (typeof Analise !== 'undefined') {
-            const secao = document.getElementById('secaoAnaliseAvancada');
-            if (secao) secao.scrollIntoView({behavior:'smooth', block:'start'});
-            const primoAno = d.dadosMes?.[0]?.ano || '';
-            setTimeout(() => Analise.preencherFiltros({ mes: d.mes, ano: primoAno }), 350);
-          }
-        });
-      }
-    }, 80);
   }
 
   return { open, openRaw, close };
@@ -322,12 +302,6 @@ const App = (() => {
       refresh();
       lbSuccess(State.getRawData().length);
       if(force) showToast('success','Dados sincronizados',`${State.getRawData().length.toLocaleString('pt-BR')} registros`,3000);
-      // Notificar Análise Avançada que dados estão disponíveis
-      if (typeof Analise !== 'undefined') Analise.onDataReady();
-      // Bindear click nas tabelas resumo
-      if (typeof Tables !== 'undefined' && Tables.bindResumoClickable) Tables.bindResumoClickable();
-      // Atualizar painel de alertas
-      setTimeout(atualizarPainelAlertas, 500);
     } catch(err) {
       lbError(err.message);
       showToast('error','Erro ao carregar',err.message,5000);
@@ -428,8 +402,6 @@ const App = (() => {
     initChartControls();
     _initFerramentas();
     setTimeout(initStickySearch,300);
-    // Inicializar Análise Avançada
-    if (typeof Analise !== 'undefined') Analise.init();
     // Restaurar filtros da URL antes de carregar dados
     if (typeof UrlHash !== 'undefined') {
       UrlHash.init();
@@ -463,86 +435,10 @@ const App = (() => {
       const placa = e.target.closest('[data-ficha-placa]')?.dataset.fichaPlaca;
       if (placa && typeof Veiculo !== 'undefined') Veiculo.abrirFicha(placa);
     });
-
-    // ── Painel flutuante de Alertas ────────────────────────────────────────
-    _initAlertsPanel();
-  }
-
-  function _initAlertsPanel() {
-    const btnHeader = document.getElementById('btnAlertsHeader');
-    const panel     = document.getElementById('alertsPanel');
-    const overlay   = document.getElementById('alertsPanelOverlay');
-    const closeBtn  = document.getElementById('alertsPanelClose');
-    const cats      = document.getElementById('alertsPanelCats');
-    if (!btnHeader || !panel) return;
-
-    function openPanel()  { panel.classList.add('open');   overlay?.classList.add('open');   document.body.style.overflow='hidden'; }
-    function closePanel() { panel.classList.remove('open'); overlay?.classList.remove('open'); document.body.style.overflow=''; }
-
-    btnHeader.addEventListener('click', () => panel.classList.contains('open') ? closePanel() : openPanel());
-    closeBtn?.addEventListener('click', closePanel);
-    overlay?.addEventListener('click', closePanel);
-
-    // Categoria de alertas
-    let _catAtiva = 'todos';
-    cats?.addEventListener('click', e => {
-      const btn = e.target.closest('.ap-cat');
-      if (!btn) return;
-      cats.querySelectorAll('.ap-cat').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      _catAtiva = btn.dataset.cat||'todos';
-      _renderAlertsPanel(_catAtiva);
-    });
-
-    // Escape fecha
-    document.addEventListener('keydown', e => { if(e.key==='Escape' && panel.classList.contains('open')) closePanel(); });
-  }
-
-  function _renderAlertsPanel(cat='todos') {
-    const body = document.getElementById('alertsPanelBody');
-    if (!body) return;
-    if (typeof Alertas === 'undefined') {
-      body.innerHTML = '<div class="alertas-vazio"><p>Módulo de alertas não disponível.</p></div>';
-      return;
-    }
-    const todos = Alertas.getUltimosAlertas ? Alertas.getUltimosAlertas() : [];
-    const filtrados = cat === 'todos' ? todos : todos.filter(a => a.nivel === cat);
-    if (!filtrados.length) {
-      body.innerHTML = `<div class="alertas-vazio">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        <p>${cat==='todos'?'Nenhum alerta detectado.':'Nenhum alerta nesta categoria.'}</p>
-      </div>`;
-      return;
-    }
-    body.innerHTML = filtrados.map(a => {
-      const colors = {critico:'var(--rose)',atencao:'var(--amber)',info:'var(--accent)'};
-      const lvlColors = {critico:'rgba(225,29,72,.12)',atencao:'rgba(245,158,11,.10)',info:'rgba(67,97,238,.10)'};
-      return `<div class="ap-alerta-item" style="border-color:${a.nivel==='critico'?'#e11d48':a.nivel==='atencao'?'#d97706':'var(--accent)'}">
-        <div class="ap-alerta-titulo">${a.titulo||'Alerta'}</div>
-        <div class="ap-alerta-desc">${a.descricao||''}</div>
-        ${a.placa?`<span class="alerta-tag">${a.placa}</span>`:''}
-      </div>`;
-    }).join('');
-  }
-
-  // Exportar para uso externo (atualizar painel quando alertas mudam)
-  function atualizarPainelAlertas() {
-    const catBtn = document.querySelector('.ap-cat.active');
-    const cat = catBtn?.dataset.cat || 'todos';
-    _renderAlertsPanel(cat);
-    // Atualizar badge no header
-    if (typeof Alertas !== 'undefined' && Alertas.getUltimosAlertas) {
-      const criticos = Alertas.getUltimosAlertas().filter(a=>a.nivel==='critico').length;
-      const badge = document.getElementById('headerAlertsBadge');
-      if (badge) {
-        badge.textContent = criticos > 0 ? String(criticos) : '';
-        badge.style.display = criticos > 0 ? 'flex' : 'none';
-      }
-    }
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
   else init();
 
-  return { refresh, sync, showToast, atualizarPainelAlertas };
+  return { refresh, sync, showToast };
 })();

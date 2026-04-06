@@ -249,15 +249,6 @@ const Charts = (() => {
       };
     });
 
-    // Fix: usar ResizeObserver para forçar redimensionamento correto
-    const evolWrap = canvas.closest('.chart-wrap');
-    if (evolWrap && !evolWrap._rvObserver) {
-      evolWrap._rvObserver = new ResizeObserver(() => {
-        if (_inst['chartEvolucao']) _inst['chartEvolucao'].resize();
-      });
-      evolWrap._rvObserver.observe(evolWrap);
-    }
-
     _inst['chartEvolucao']=new Chart(canvas,{
       type:'line',
       data:{ labels:labels.map(m=>fmtMes(m)), datasets },
