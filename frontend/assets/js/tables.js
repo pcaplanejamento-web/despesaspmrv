@@ -179,6 +179,17 @@ const Tables = (() => {
     const data = State.getFilteredData();
     const sl   = typeof Filters!=='undefined' ? Filters.siglaLabel : s=>s;
 
+    function aggMes() {
+      const map = {};
+      data.forEach(r => {
+        if (!r.Mes || !r.Ano) return;
+        const k = `${String(r.Ano)}-${String(r.Mes).padStart(2,'0')}`;
+        if (!map[k]) map[k] = { label: k, mesNome: fmtMes(r.Mes), mesNum: r.Mes, anoNum: r.Ano, total: 0, qtde: 0 };
+        map[k].total += r.Valor; map[k].qtde++;
+      });
+      return Object.values(map).sort((a,b) => a.label.localeCompare(b.label));
+    }
+
     function agg(keyFn, labelFn) {
       const map={};
       data.forEach(r=>{
@@ -192,9 +203,9 @@ const Tables = (() => {
     _fill('tabClassificacao', agg(r=>r.Classificacao||'--'),
       row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)]);
 
-    _fill('tabMes', agg(r=>`${String(r.Ano||'--')}-${String(r.Mes||'--').padStart(2,'0')}`,
-      r=>`${fmtMes(r.Mes)}/${r.Ano}`),
-      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)]);
+    // tabMes: Mês e Ano em colunas separadas + click para modal
+    const mesRows = aggMes();
+    _fillMes('tabMes', mesRows, fmtMes, fmtBRL);
 
     _fill('tabTipo', agg(r=>r.Tipo||'--'),
       row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)]);
@@ -275,5 +286,88 @@ const Tables = (() => {
     document.getElementById('tablePageSize')?.addEventListener('change',e=>{ State.setTablePageSize(e.target.value); renderTable(); });
   }
 
-  return { renderTable, renderSummaryTables, bindEvents, exportCSV };
+  // ── Tabela Por Mês — colunas separadas + click ─────────────────────────
+  function _fillMes(tableId, rows, fmtMes, fmtBRL) {
+    const tbl = document.getElementById(tableId);
+    if (!tbl) return;
+    const tbody = tbl.querySelector('tbody');
+    if (!tbody) return;
+    if (!rows.length) { tbody.innerHTML='<tr><td colspan="4" class="resumo-empty">Sem dados</td></tr>'; return; }
+    const frag = document.createDocumentFragment();
+    rows.forEach(row => {
+      const r0 = row.label; // raw data record for month/year
+      // Extract mes and ano from key format "YYYY-MM"
+      const parts = Object.values ? null : null;
+      const tr = document.createElement('tr');
+      tr.className = 'resumo-row-clickable';
+      tr.title = 'Clique para ver detalhes deste mês';
+      // Reconstruct mes/ano from key (stored as "YYYY-MM" key)
+      const keyParts = row.label && row.label.includes ? null : null;
+      // We stored label as the formatted string — need to store mes/ano separately
+      tr.innerHTML = \`<td>\${row.mesNome||'--'}</td><td class="fw-600">\${row.anoNum||'--'}</td><td class="tr">\${row.qtde.toLocaleString('pt-BR')}</td><td class="tr fw-700" style="color:var(--accent)">\${fmtBRL(row.total)}</td>\`;
+      tr.addEventListener('click', () => _openMesModal(row, fmtMes, fmtBRL));
+      frag.appendChild(tr);
+    });
+    // Total row
+    const totRow = document.createElement('tr');
+    totRow.className = 'resumo-total-row';
+    const totalAmt = rows.reduce((s,r)=>s+r.total, 0);
+    const totalQtd = rows.reduce((s,r)=>s+r.qtde, 0);
+    totRow.innerHTML = \`<td>TOTAL</td><td></td><td class="tr">\${totalQtd.toLocaleString('pt-BR')}</td><td class="tr fw-700" style="color:var(--accent)">\${fmtBRL(totalAmt)}</td>\`;
+    frag.appendChild(totRow);
+    tbody.innerHTML = '';
+    tbody.appendChild(frag);
+  }
+
+  function _openMesModal(row, fmtMes, fmtBRL) {
+    const data = State.getFilteredData();
+    const regs = data.filter(r => String(r.Mes) === String(row.mesNum) && String(r.Ano) === String(row.anoNum));
+    const total = regs.reduce((s,r)=>s+r.Valor,0);
+    const sl = typeof Filters !== 'undefined' ? Filters.siglaLabel : s => s;
+    const top10 = [...regs].sort((a,b)=>b.Valor-a.Valor).slice(0,10);
+    if (typeof Modal !== 'undefined') {
+      Modal.open('chartDetalhe', { titulo: \`\${row.mesNome} / \${row.anoNum}\`, registros: regs, tipo: 'mes' });
+    }
+  }
+
+  // ── Click em tabelas resumo — abre modal ─────────────────────────────────
+  function _bindResumoClickable() {
+    document.querySelectorAll('.resumo-table-clickable tbody').forEach(tbody => {
+      tbody.addEventListener('click', e => {
+        const tr = e.target.closest('tr');
+        if (!tr || tr.classList.contains('resumo-total-row')) return;
+        // Get row label from first cell
+        const label = tr.cells[0]?.textContent?.trim();
+        if (!label || label === 'TOTAL') return;
+        const tableId = tbody.closest('table')?.id;
+        _openResumoModal(tableId, label, tr);
+      });
+    });
+  }
+
+  function _openResumoModal(tableId, label, tr) {
+    if (typeof Modal === 'undefined') return;
+    const data = State.getFilteredData();
+    let regs = [];
+    let titulo = label;
+    const sl = typeof Filters !== 'undefined' ? Filters.siglaLabel : s => s;
+    if (tableId === 'tabClassificacao') {
+      regs = data.filter(r => (r.Classificacao||'--') === label);
+      titulo = label;
+    } else if (tableId === 'tabMes') {
+      // Handled separately by _openMesModal
+      return;
+    } else if (tableId === 'tabTipo') {
+      regs = data.filter(r => (r.Tipo||'--') === label);
+    } else if (tableId === 'tabDespesa') {
+      regs = data.filter(r => (r.Despesa||'--') === label);
+    } else if (tableId === 'tabLocal') {
+      regs = data.filter(r => (r.Sigla||'--') === label);
+      titulo = sl(label);
+    }
+    if (!regs.length) return;
+    Modal.open('chartDetalhe', { titulo, registros: regs, tipo: tableId });
+  }
+
+  return { renderTable, renderSummaryTables, bindEvents, exportCSV, bindResumoClickable: _bindResumoClickable };
 })();

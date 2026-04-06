@@ -127,6 +127,14 @@ const Filters = (() => {
     btn.addEventListener('click', e => { e.stopPropagation(); toggle(); });
     document.addEventListener('click', e => { if (!wrap.contains(e.target)) close(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+    // Auto-fechar ao tirar o mouse do wrap
+    let _msLeaveTimer = null;
+    wrap.addEventListener('mouseleave', () => {
+      _msLeaveTimer = setTimeout(close, 280);
+    });
+    wrap.addEventListener('mouseenter', () => {
+      if (_msLeaveTimer) { clearTimeout(_msLeaveTimer); _msLeaveTimer = null; }
+    });
 
     // Expõe método de refresh externo
     _msRefs[wrapId] = { refresh: () => { buildOptions(); updateLabel(); } };
