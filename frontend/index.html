@@ -450,92 +450,87 @@
     </div>
 
     <div class="resumo-lista">
-      <!-- Classificação -->
+
+      <!-- Por Classificação -->
       <div class="resumo-card-wrap">
         <div class="resumo-banner resumo-banner-blue">
           <div class="resumo-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
           <span class="resumo-banner-title">Por Classificação</span>
         </div>
         <div class="card resumo-card resumo-card-noborder-top">
-        <div class="resumo-table-wrap">
-          <table class="resumo-table" id="tabClassificacao">
-            <thead><tr><th>Classificação</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
+          <div class="resumo-table-wrap">
+            <table class="resumo-table resumo-table-clickable" id="tabClassificacao">
+              <thead><tr><th>Classificação</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
       </div>
-      <!-- Mês -->
+
+      <!-- Por Mês — Mês e Ano em colunas separadas -->
       <div class="resumo-card-wrap">
         <div class="resumo-banner resumo-banner-green">
           <div class="resumo-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
           <span class="resumo-banner-title">Por Mês</span>
         </div>
-        <div class="card resumo-card resumo-card-noborder-top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
-          <span class="resumo-card-title">Por Mês</span>
+        <div class="card resumo-card resumo-card-noborder-top">
+          <div class="resumo-table-wrap">
+            <table class="resumo-table resumo-table-clickable" id="tabMes">
+              <thead><tr><th>Mês</th><th>Ano</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
-        <div class="resumo-table-wrap">
-          <table class="resumo-table resumo-table-clickable" id="tabMes">
-            <thead><tr><th>Mês</th><th>Ano</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
       </div>
-      </div>
-      </div>
-      <!-- Tipo -->
+
+      <!-- Por Tipo de Frota -->
       <div class="resumo-card-wrap">
         <div class="resumo-banner resumo-banner-amber">
           <div class="resumo-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
           <span class="resumo-banner-title">Por Tipo de Frota</span>
         </div>
-        <div class="card resumo-card resumo-card-noborder-top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span>
-          <span class="resumo-card-title">Por Tipo de Frota</span>
+        <div class="card resumo-card resumo-card-noborder-top">
+          <div class="resumo-table-wrap">
+            <table class="resumo-table resumo-table-clickable" id="tabTipo">
+              <thead><tr><th>Tipo</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
-        <div class="resumo-table-wrap">
-          <table class="resumo-table resumo-table-clickable" id="tabTipo">
-            <thead><tr><th>Tipo</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
       </div>
-      </div>
-      </div>
-      <!-- Despesa -->
+
+      <!-- Por Tipo de Despesa -->
       <div class="resumo-card-wrap">
         <div class="resumo-banner resumo-banner-rose">
           <div class="resumo-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 3v18h18"/></svg></div>
           <span class="resumo-banner-title">Por Tipo de Despesa</span>
         </div>
-        <div class="card resumo-card resumo-card-noborder-top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/></svg></span>
-          <span class="resumo-card-title">Por Tipo de Despesa</span>
+        <div class="card resumo-card resumo-card-noborder-top">
+          <div class="resumo-table-wrap">
+            <table class="resumo-table resumo-table-clickable" id="tabDespesa">
+              <thead><tr><th>Despesa</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
-        <div class="resumo-table-wrap">
-          <table class="resumo-table resumo-table-clickable" id="tabDespesa">
-            <thead><tr><th>Despesa</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
       </div>
-      </div>
-      </div>
-      <!-- Local -->
+
+      <!-- Por Local (Secretaria) — largura completa -->
       <div class="resumo-card-wrap resumo-card-wrap-wide">
         <div class="resumo-banner resumo-banner-purple">
           <div class="resumo-banner-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
           <span class="resumo-banner-title">Por Local (Secretaria)</span>
         </div>
-        <div class="card resumo-card resumo-card-noborder-top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
-          <span class="resumo-card-title">Por Local (Secretaria)</span>
-        </div>
-        <div class="resumo-table-wrap">
-          <table class="resumo-table resumo-table-clickable" id="tabLocal">
-            <thead><tr><th>Sigla</th><th>Secretaria</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
+        <div class="card resumo-card resumo-card-noborder-top">
+          <div class="resumo-table-wrap">
+            <table class="resumo-table resumo-table-clickable" id="tabLocal">
+              <thead><tr><th>Sigla</th><th>Secretaria</th><th class="tr">Qtde</th><th class="tr">Total</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
       </div>
+
     </div>
   </section>
 
