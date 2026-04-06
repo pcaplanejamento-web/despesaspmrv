@@ -160,6 +160,10 @@ const Alertas = (() => {
 
   // ── Renderizar seção de alertas ───────────────────────
 
+  let _ultimosAlertas = [];
+
+  function getUltimosAlertas() { return _ultimosAlertas; }
+
   function renderizar() {
     const secao = document.getElementById('secaoAlertas');
     if (!secao) return;
@@ -218,5 +222,5 @@ const Alertas = (() => {
     }).join('');
   }
 
-  return { calcular, renderizar };
+  return { calcular, renderizar, getUltimosAlertas };
 })();
