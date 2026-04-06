@@ -190,24 +190,116 @@ const Tables = (() => {
     }
 
     _fill('tabClassificacao', agg(r=>r.Classificacao||'--'),
-      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)]);
+      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)],
+      row=>`Classificação: ${row.label}`);
 
-    _fill('tabMes', agg(r=>`${String(r.Ano||'--')}-${String(r.Mes||'--').padStart(2,'0')}`,
-      r=>`${fmtMes(r.Mes)}/${r.Ano}`),
-      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)]);
+    // tabMes: precisamos guardar a key original ("2025-01") para o lookup
+    const mesRows = (() => {
+      const map = {};
+      data.forEach(r => {
+        const k = `${String(r.Ano||'--')}-${String(r.Mes||'--').padStart(2,'0')}`;
+        if (!map[k]) map[k] = { label: `${fmtMes(r.Mes)}/${r.Ano}`, _key: k, total: 0, qtde: 0 };
+        map[k].total += r.Valor; map[k].qtde++;
+      });
+      return Object.values(map).sort((a,b)=>b.total-a.total);
+    })();
+    _fill('tabMes', mesRows,
+      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)],
+      row=>`Período: ${row.label}`);
 
     _fill('tabTipo', agg(r=>r.Tipo||'--'),
-      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)]);
+      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)],
+      row=>`Tipo: ${row.label}`);
 
     _fill('tabDespesa', agg(r=>r.Despesa||'--'),
-      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)]);
+      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)],
+      row=>`Despesa: ${row.label}`);
 
     const localRows = agg(r=>r.Sigla||'--', (r,k)=>k).map(r=>({...r,nome:sl(r.label)}));
     _fill('tabLocal', localRows,
-      row=>[row.label, row.nome, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)]);
+      row=>[row.label, row.nome, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)],
+      row=>`${row.label} — ${row.nome||''}`);
   }
 
-  function _fill(tableId, rows, cellFn) {
+  // ── Banner Flutuante de Resumo ────────────────────────────────────────────
+
+  let _bannerEl = null;
+  let _bannerTimer = null;
+
+  function _getBanner() {
+    if (!_bannerEl) {
+      _bannerEl = document.createElement('div');
+      _bannerEl.className = 'resumo-float-banner';
+      _bannerEl.setAttribute('role', 'tooltip');
+      _bannerEl.setAttribute('aria-live', 'polite');
+      _bannerEl.innerHTML = `
+        <button class="resumo-float-close" aria-label="Fechar">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <div class="resumo-float-body"></div>`;
+      _bannerEl.querySelector('.resumo-float-close').addEventListener('click', _hideBanner);
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') _hideBanner(); });
+      document.addEventListener('click', e => {
+        if (_bannerEl && !_bannerEl.contains(e.target) && !e.target.closest('.resumo-table tr')) _hideBanner();
+      }, true);
+      document.body.appendChild(_bannerEl);
+    }
+    return _bannerEl;
+  }
+
+  function _hideBanner() {
+    if (_bannerTimer) { clearTimeout(_bannerTimer); _bannerTimer = null; }
+    if (_bannerEl) { _bannerEl.classList.remove('visible'); }
+  }
+
+  function _showBanner(tr, title, items) {
+    const banner = _getBanner();
+    const body = banner.querySelector('.resumo-float-body');
+
+    const rows = items.map(({ label, value, accent }) =>
+      `<div class="resumo-float-row${accent ? ' accent' : ''}">
+        <span class="resumo-float-label">${label}</span>
+        <span class="resumo-float-value">${value}</span>
+      </div>`
+    ).join('');
+
+    body.innerHTML = `<div class="resumo-float-title">${title}</div>${rows}`;
+
+    // Posicionar relativo ao tr clicado
+    const rect = tr.getBoundingClientRect();
+    const scrollY = window.scrollY || document.documentElement.scrollTop;
+    const scrollX = window.scrollX || document.documentElement.scrollLeft;
+
+    banner.style.visibility = 'hidden';
+    banner.style.display = 'block';
+    banner.classList.remove('visible');
+
+    // Calcular posição após render
+    requestAnimationFrame(() => {
+      const bw = banner.offsetWidth;
+      const bh = banner.offsetHeight;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      let top = rect.bottom + scrollY + 6;
+      let left = rect.left + scrollX + rect.width / 2 - bw / 2;
+
+      // Não sair da tela
+      if (left + bw > scrollX + vw - 12) left = scrollX + vw - bw - 12;
+      if (left < scrollX + 12) left = scrollX + 12;
+      if (rect.bottom + bh + 6 > vh) top = rect.top + scrollY - bh - 6;
+
+      banner.style.top = `${top}px`;
+      banner.style.left = `${left}px`;
+      banner.style.visibility = '';
+      banner.classList.add('visible');
+    });
+
+    if (_bannerTimer) clearTimeout(_bannerTimer);
+    _bannerTimer = setTimeout(_hideBanner, 8000);
+  }
+
+  function _fill(tableId, rows, cellFn, bannerTitleFn) {
     const tbl = document.getElementById(tableId);
     if (!tbl) return;
     const tbody = tbl.querySelector('tbody');
@@ -218,17 +310,64 @@ const Tables = (() => {
       return;
     }
 
+    const data = State.getFilteredData();
+
     const frag = document.createDocumentFragment();
-    rows.forEach(row=>{
+    rows.forEach(row => {
       const tr = document.createElement('tr');
+      tr.className = 'resumo-row-clickable';
       const cells = cellFn(row);
       tr.innerHTML = cells.map((c,i)=>`<td class="${i>0?'tr':''}">${c}</td>`).join('');
+
+      tr.addEventListener('click', () => {
+        // Filtrar registros relacionados a esta linha
+        const rowData = _getRowRecords(tableId, row, data);
+        const titleStr = bannerTitleFn ? bannerTitleFn(row) : (row.label || row.nome || '');
+
+        // Calcular métricas dos registros filtrados
+        const total = rowData.reduce((s, r) => s + (r.Valor || 0), 0);
+        const qtde  = rowData.length;
+
+        // Distribuição por despesa
+        const porDespesa = {};
+        const porTipo = {};
+        rowData.forEach(r => {
+          const d = r.Despesa || 'Sem tipo';
+          const t = r.Tipo    || 'Sem tipo';
+          porDespesa[d] = (porDespesa[d] || 0) + r.Valor;
+          porTipo[t]    = (porTipo[t]    || 0) + r.Valor;
+        });
+
+        const items = [
+          { label: 'Registros', value: qtde.toLocaleString('pt-BR') },
+          { label: 'Total',     value: fmtBRL(total), accent: true },
+        ];
+
+        // Adicionar despesa breakdown se mais de 1 categoria
+        const despKeys = Object.keys(porDespesa);
+        if (despKeys.length > 1) {
+          despKeys.sort((a,b) => porDespesa[b]-porDespesa[a]).forEach(k => {
+            items.push({ label: k, value: fmtBRL(porDespesa[k]) });
+          });
+        }
+
+        // Tipo breakdown se mais de 1
+        const tipoKeys = Object.keys(porTipo);
+        if (tipoKeys.length > 1) {
+          tipoKeys.sort((a,b) => porTipo[b]-porTipo[a]).forEach(k => {
+            items.push({ label: k, value: fmtBRL(porTipo[k]) });
+          });
+        }
+
+        _showBanner(tr, titleStr, items);
+      });
+
       frag.appendChild(tr);
     });
 
     // Linha de total
     const totRow = document.createElement('tr');
-    totRow.className='resumo-total-row';
+    totRow.className = 'resumo-total-row';
     const totalAmt = rows.reduce((s,r)=>s+r.total,0);
     const totalQtd = rows.reduce((s,r)=>s+r.qtde,0);
     const totCells = cellFn({label:'TOTAL',nome:'',qtde:totalQtd,total:totalAmt});
@@ -237,6 +376,30 @@ const Tables = (() => {
 
     tbody.innerHTML='';
     tbody.appendChild(frag);
+  }
+
+  // Retorna os registros filtrados correspondentes à linha clicada
+  function _getRowRecords(tableId, row, data) {
+    switch (tableId) {
+      case 'tabClassificacao':
+        return data.filter(r => (r.Classificacao||'--') === row.label);
+      case 'tabMes': {
+        // row.label é "Janeiro/2025" etc; row.key é "2025-01"
+        // Usamos o key diretamente
+        const key = row._key;
+        return key
+          ? data.filter(r => `${String(r.Ano||'--')}-${String(r.Mes||'--').padStart(2,'0')}` === key)
+          : [];
+      }
+      case 'tabTipo':
+        return data.filter(r => (r.Tipo||'--') === row.label);
+      case 'tabDespesa':
+        return data.filter(r => (r.Despesa||'--') === row.label);
+      case 'tabLocal':
+        return data.filter(r => (r.Sigla||'--') === row.label);
+      default:
+        return [];
+    }
   }
 
   // ── Export CSV ────────────────────────────────────────────────────────────
