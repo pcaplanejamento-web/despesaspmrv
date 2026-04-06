@@ -425,7 +425,7 @@ const App = (() => {
       if (typeof Exportacao !== 'undefined') Exportacao.exportarXLSX();
     });
     document.getElementById('btnGerarPDF')?.addEventListener('click', () => {
-      if (typeof Exportacao !== 'undefined') Exportacao.gerarPDF();
+      if (typeof Exportacao !== 'undefined') Exportacao.abrirConfiguradorPDF();
     });
     document.getElementById('btnCopiarLink')?.addEventListener('click', () => {
       if (typeof UrlHash !== 'undefined') UrlHash.copiarLink();
