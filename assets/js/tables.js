@@ -190,116 +190,24 @@ const Tables = (() => {
     }
 
     _fill('tabClassificacao', agg(r=>r.Classificacao||'--'),
-      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)],
-      row=>`Classificação: ${row.label}`);
+      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)]);
 
-    // tabMes: precisamos guardar a key original ("2025-01") para o lookup
-    const mesRows = (() => {
-      const map = {};
-      data.forEach(r => {
-        const k = `${String(r.Ano||'--')}-${String(r.Mes||'--').padStart(2,'0')}`;
-        if (!map[k]) map[k] = { label: `${fmtMes(r.Mes)}/${r.Ano}`, _key: k, total: 0, qtde: 0 };
-        map[k].total += r.Valor; map[k].qtde++;
-      });
-      return Object.values(map).sort((a,b)=>b.total-a.total);
-    })();
-    _fill('tabMes', mesRows,
-      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)],
-      row=>`Período: ${row.label}`);
+    _fill('tabMes', agg(r=>`${String(r.Ano||'--')}-${String(r.Mes||'--').padStart(2,'0')}`,
+      r=>`${fmtMes(r.Mes)}/${r.Ano}`),
+      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)]);
 
     _fill('tabTipo', agg(r=>r.Tipo||'--'),
-      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)],
-      row=>`Tipo: ${row.label}`);
+      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)]);
 
     _fill('tabDespesa', agg(r=>r.Despesa||'--'),
-      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)],
-      row=>`Despesa: ${row.label}`);
+      row=>[row.label, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)]);
 
     const localRows = agg(r=>r.Sigla||'--', (r,k)=>k).map(r=>({...r,nome:sl(r.label)}));
     _fill('tabLocal', localRows,
-      row=>[row.label, row.nome, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)],
-      row=>`${row.label} — ${row.nome||''}`);
+      row=>[row.label, row.nome, row.qtde.toLocaleString('pt-BR'), fmtBRL(row.total)]);
   }
 
-  // ── Banner Flutuante de Resumo ────────────────────────────────────────────
-
-  let _bannerEl = null;
-  let _bannerTimer = null;
-
-  function _getBanner() {
-    if (!_bannerEl) {
-      _bannerEl = document.createElement('div');
-      _bannerEl.className = 'resumo-float-banner';
-      _bannerEl.setAttribute('role', 'tooltip');
-      _bannerEl.setAttribute('aria-live', 'polite');
-      _bannerEl.innerHTML = `
-        <button class="resumo-float-close" aria-label="Fechar">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-        <div class="resumo-float-body"></div>`;
-      _bannerEl.querySelector('.resumo-float-close').addEventListener('click', _hideBanner);
-      document.addEventListener('keydown', e => { if (e.key === 'Escape') _hideBanner(); });
-      document.addEventListener('click', e => {
-        if (_bannerEl && !_bannerEl.contains(e.target) && !e.target.closest('.resumo-table tr')) _hideBanner();
-      }, true);
-      document.body.appendChild(_bannerEl);
-    }
-    return _bannerEl;
-  }
-
-  function _hideBanner() {
-    if (_bannerTimer) { clearTimeout(_bannerTimer); _bannerTimer = null; }
-    if (_bannerEl) { _bannerEl.classList.remove('visible'); }
-  }
-
-  function _showBanner(tr, title, items) {
-    const banner = _getBanner();
-    const body = banner.querySelector('.resumo-float-body');
-
-    const rows = items.map(({ label, value, accent }) =>
-      `<div class="resumo-float-row${accent ? ' accent' : ''}">
-        <span class="resumo-float-label">${label}</span>
-        <span class="resumo-float-value">${value}</span>
-      </div>`
-    ).join('');
-
-    body.innerHTML = `<div class="resumo-float-title">${title}</div>${rows}`;
-
-    // Posicionar relativo ao tr clicado
-    const rect = tr.getBoundingClientRect();
-    const scrollY = window.scrollY || document.documentElement.scrollTop;
-    const scrollX = window.scrollX || document.documentElement.scrollLeft;
-
-    banner.style.visibility = 'hidden';
-    banner.style.display = 'block';
-    banner.classList.remove('visible');
-
-    // Calcular posição após render
-    requestAnimationFrame(() => {
-      const bw = banner.offsetWidth;
-      const bh = banner.offsetHeight;
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-
-      let top = rect.bottom + scrollY + 6;
-      let left = rect.left + scrollX + rect.width / 2 - bw / 2;
-
-      // Não sair da tela
-      if (left + bw > scrollX + vw - 12) left = scrollX + vw - bw - 12;
-      if (left < scrollX + 12) left = scrollX + 12;
-      if (rect.bottom + bh + 6 > vh) top = rect.top + scrollY - bh - 6;
-
-      banner.style.top = `${top}px`;
-      banner.style.left = `${left}px`;
-      banner.style.visibility = '';
-      banner.classList.add('visible');
-    });
-
-    if (_bannerTimer) clearTimeout(_bannerTimer);
-    _bannerTimer = setTimeout(_hideBanner, 8000);
-  }
-
-  function _fill(tableId, rows, cellFn, bannerTitleFn) {
+  function _fill(tableId, rows, cellFn) {
     const tbl = document.getElementById(tableId);
     if (!tbl) return;
     const tbody = tbl.querySelector('tbody');
@@ -310,64 +218,24 @@ const Tables = (() => {
       return;
     }
 
-    const data = State.getFilteredData();
+    const resumoKey = tbl.dataset.resumo || null;
 
     const frag = document.createDocumentFragment();
-    rows.forEach(row => {
+    rows.forEach(row=>{
       const tr = document.createElement('tr');
       tr.className = 'resumo-row-clickable';
+      if (resumoKey) tr.dataset.key = row.label;
       const cells = cellFn(row);
       tr.innerHTML = cells.map((c,i)=>`<td class="${i>0?'tr':''}">${c}</td>`).join('');
-
-      tr.addEventListener('click', () => {
-        // Filtrar registros relacionados a esta linha
-        const rowData = _getRowRecords(tableId, row, data);
-        const titleStr = bannerTitleFn ? bannerTitleFn(row) : (row.label || row.nome || '');
-
-        // Calcular métricas dos registros filtrados
-        const total = rowData.reduce((s, r) => s + (r.Valor || 0), 0);
-        const qtde  = rowData.length;
-
-        // Distribuição por despesa
-        const porDespesa = {};
-        const porTipo = {};
-        rowData.forEach(r => {
-          const d = r.Despesa || 'Sem tipo';
-          const t = r.Tipo    || 'Sem tipo';
-          porDespesa[d] = (porDespesa[d] || 0) + r.Valor;
-          porTipo[t]    = (porTipo[t]    || 0) + r.Valor;
-        });
-
-        const items = [
-          { label: 'Registros', value: qtde.toLocaleString('pt-BR') },
-          { label: 'Total',     value: fmtBRL(total), accent: true },
-        ];
-
-        // Adicionar despesa breakdown se mais de 1 categoria
-        const despKeys = Object.keys(porDespesa);
-        if (despKeys.length > 1) {
-          despKeys.sort((a,b) => porDespesa[b]-porDespesa[a]).forEach(k => {
-            items.push({ label: k, value: fmtBRL(porDespesa[k]) });
-          });
-        }
-
-        // Tipo breakdown se mais de 1
-        const tipoKeys = Object.keys(porTipo);
-        if (tipoKeys.length > 1) {
-          tipoKeys.sort((a,b) => porTipo[b]-porTipo[a]).forEach(k => {
-            items.push({ label: k, value: fmtBRL(porTipo[k]) });
-          });
-        }
-
-        _showBanner(tr, titleStr, items);
-      });
-
+      if (resumoKey) {
+        tr.addEventListener('click', () => ResumoPainel.open(resumoKey, row.label));
+      }
       frag.appendChild(tr);
     });
 
-    // Linha de total
+    // Linha de total — não é clicável
     const totRow = document.createElement('tr');
-    totRow.className = 'resumo-total-row';
+    totRow.className='resumo-total-row';
     const totalAmt = rows.reduce((s,r)=>s+r.total,0);
     const totalQtd = rows.reduce((s,r)=>s+r.qtde,0);
     const totCells = cellFn({label:'TOTAL',nome:'',qtde:totalQtd,total:totalAmt});
@@ -376,30 +244,6 @@ const Tables = (() => {
 
     tbody.innerHTML='';
     tbody.appendChild(frag);
-  }
-
-  // Retorna os registros filtrados correspondentes à linha clicada
-  function _getRowRecords(tableId, row, data) {
-    switch (tableId) {
-      case 'tabClassificacao':
-        return data.filter(r => (r.Classificacao||'--') === row.label);
-      case 'tabMes': {
-        // row.label é "Janeiro/2025" etc; row.key é "2025-01"
-        // Usamos o key diretamente
-        const key = row._key;
-        return key
-          ? data.filter(r => `${String(r.Ano||'--')}-${String(r.Mes||'--').padStart(2,'0')}` === key)
-          : [];
-      }
-      case 'tabTipo':
-        return data.filter(r => (r.Tipo||'--') === row.label);
-      case 'tabDespesa':
-        return data.filter(r => (r.Despesa||'--') === row.label);
-      case 'tabLocal':
-        return data.filter(r => (r.Sigla||'--') === row.label);
-      default:
-        return [];
-    }
   }
 
   // ── Export CSV ────────────────────────────────────────────────────────────
@@ -439,4 +283,188 @@ const Tables = (() => {
   }
 
   return { renderTable, renderSummaryTables, bindEvents, exportCSV };
+})();
+
+// ── ResumoPainel — Painel flutuante de detalhes por linha de tabela resumo ──
+const ResumoPainel = (() => {
+
+  const LABELS = {
+    Classificacao: 'Classificação',
+    Mes:           'Período',
+    Tipo:          'Tipo de Frota',
+    Despesa:       'Tipo de Despesa',
+    Sigla:         'Secretaria / Local',
+  };
+
+  function fmtBRL(v) {
+    if (v === undefined || v === null || v === '') return '--';
+    return Number(v).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+  }
+  function fmtMes(m) { return CONFIG.MESES[m] || String(m||'--'); }
+
+  function _el(id) { return document.getElementById(id); }
+
+  function _buildKpis(records) {
+    const total   = records.reduce((s,r)=>s+r.Valor,0);
+    const qtde    = records.length;
+    const placas  = new Set(records.map(r=>r.Placa).filter(Boolean)).size;
+    const comb    = records.filter(r=>(r.Despesa||'').toLowerCase().startsWith('comb')).reduce((s,r)=>s+r.Valor,0);
+    const manut   = records.filter(r=>(r.Despesa||'').toLowerCase().startsWith('manut')).reduce((s,r)=>s+r.Valor,0);
+
+    return `
+      <div class="rp-kpi-grid">
+        <div class="rp-kpi">
+          <span class="rp-kpi-label">Total de Despesa</span>
+          <span class="rp-kpi-val">${fmtBRL(total)}</span>
+        </div>
+        <div class="rp-kpi">
+          <span class="rp-kpi-label">Registros</span>
+          <span class="rp-kpi-val">${qtde.toLocaleString('pt-BR')}</span>
+        </div>
+        <div class="rp-kpi">
+          <span class="rp-kpi-label">Veículos / Máquinas</span>
+          <span class="rp-kpi-val">${placas}</span>
+        </div>
+        ${comb>0?`<div class="rp-kpi"><span class="rp-kpi-label">Combustível</span><span class="rp-kpi-val rp-kpi-comb">${fmtBRL(comb)}</span></div>`:''}
+        ${manut>0?`<div class="rp-kpi"><span class="rp-kpi-label">Manutenção</span><span class="rp-kpi-val rp-kpi-manut">${fmtBRL(manut)}</span></div>`:''}
+      </div>`;
+  }
+
+  function _buildTable(records) {
+    // Agrupa por placa → lista ordenada por total desc
+    const map = {};
+    records.forEach(r => {
+      const placa = r.Placa || '--';
+      if (!map[placa]) map[placa] = { placa, modelo: r.Modelo||'--', tipo: r.Tipo||'--', departamento: r.Departamento||'--', total: 0, qtde: 0, despesas: [] };
+      map[placa].total += r.Valor;
+      map[placa].qtde++;
+      map[placa].despesas.push(r);
+    });
+
+    const sorted = Object.values(map).sort((a,b)=>b.total-a.total);
+    if (!sorted.length) return '<p class="rp-vazio">Sem registros encontrados.</p>';
+
+    const rows = sorted.map(v => {
+      const isMaq = (v.tipo||'').toLowerCase().startsWith('m');
+      const badge = isMaq
+        ? `<span class="badge badge-maquina">Máquina</span>`
+        : `<span class="badge badge-veiculo">Veículo</span>`;
+
+      // Sub-linhas de despesa por mês
+      const subRows = v.despesas.sort((a,b)=>{
+        if (a.Ano !== b.Ano) return (a.Ano||0)-(b.Ano||0);
+        return (a.Mes||0)-(b.Mes||0);
+      }).map(d => `
+        <tr class="rp-sub-row">
+          <td class="rp-sub-mes">${fmtMes(d.Mes)}/${d.Ano||'--'}</td>
+          <td>${d.Despesa||'--'}</td>
+          <td class="tr rp-sub-val">${fmtBRL(d.Valor)}</td>
+          <td>${d.Departamento||'--'}</td>
+        </tr>`).join('');
+
+      return `
+        <tr class="rp-veiculo-row" data-id="${v.placa}">
+          <td class="rp-placa-cell"><span class="rp-placa">${v.placa}</span></td>
+          <td>${v.modelo}</td>
+          <td>${badge}</td>
+          <td class="tr fw-700">${fmtBRL(v.total)}</td>
+          <td class="tr">${v.qtde}</td>
+          <td class="rp-toggle-cell"><button class="rp-expand-btn" aria-expanded="false" title="Ver detalhes">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button></td>
+        </tr>
+        <tr class="rp-sub-wrap" hidden>
+          <td colspan="6" class="rp-sub-td">
+            <table class="rp-sub-table">
+              <thead><tr><th>Mês/Ano</th><th>Tipo Despesa</th><th class="tr">Valor</th><th>Departamento</th></tr></thead>
+              <tbody>${subRows}</tbody>
+            </table>
+          </td>
+        </tr>`;
+    }).join('');
+
+    return `
+      <table class="rp-table">
+        <thead>
+          <tr>
+            <th>Placa / ID</th>
+            <th>Modelo</th>
+            <th>Tipo</th>
+            <th class="tr">Total</th>
+            <th class="tr">Qtde</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function _bindExpand(container) {
+    container.querySelectorAll('.rp-veiculo-row').forEach(row => {
+      const btn = row.querySelector('.rp-expand-btn');
+      const subWrap = row.nextElementSibling;
+      if (!btn || !subWrap) return;
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const open = subWrap.hidden;
+        subWrap.hidden = !open;
+        btn.setAttribute('aria-expanded', open);
+        btn.style.transform = open ? 'rotate(180deg)' : '';
+      });
+    });
+  }
+
+  function open(field, value) {
+    const data = State.getFilteredData();
+
+    // Filter records matching the clicked row
+    let records;
+    if (field === 'Mes') {
+      // value is "Janeiro/2025" format — match by label reconstruction
+      records = data.filter(r => {
+        const label = `${fmtMes(r.Mes)}/${r.Ano}`;
+        return label === value;
+      });
+    } else {
+      records = data.filter(r => (r[field]||'--') === value);
+    }
+
+    // If total row clicked — no records match "TOTAL"
+    if (!records.length) return;
+
+    const catLabel = LABELS[field] || field;
+
+    // Populate header
+    _el('resumoPainelBadge').textContent = catLabel;
+    _el('resumoPainelTitulo').textContent = value;
+    _el('resumoPainelSub').textContent = `${records.length.toLocaleString('pt-BR')} registro${records.length!==1?'s':''}`;
+
+    // KPIs
+    _el('resumoPainelKpis').innerHTML = _buildKpis(records);
+
+    // Table
+    const bodyEl = _el('resumoPainelBody');
+    bodyEl.innerHTML = _buildTable(records);
+    _bindExpand(bodyEl);
+
+    // Show
+    const painel = _el('resumoPainel');
+    painel.hidden = false;
+    requestAnimationFrame(() => painel.classList.add('rp-open'));
+    document.body.style.overflow = 'hidden';
+  }
+
+  function close() {
+    const painel = _el('resumoPainel');
+    painel.classList.remove('rp-open');
+    setTimeout(() => { painel.hidden = true; document.body.style.overflow = ''; }, 260);
+  }
+
+  function init() {
+    _el('resumoPainelClose')?.addEventListener('click', close);
+    _el('resumoPainelBackdrop')?.addEventListener('click', close);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  }
+
+  return { open, close, init };
 })();

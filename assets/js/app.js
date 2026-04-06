@@ -398,6 +398,7 @@ const App = (() => {
     syncHeaderHeight();
     Filters.bindEvents();
     Tables.bindEvents();
+    if (typeof ResumoPainel !== 'undefined') ResumoPainel.init();
     initKpiClicks();
     initChartControls();
     _initFerramentas();
