@@ -1,7 +1,8 @@
 /**
- * tables.js — v3.0
- * Tabelas resumo: todas as linhas, sem paginação.
- * Registros Detalhados: click = modal, col-filters, busca global.
+ * tables.js — v4.0
+ * Tabelas resumo + Registros Detalhados.
+ * ResumoPainel: banner flutuante lateral ao clicar em linha de resumo.
+ * Veículo clicável: abre modal de Registro de Despesa com histórico.
  */
 const Tables = (() => {
 
@@ -173,7 +174,7 @@ const Tables = (() => {
     });
   }
 
-  // ── Tabelas Resumo — SEM paginação ────────────────────────────────────────
+  // ── Tabelas Resumo ────────────────────────────────────────────────────────
 
   function renderSummaryTables() {
     const data = State.getFilteredData();
@@ -212,30 +213,29 @@ const Tables = (() => {
     if (!tbl) return;
     const tbody = tbl.querySelector('tbody');
     if (!tbody) return;
+    const resumoKey = tbl.dataset.resumo || null;
 
     if (!rows.length) {
       tbody.innerHTML=`<tr><td colspan="4" class="resumo-empty">Sem dados</td></tr>`;
       return;
     }
 
-    const resumoKey = tbl.dataset.resumo || null;
-
     const frag = document.createDocumentFragment();
-    rows.forEach(row=>{
+    rows.forEach(row => {
       const tr = document.createElement('tr');
-      tr.className = 'resumo-row-clickable';
-      if (resumoKey) tr.dataset.key = row.label;
+      tr.className = 'resumo-row-link';
       const cells = cellFn(row);
       tr.innerHTML = cells.map((c,i)=>`<td class="${i>0?'tr':''}">${c}</td>`).join('');
       if (resumoKey) {
+        tr.title = 'Clique para ver as despesas deste grupo';
         tr.addEventListener('click', () => ResumoPainel.open(resumoKey, row.label));
       }
       frag.appendChild(tr);
     });
 
-    // Linha de total — não é clicável
+    // Linha de total — não clicável
     const totRow = document.createElement('tr');
-    totRow.className='resumo-total-row';
+    totRow.className = 'resumo-total-row';
     const totalAmt = rows.reduce((s,r)=>s+r.total,0);
     const totalQtd = rows.reduce((s,r)=>s+r.qtde,0);
     const totCells = cellFn({label:'TOTAL',nome:'',qtde:totalQtd,total:totalAmt});
@@ -285,185 +285,256 @@ const Tables = (() => {
   return { renderTable, renderSummaryTables, bindEvents, exportCSV };
 })();
 
-// ── ResumoPainel — Painel flutuante de detalhes por linha de tabela resumo ──
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ResumoPainel — Painel lateral flutuante (clique em linha de tabela resumo)
+// ═══════════════════════════════════════════════════════════════════════════
 const ResumoPainel = (() => {
 
-  const LABELS = {
+  const LABEL_MAP = {
     Classificacao: 'Classificação',
     Mes:           'Período',
     Tipo:          'Tipo de Frota',
     Despesa:       'Tipo de Despesa',
-    Sigla:         'Secretaria / Local',
+    Sigla:         'Secretaria',
   };
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
   function fmtBRL(v) {
-    if (v === undefined || v === null || v === '') return '--';
-    return Number(v).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+    return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
   }
   function fmtMes(m) { return CONFIG.MESES[m] || String(m||'--'); }
+  function sl(sigla) {
+    return typeof Filters !== 'undefined' ? Filters.siglaLabel(sigla||'') : (sigla||'--');
+  }
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function $id(id) { return document.getElementById(id); }
 
-  function _el(id) { return document.getElementById(id); }
+  // SVG icons inline (sem dependência de biblioteca externa)
+  const SVG = {
+    money:  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+    list:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
+    car:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`,
+    fuel:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 22V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><path d="M17 11h2a2 2 0 0 1 2 2v5a2 2 0 0 0 2 2 2 2 0 0 0 2-2V7l-3-3"/><line x1="3" y1="22" x2="13" y2="22"/><line x1="8" y1="6" x2="8" y2="10"/></svg>`,
+    wrench: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
+    history:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.4"/></svg>`,
+    org:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+    chevD:  `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>`,
+    close:  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+    ext:    `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
+  };
 
-  function _buildKpis(records) {
-    const total   = records.reduce((s,r)=>s+r.Valor,0);
-    const qtde    = records.length;
-    const placas  = new Set(records.map(r=>r.Placa).filter(Boolean)).size;
-    const comb    = records.filter(r=>(r.Despesa||'').toLowerCase().startsWith('comb')).reduce((s,r)=>s+r.Valor,0);
-    const manut   = records.filter(r=>(r.Despesa||'').toLowerCase().startsWith('manut')).reduce((s,r)=>s+r.Valor,0);
+  // ── Filtrar registros pelo campo/valor clicado ────────────────────────────
 
-    return `
-      <div class="rp-kpi-grid">
-        <div class="rp-kpi">
-          <span class="rp-kpi-label">Total de Despesa</span>
-          <span class="rp-kpi-val">${fmtBRL(total)}</span>
-        </div>
-        <div class="rp-kpi">
-          <span class="rp-kpi-label">Registros</span>
-          <span class="rp-kpi-val">${qtde.toLocaleString('pt-BR')}</span>
-        </div>
-        <div class="rp-kpi">
-          <span class="rp-kpi-label">Veículos / Máquinas</span>
-          <span class="rp-kpi-val">${placas}</span>
-        </div>
-        ${comb>0?`<div class="rp-kpi"><span class="rp-kpi-label">Combustível</span><span class="rp-kpi-val rp-kpi-comb">${fmtBRL(comb)}</span></div>`:''}
-        ${manut>0?`<div class="rp-kpi"><span class="rp-kpi-label">Manutenção</span><span class="rp-kpi-val rp-kpi-manut">${fmtBRL(manut)}</span></div>`:''}
-      </div>`;
+  function _filterRecords(field, value) {
+    const data = State.getFilteredData();
+    if (field === 'Mes') {
+      return data.filter(r => `${fmtMes(r.Mes)}/${r.Ano}` === value);
+    }
+    return data.filter(r => (r[field] || '--') === value);
   }
 
-  function _buildTable(records) {
-    // Agrupa por placa → lista ordenada por total desc
+  // ── Construir KPI strip ───────────────────────────────────────────────────
+
+  function _buildKpis(records) {
+    const total  = records.reduce((s,r)=>s+r.Valor, 0);
+    const qtde   = records.length;
+    const placas = new Set(records.map(r=>r.Placa).filter(Boolean)).size;
+    const comb   = records.filter(r=>(r.Despesa||'').toLowerCase().startsWith('comb')).reduce((s,r)=>s+r.Valor,0);
+    const manut  = records.filter(r=>(r.Despesa||'').toLowerCase().startsWith('manut')).reduce((s,r)=>s+r.Valor,0);
+
+    const kpis = [
+      { icon: SVG.money,  label: 'Total',            val: fmtBRL(total),                    accent: true },
+      { icon: SVG.list,   label: 'Registros',         val: qtde.toLocaleString('pt-BR'),     accent: false },
+      { icon: SVG.car,    label: 'Veículos/Máquinas', val: placas.toString(),                accent: false },
+    ];
+    if (comb > 0)  kpis.push({ icon: SVG.fuel,   label: 'Combustível', val: fmtBRL(comb),  color: '#0891b2' });
+    if (manut > 0) kpis.push({ icon: SVG.wrench, label: 'Manutenção',  val: fmtBRL(manut), color: '#d97706' });
+
+    return `<div class="rp-kpi-grid">${kpis.map(k=>`
+      <div class="rp-kpi">
+        <span class="rp-kpi-icon">${k.icon}</span>
+        <div class="rp-kpi-info">
+          <span class="rp-kpi-label">${esc(k.label)}</span>
+          <span class="rp-kpi-val${k.accent?' rp-kpi-accent':''}${k.color?'" style="color:'+k.color+'"':'"'}">${esc(k.val)}</span>
+        </div>
+      </div>`).join('')}</div>`;
+  }
+
+  // ── Construir tabela de veículos ──────────────────────────────────────────
+
+  function _buildVeiculoTable(records) {
+    // Agrupar por placa
     const map = {};
     records.forEach(r => {
       const placa = r.Placa || '--';
-      if (!map[placa]) map[placa] = { placa, modelo: r.Modelo||'--', tipo: r.Tipo||'--', departamento: r.Departamento||'--', total: 0, qtde: 0, despesas: [] };
+      if (!map[placa]) {
+        map[placa] = {
+          placa,
+          modelo:      r.Modelo || '--',
+          tipo:        r.Tipo   || '--',
+          total: 0,
+          qtde:  0,
+          entries: [],
+          siglas: new Set(),
+          depts:  new Set(),
+        };
+      }
       map[placa].total += r.Valor;
       map[placa].qtde++;
-      map[placa].despesas.push(r);
+      map[placa].entries.push(r);
+      if (r.Sigla) map[placa].siglas.add(r.Sigla);
+      if (r.Departamento) map[placa].depts.add(r.Departamento);
     });
 
     const sorted = Object.values(map).sort((a,b)=>b.total-a.total);
-    if (!sorted.length) return '<p class="rp-vazio">Sem registros encontrados.</p>';
+    if (!sorted.length) return `<p class="rp-vazio">Sem registros para esta seleção.</p>`;
 
-    const rows = sorted.map(v => {
+    return sorted.map((v,vi) => {
       const isMaq = (v.tipo||'').toLowerCase().startsWith('m');
       const badge = isMaq
         ? `<span class="badge badge-maquina">Máquina</span>`
         : `<span class="badge badge-veiculo">Veículo</span>`;
 
-      // Sub-linhas de despesa por mês
-      const subRows = v.despesas.sort((a,b)=>{
-        if (a.Ano !== b.Ano) return (a.Ano||0)-(b.Ano||0);
-        return (a.Mes||0)-(b.Mes||0);
-      }).map(d => `
-        <tr class="rp-sub-row">
-          <td class="rp-sub-mes">${fmtMes(d.Mes)}/${d.Ano||'--'}</td>
-          <td>${d.Despesa||'--'}</td>
-          <td class="tr rp-sub-val">${fmtBRL(d.Valor)}</td>
-          <td>${d.Departamento||'--'}</td>
-        </tr>`).join('');
+      // Siglas que passou
+      const siglasPills = [...v.siglas].map(s=>
+        `<span class="rp-tag">${esc(s)}</span>`
+      ).join('');
 
-      return `
-        <tr class="rp-veiculo-row" data-id="${v.placa}">
-          <td class="rp-placa-cell"><span class="rp-placa">${v.placa}</span></td>
-          <td>${v.modelo}</td>
-          <td>${badge}</td>
-          <td class="tr fw-700">${fmtBRL(v.total)}</td>
-          <td class="tr">${v.qtde}</td>
-          <td class="rp-toggle-cell"><button class="rp-expand-btn" aria-expanded="false" title="Ver detalhes">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-          </button></td>
-        </tr>
-        <tr class="rp-sub-wrap" hidden>
-          <td colspan="6" class="rp-sub-td">
-            <table class="rp-sub-table">
-              <thead><tr><th>Mês/Ano</th><th>Tipo Despesa</th><th class="tr">Valor</th><th>Departamento</th></tr></thead>
-              <tbody>${subRows}</tbody>
-            </table>
-          </td>
+      // Histórico de despesas ordenado por data
+      const hist = [...v.entries].sort((a,b)=>{
+        const ka = `${a.Ano||0}-${String(a.Mes||0).padStart(2,'0')}`;
+        const kb = `${b.Ano||0}-${String(b.Mes||0).padStart(2,'0')}`;
+        return ka < kb ? -1 : ka > kb ? 1 : 0;
+      });
+
+      const histRows = hist.map(d => {
+        const isComb = (d.Despesa||'').toLowerCase().startsWith('comb');
+        return `<tr>
+          <td><span class="rp-mes-chip">${fmtMes(d.Mes).substring(0,3)}/${String(d.Ano||'').slice(2)}</span></td>
+          <td>${isComb
+            ? `<span class="badge badge-combustivel">${esc(d.Despesa||'--')}</span>`
+            : `<span class="badge badge-manutencao">${esc(d.Despesa||'--')}</span>`}</td>
+          <td class="tr rp-val-cell">${fmtBRL(d.Valor)}</td>
+          <td class="rp-depto-cell" title="${esc(d.Departamento||'')}">${esc(d.Departamento||'--')}</td>
+          <td class="rp-sigla-cell">${esc(d.Sigla||'--')}</td>
         </tr>`;
-    }).join('');
+      }).join('');
 
-    return `
-      <table class="rp-table">
-        <thead>
-          <tr>
-            <th>Placa / ID</th>
-            <th>Modelo</th>
-            <th>Tipo</th>
-            <th class="tr">Total</th>
-            <th class="tr">Qtde</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>`;
+      const uid = `rpvei-${vi}`;
+      return `
+        <div class="rp-veiculo-card" id="${uid}">
+          <div class="rp-veiculo-header" data-target="${uid}">
+            <div class="rp-veiculo-left">
+              <span class="rp-placa">${esc(v.placa)}</span>
+              <span class="rp-modelo" title="${esc(v.modelo)}">${esc(v.modelo)}</span>
+              ${badge}
+            </div>
+            <div class="rp-veiculo-right">
+              <span class="rp-veiculo-total">${fmtBRL(v.total)}</span>
+              <span class="rp-veiculo-qtde">${v.qtde} reg.</span>
+              <button class="rp-expand-btn" aria-expanded="false" aria-controls="${uid}-body" title="Expandir histórico">
+                <span class="rp-expand-icon">${SVG.chevD}</span>
+              </button>
+            </div>
+          </div>
+          <div class="rp-veiculo-body" id="${uid}-body" hidden>
+            <div class="rp-veiculo-siglas">
+              <span class="rp-section-label">${SVG.org} Secretarias:</span>
+              <div class="rp-tags-wrap">${siglasPills || '<span class="rp-tag-none">--</span>'}</div>
+            </div>
+            <div class="rp-hist-wrap">
+              <span class="rp-section-label">${SVG.history} Histórico de despesas:</span>
+              <div class="rp-hist-scroll">
+                <table class="rp-hist-table">
+                  <thead><tr><th>Período</th><th>Tipo</th><th class="tr">Valor</th><th>Departamento</th><th>Sigla</th></tr></thead>
+                  <tbody>${histRows}</tbody>
+                </table>
+              </div>
+            </div>
+            <div class="rp-veiculo-actions">
+              <button class="rp-btn-ficha" data-placa="${esc(v.placa)}">
+                ${SVG.ext} Ver Ficha Completa
+              </button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
   }
 
-  function _bindExpand(container) {
-    container.querySelectorAll('.rp-veiculo-row').forEach(row => {
-      const btn = row.querySelector('.rp-expand-btn');
-      const subWrap = row.nextElementSibling;
-      if (!btn || !subWrap) return;
+  // ── Bind interações no painel ─────────────────────────────────────────────
+
+  function _bindBody(bodyEl) {
+    // Expand/collapse cartões de veículo
+    bodyEl.querySelectorAll('.rp-veiculo-header').forEach(hdr => {
+      hdr.addEventListener('click', () => {
+        const card   = hdr.closest('.rp-veiculo-card');
+        const body   = card.querySelector('.rp-veiculo-body');
+        const btn    = hdr.querySelector('.rp-expand-btn');
+        const isOpen = !body.hidden;
+
+        body.hidden = isOpen;
+        btn.setAttribute('aria-expanded', !isOpen);
+        card.classList.toggle('rp-card-open', !isOpen);
+      });
+    });
+
+    // Botão "Ver Ficha Completa" — abre Veiculo.abrirFicha
+    bodyEl.querySelectorAll('.rp-btn-ficha').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
-        const open = subWrap.hidden;
-        subWrap.hidden = !open;
-        btn.setAttribute('aria-expanded', open);
-        btn.style.transform = open ? 'rotate(180deg)' : '';
+        const placa = btn.dataset.placa;
+        if (typeof Veiculo !== 'undefined' && placa && placa !== '--') {
+          Veiculo.abrirFicha(placa);
+        }
       });
     });
   }
 
+  // ── Abrir painel ─────────────────────────────────────────────────────────
+
   function open(field, value) {
-    const data = State.getFilteredData();
-
-    // Filter records matching the clicked row
-    let records;
-    if (field === 'Mes') {
-      // value is "Janeiro/2025" format — match by label reconstruction
-      records = data.filter(r => {
-        const label = `${fmtMes(r.Mes)}/${r.Ano}`;
-        return label === value;
-      });
-    } else {
-      records = data.filter(r => (r[field]||'--') === value);
-    }
-
-    // If total row clicked — no records match "TOTAL"
+    const records = _filterRecords(field, value);
     if (!records.length) return;
 
-    const catLabel = LABELS[field] || field;
+    const catLabel = LABEL_MAP[field] || field;
 
-    // Populate header
-    _el('resumoPainelBadge').textContent = catLabel;
-    _el('resumoPainelTitulo').textContent = value;
-    _el('resumoPainelSub').textContent = `${records.length.toLocaleString('pt-BR')} registro${records.length!==1?'s':''}`;
+    $id('rpBadge').textContent    = catLabel;
+    $id('rpTitulo').textContent   = value;
+    $id('rpSub').textContent      = `${records.length.toLocaleString('pt-BR')} registro${records.length !== 1 ? 's' : ''}`;
+    $id('rpKpis').innerHTML       = _buildKpis(records);
 
-    // KPIs
-    _el('resumoPainelKpis').innerHTML = _buildKpis(records);
+    const bodyEl = $id('rpBody');
+    bodyEl.innerHTML = _buildVeiculoTable(records);
+    _bindBody(bodyEl);
 
-    // Table
-    const bodyEl = _el('resumoPainelBody');
-    bodyEl.innerHTML = _buildTable(records);
-    _bindExpand(bodyEl);
-
-    // Show
-    const painel = _el('resumoPainel');
-    painel.hidden = false;
-    requestAnimationFrame(() => painel.classList.add('rp-open'));
-    document.body.style.overflow = 'hidden';
+    const painel = $id('rpPainel');
+    painel.removeAttribute('aria-hidden');
+    painel.classList.add('rp-open');
+    document.body.classList.add('rp-body-lock');
   }
+
+  // ── Fechar painel ────────────────────────────────────────────────────────
 
   function close() {
-    const painel = _el('resumoPainel');
+    const painel = $id('rpPainel');
+    if (!painel) return;
     painel.classList.remove('rp-open');
-    setTimeout(() => { painel.hidden = true; document.body.style.overflow = ''; }, 260);
+    painel.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('rp-body-lock');
   }
 
+  // ── Init ─────────────────────────────────────────────────────────────────
+
   function init() {
-    _el('resumoPainelClose')?.addEventListener('click', close);
-    _el('resumoPainelBackdrop')?.addEventListener('click', close);
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+    $id('rpClose')?.addEventListener('click', close);
+    $id('rpBackdrop')?.addEventListener('click', close);
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && $id('rpPainel')?.classList.contains('rp-open')) close();
+    });
   }
 
   return { open, close, init };
