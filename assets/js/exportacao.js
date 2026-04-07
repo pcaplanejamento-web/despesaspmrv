@@ -577,38 +577,6 @@ const Exportacao = (() => {
       </div>
     </div>`;
   }
-    return `<div class="wiz-pane" id="wizPane3" style="display:none">
-      <div class="wiz-section-title">Seções do relatório</div>
-      <div class="wiz-secoes-grid">
-        ${secoes.map(([k,l,s])=>`<label class="wiz-secao-card ${_wiz.secoes[k]?'wiz-secao-active':''}">
-          <input type="checkbox" name="wiz-secao" value="${k}" ${_wiz.secoes[k]?'checked':''}/>
-          <div class="wiz-secao-label">${l}</div>
-          <div class="wiz-secao-sub">${s}</div>
-        </label>`).join('')}
-      </div>
-
-      <div style="display:flex;gap:24px;margin-top:18px;flex-wrap:wrap">
-        <div>
-          <div class="wiz-section-title" style="margin-bottom:8px">Top N veículos (ranking)</div>
-          <select class="wiz-select" id="wizTopN">
-            ${['10','20','50','100','todos'].map(v=>`<option value="${v}" ${_wiz.topN===v?'selected':''}>${v==='todos'?'Todos os veículos':'Top '+v}</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <div class="wiz-section-title" style="margin-bottom:8px">Nível de detalhe</div>
-          <div style="display:flex;gap:8px">
-            ${[['executivo','Executivo'],['completo','Completo']].map(([v,l])=>`<label class="wiz-check-inline"><input type="radio" name="wiz-nivel" value="${v}" ${_wiz.nivel===v?'checked':''}/> <span>${l}</span></label>`).join('')}
-          </div>
-        </div>
-        <div>
-          <div class="wiz-section-title" style="margin-bottom:8px">Orientação</div>
-          <div style="display:flex;gap:8px">
-            ${[['retrato','Retrato'],['paisagem','Paisagem']].map(([v,l])=>`<label class="wiz-check-inline"><input type="radio" name="wiz-orientacao" value="${v}" ${_wiz.orientacao===v?'checked':''}/> <span>${l}</span></label>`).join('')}
-          </div>
-        </div>
-      </div>
-    </div>`;
-  }
 
   // ── Bind de eventos do wizard ──────────────────────────────────────────────
 
