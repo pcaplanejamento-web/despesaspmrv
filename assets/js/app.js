@@ -41,7 +41,15 @@ const Modal = (() => {
 
   function open(tipo, data) {
     switch(tipo) {
-      case 'detalheRegistro': _openRegistro(data); break;
+      case 'detalheRegistro': {
+        const placa = (data?.Placa||'').trim();
+        if (placa && placa !== '--' && typeof Veiculo !== 'undefined') {
+          Veiculo.abrirFicha(placa);
+        } else {
+          _openRegistro(data);
+        }
+        break;
+      }
       case 'chartDetalhe':    _openChart(data);    break;
       case 'evolucaoDetalhe': _openEvolucao(data); break;
     }
@@ -279,11 +287,17 @@ const Modal = (() => {
         <span class="modal-footer-hint">${registros.length} registros nesta categoria — ESC para fechar</span>
       </div>`);
 
-    // Click em linha → abre detalhe do registro
+    // Click em linha → abre Ficha do Veículo (ou fallback para detalhe)
     document.querySelectorAll('.modal-table-row').forEach((tr,i)=>{
       tr.addEventListener('click',()=>{
         const r = top10[parseInt(tr.dataset.idx)];
-        if (r) _openRegistro(r);
+        if (!r) return;
+        const placa = (r.Placa||'').trim();
+        if (placa && placa !== '--' && typeof Veiculo !== 'undefined') {
+          Veiculo.abrirFicha(placa);
+        } else {
+          _openRegistro(r);
+        }
       });
     });
   }
