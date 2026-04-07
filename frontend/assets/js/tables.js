@@ -137,7 +137,14 @@ const Tables = (() => {
         <td class="td-number fw-700">${fmtBRL(r.Valor)}</td>
         <td>${fmtMes(r.Mes)}</td>
         <td class="fw-600">${r.Ano||'--'}</td>`;
-      tr.addEventListener('click', () => Modal.open('detalheRegistro', r));
+      tr.addEventListener('click', () => {
+        const placa = (r.Placa||'').trim();
+        if (placa && placa !== '--' && typeof Veiculo !== 'undefined') {
+          Veiculo.abrirFicha(placa);
+        } else {
+          Modal.open('detalheRegistro', r);
+        }
+      });
       frag.appendChild(tr);
     });
     tbody.innerHTML='';
