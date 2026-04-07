@@ -348,6 +348,7 @@ const Exportacao = (() => {
     placasSel: [],
     classificacoesSel: [],
     despesas: ['comb','manut'],
+    tipoFrota: 'todos',          // 'todos'|'veiculo'|'maquina'
     periodoTipo: 'todos',
     anoInicio: null, mesInicio: null,
     anoFim: null, mesFim: null,
@@ -356,9 +357,17 @@ const Exportacao = (() => {
       analiseSec: true, analiseDesp: true, analiseLocacao: true,
       classificacao: false, ranking: true, detalhe: false, historico: false,
     },
+    paginas: {                   // Páginas estruturais do documento
+      capa: true, sumario: true, siglas: true, intro: true,
+    },
+    extras: {                    // Blocos opcionais
+      execSummary: true, pontosAtencao: true, glossario: true,
+    },
     topN: '20',
+    topSecretarias: '10',        // '5'|'10'
     nivel: 'executivo',
     orientacao: 'retrato',
+    temaRelatorio: 'claro',      // 'claro'|'escuro'
   };
 
   // ── Filtrar dados conforme wizard ──────────────────────────────────────────
@@ -382,6 +391,13 @@ const Exportacao = (() => {
         const kf = `${_wiz.anoFim||9999}-${String(_wiz.mesFim||12).padStart(2,'0')}`;
         return k >= ki && k <= kf;
       });
+    }
+
+    // Filtro de tipo de frota
+    if (_wiz.tipoFrota === 'veiculo') {
+      data = data.filter(r=>(r.Tipo||'').toLowerCase().startsWith('ve'));
+    } else if (_wiz.tipoFrota === 'maquina') {
+      data = data.filter(r=>(r.Tipo||'').toLowerCase().startsWith('m'));
     }
 
     // Filtro de escopo
@@ -481,21 +497,36 @@ const Exportacao = (() => {
   function _buildStep1(siglas, placas, classifs) {
     const siglaOpts = siglas.map(s=>`<label class="wiz-check-item"><input type="checkbox" name="wiz-sigla" value="${esc(s)}" ${_wiz.secretarias.includes(s)?'checked':''}><span class="wiz-check-label"><strong>${esc(s)}</strong> <span class="wiz-check-sub">${esc(siglaLabel(s).split('—')[1]?.trim()||siglaLabel(s))}</span></span></label>`).join('');
     const classifOpts = classifs.slice(0,30).map(c=>`<label class="wiz-check-item"><input type="checkbox" name="wiz-classif" value="${esc(c)}" ${_wiz.classificacoesSel.includes(c)?'checked':''}><span class="wiz-check-label">${esc(c)}</span></label>`).join('');
+
+    // Ícones por escopo
+    const escopoIcons = {
+      geral:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+      secretaria:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',
+      frota:'<rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
+      classificacao:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+    };
+
     return `<div class="wiz-pane" id="wizPane1">
-      <div class="wiz-section-title">Escopo do relatório</div>
+
+      <!-- Escopo -->
+      <div class="wiz-grupo-header">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Escopo do relatório
+      </div>
       <div class="wiz-radio-group" id="wizEscopoGroup">
-        ${[['geral','Geral','Todas as secretarias e frotas'],['secretaria','Por secretaria','Selecione secretarias específicas'],['frota','Por frota','Selecione placas/veículos'],['classificacao','Por classificação','Filtre por tipo de serviço']].map(([v,l,s])=>
+        ${[['geral','Geral','Todas as secretarias'],['secretaria','Por secretaria','Filtrar secretarias'],['frota','Por frota','Filtrar veículos'],['classificacao','Por classificação','Filtrar serviços']].map(([v,l,s])=>
           `<label class="wiz-radio-card ${_wiz.escopo===v?'wiz-radio-active':''}">
             <input type="radio" name="wiz-escopo" value="${v}" ${_wiz.escopo===v?'checked':''}/>
-            <div class="wiz-radio-label">${l}</div>
-            <div class="wiz-radio-sub">${s}</div>
+            <span class="wiz-radio-check-dot"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <div class="wiz-radio-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">${escopoIcons[v]}</svg></div>
+            <div><div class="wiz-radio-label">${l}</div><div class="wiz-radio-sub">${s}</div></div>
           </label>`).join('')}
       </div>
 
-      <div id="wizEscopoSub" style="margin-top:14px">
+      <div id="wizEscopoSub" style="margin-top:10px">
         <div id="wizSubSecretaria" style="${_wiz.escopo==='secretaria'?'':'display:none'}">
           <div class="wiz-sub-header">
-            <span class="wiz-sub-title">Selecionar secretarias</span>
+            <span class="wiz-sub-title">Secretarias</span>
             <div style="display:flex;gap:6px">
               <button class="wiz-link-btn" id="wizSelAllSiglas">Todas</button>
               <button class="wiz-link-btn" id="wizClrSiglas">Limpar</button>
@@ -506,10 +537,10 @@ const Exportacao = (() => {
         <div id="wizSubFrota" style="${_wiz.escopo==='frota'?'':'display:none'}">
           <div class="wiz-sub-header">
             <span class="wiz-sub-title">Buscar placa</span>
-            <span class="wiz-tag-count" id="wizPlacaCount">${_wiz.placasSel.length} selecionadas</span>
+            <span class="wiz-tag-count" id="wizPlacaCount">${_wiz.placasSel.length} selecionada(s)</span>
           </div>
-          <div style="display:flex;gap:8px;margin-bottom:10px">
-            <input class="wiz-input" id="wizPlacaSearch" type="text" placeholder="Ex: ABC-1234..." autocomplete="off" style="text-transform:uppercase;flex:1"/>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <input class="wiz-input" id="wizPlacaSearch" type="text" placeholder="Ex: ABC-1234…" autocomplete="off" style="text-transform:uppercase;flex:1"/>
             <button class="wiz-btn wiz-btn-sm" id="wizPlacaAdd">Adicionar</button>
           </div>
           <div id="wizPlacaSugestoes" class="wiz-sug-wrap"></div>
@@ -518,7 +549,7 @@ const Exportacao = (() => {
         </div>
         <div id="wizSubClassif" style="${_wiz.escopo==='classificacao'?'':'display:none'}">
           <div class="wiz-sub-header">
-            <span class="wiz-sub-title">Selecionar classificações</span>
+            <span class="wiz-sub-title">Classificações</span>
             <div style="display:flex;gap:6px">
               <button class="wiz-link-btn" id="wizSelAllClassif">Todas</button>
               <button class="wiz-link-btn" id="wizClrClassif">Limpar</button>
@@ -528,15 +559,41 @@ const Exportacao = (() => {
         </div>
       </div>
 
-      <div class="wiz-section-title" style="margin-top:18px">Tipo de despesa</div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap">
-        <label class="wiz-check-inline"><input type="checkbox" id="wizChkComb" ${_wiz.despesas.includes('comb')?'checked':''}/> <span>Combustível</span></label>
-        <label class="wiz-check-inline"><input type="checkbox" id="wizChkManut" ${_wiz.despesas.includes('manut')?'checked':''}/> <span>Manutenção</span></label>
+      <!-- Tipo de despesa -->
+      <div class="wiz-grupo-header" style="margin-top:16px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Tipo de despesa
       </div>
-      <div id="wizDespesaError" style="display:none;margin-top:8px;font-size:12px;color:#e11d48;font-weight:600;display:flex;align-items:center;gap:5px;">
+      <div class="wiz-pill-row">
+        <label class="wiz-pill-toggle wiz-pill-comb ${_wiz.despesas.includes('comb')?'active':''}">
+          <input type="checkbox" id="wizChkComb" ${_wiz.despesas.includes('comb')?'checked':''} style="display:none"/>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Combustível
+        </label>
+        <label class="wiz-pill-toggle wiz-pill-manut ${_wiz.despesas.includes('manut')?'active':''}">
+          <input type="checkbox" id="wizChkManut" ${_wiz.despesas.includes('manut')?'checked':''} style="display:none"/>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          Manutenção
+        </label>
+      </div>
+      <div id="wizDespesaError" style="display:none;margin-top:8px;font-size:12px;color:#e11d48;font-weight:600;align-items:center;gap:5px;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        Selecione ao menos um tipo de despesa para continuar.
+        Selecione ao menos um tipo de despesa.
       </div>
+
+      <!-- Tipo de frota -->
+      <div class="wiz-grupo-header" style="margin-top:16px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        Tipo de frota
+      </div>
+      <div class="wiz-pill-row" id="wizTipoFrotaGroup">
+        ${[['todos','Todos'],['veiculo','Veículos'],['maquina','Máquinas']].map(([v,l])=>
+          `<label class="wiz-pill-toggle wiz-pill-neutral ${_wiz.tipoFrota===v?'active':''}">
+            <input type="radio" name="wiz-tipofrota" value="${v}" ${_wiz.tipoFrota===v?'checked':''} style="display:none"/>
+            ${l}
+          </label>`).join('')}
+      </div>
+
     </div>`;
   }
 
@@ -579,48 +636,135 @@ const Exportacao = (() => {
   }
 
   function _buildStep3() {
+    // Ícone para cada seção de conteúdo
     const secoes = [
-      ['kpis','Indicadores Gerais','Totais, proporções (%), ticket médio e mês de pico — visão numérica rápida do período.'],
-      ['evolucao','Evolução Mensal','Gráfico de barras mês a mês + tabela com variação percentual entre períodos.'],
-      ['secretaria','Resumo por Secretaria','Gráfico horizontal + tabela comparativa com % de cada unidade no total.'],
-      ['analiseSec','Análise por Secretaria','Cards das 5 principais unidades: KPIs, pizza de composição e top veículos.'],
-      ['analiseDesp','Análise por Despesa','Seções separadas para Combustível e Manutenção com pizza, tendência e ranking.'],
-      ['analiseLocacao','Análise de Locação','Contratos, frota própria e indefinida: KPIs, evolução, estimativa anual e tabelas.'],
-      ['classificacao','Por Classificação','Tabela de tipos de serviço com barras de proporção e participação no total.'],
-      ['ranking','Ranking de Veículos','Top N veículos ordenados por gasto, com alerta para alta % de manutenção.'],
-      ['detalhe','Detalhamento por Veículo','Card individual de cada veículo com barra de composição e tabela de registros.'],
-      ['historico','Histórico de Secretarias','Trajetória do veículo entre secretarias ao longo do período (requer Detalhamento).'],
+      ['kpis',         'Indicadores (KPIs)',        'Totais, %, ticket médio e mês de pico.',            '<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>'],
+      ['evolucao',     'Evolução Mensal',            'Gráfico de barras mês a mês + variação.',            '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>'],
+      ['secretaria',   'Resumo por Secretaria',      'Gráfico + tabela com locação por unidade.',          '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>'],
+      ['analiseSec',   'Análise por Secretaria',     'Cards das 10 principais com pizza e ranking.',       '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'],
+      ['analiseDesp',  'Análise por Despesa',        'Combustível e Manutenção com pizza e ranking.',      '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>'],
+      ['analiseLocacao','Análise de Locação',        'Contratos, frota própria, INDEFINIDO.',             '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>'],
+      ['classificacao','Por Classificação',          'Tabela de tipos de serviço com % visual.',           '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'],
+      ['ranking',      'Ranking de Veículos',        'Top N veículos por gasto com sparkline.',            '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>'],
+      ['detalhe',      'Detalhamento por Veículo',   'Card individual com registros por placa.',           '<rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>'],
+      ['historico',    'Histórico de Secretarias',   'Trajetória do veículo entre unidades.',              '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>'],
     ];
-    return `<div class="wiz-pane" id="wizPane3" style="display:none">
-      <div class="wiz-section-title">Seções do relatório</div>
+
+    // Páginas estruturais
+    const paginasConf = [
+      ['capa',    'Capa do relatório',   'Página de identificação com dados gerais e totais'],
+      ['sumario', 'Sumário',             'Índice numerado com todas as seções'],
+      ['siglas',  'Índice de siglas',    'Referência de todas as siglas do município'],
+      ['intro',   'Introdução e objetivos','Contextualização e objetivos do relatório'],
+    ];
+
+    // Extras opcionais
+    const extrasConf = [
+      ['execSummary',   'Resumo executivo',    'Bullets automáticos com principais achados'],
+      ['pontosAtencao', 'Pontos de atenção',   'Alertas e observações gerados dos dados'],
+      ['glossario',     'Glossário',           'Definições de termos e legenda de cores'],
+    ];
+
+    return `<div class="wiz-pane" id="wizPane3">
+
+      <!-- Páginas do documento -->
+      <div class="wiz-grupo-header">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Páginas do documento
+      </div>
+      <div class="wiz-pagina-grid">
+        ${paginasConf.map(([k,l,s])=>`
+        <label class="wiz-pagina-item ${_wiz.paginas[k]?'active':''}">
+          <input type="checkbox" name="wiz-pagina" value="${k}" ${_wiz.paginas[k]?'checked':''} style="display:none"/>
+          <span class="wiz-pagina-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <span class="wiz-pagina-label">${l}</span>
+          <span class="wiz-pagina-sub">${s}</span>
+        </label>`).join('')}
+      </div>
+
+      <!-- Seções de conteúdo -->
+      <div class="wiz-grupo-header" style="margin-top:18px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+        Seções de conteúdo
+        <span class="wiz-grupo-count" id="wizSecCount">${Object.values(_wiz.secoes).filter(Boolean).length}/${Object.keys(_wiz.secoes).length}</span>
+      </div>
       <div class="wiz-secoes-grid">
-        ${secoes.map(([k,l,s])=>`<label class="wiz-secao-card ${_wiz.secoes[k]?'wiz-secao-active':''}">
+        ${secoes.map(([k,l,s,icon])=>`
+        <label class="wiz-secao-card ${_wiz.secoes[k]?'wiz-secao-active':''}">
           <input type="checkbox" name="wiz-secao" value="${k}" ${_wiz.secoes[k]?'checked':''}/>
+          <span class="wiz-secao-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <div class="wiz-secao-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">${icon}</svg></div>
           <div class="wiz-secao-label">${l}</div>
           <div class="wiz-secao-sub">${s}</div>
         </label>`).join('')}
       </div>
+      <div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap">
+        <button class="wiz-link-btn" id="wizSelAllSecoes">Selecionar todas</button>
+        <button class="wiz-link-btn" id="wizClrSecoes">Limpar seleção</button>
+      </div>
 
-      <div style="display:flex;gap:24px;margin-top:18px;flex-wrap:wrap">
-        <div>
-          <div class="wiz-section-title" style="margin-bottom:8px">Top N veículos (ranking)</div>
+      <!-- Blocos extras -->
+      <div class="wiz-grupo-header" style="margin-top:18px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Blocos complementares
+      </div>
+      <div class="wiz-extras-grid">
+        ${extrasConf.map(([k,l,s])=>`
+        <label class="wiz-pagina-item ${_wiz.extras[k]?'active':''}">
+          <input type="checkbox" name="wiz-extra" value="${k}" ${_wiz.extras[k]?'checked':''} style="display:none"/>
+          <span class="wiz-pagina-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <span class="wiz-pagina-label">${l}</span>
+          <span class="wiz-pagina-sub">${s}</span>
+        </label>`).join('')}
+      </div>
+
+      <!-- Configurações avançadas -->
+      <div class="wiz-grupo-header" style="margin-top:18px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+        Configurações avançadas
+      </div>
+      <div class="wiz-cfg-grid">
+        <div class="wiz-cfg-item">
+          <div class="wiz-field-label">Top veículos (ranking)</div>
           <select class="wiz-select" id="wizTopN">
-            ${['10','20','50','100','todos'].map(v=>`<option value="${v}" ${_wiz.topN===v?'selected':''}>${v==='todos'?'Todos os veículos':'Top '+v}</option>`).join('')}
+            ${['10','20','50','100','todos'].map(v=>`<option value="${v}" ${_wiz.topN===v?'selected':''}>${v==='todos'?'Todos':'Top '+v}</option>`).join('')}
           </select>
         </div>
-        <div>
-          <div class="wiz-section-title" style="margin-bottom:8px">Nível de detalhe</div>
-          <div style="display:flex;gap:8px">
-            ${[['executivo','Executivo'],['completo','Completo']].map(([v,l])=>`<label class="wiz-check-inline"><input type="radio" name="wiz-nivel" value="${v}" ${_wiz.nivel===v?'checked':''}/> <span>${l}</span></label>`).join('')}
+        <div class="wiz-cfg-item">
+          <div class="wiz-field-label">Top secretarias (análise)</div>
+          <select class="wiz-select" id="wizTopSec">
+            ${['5','10','15'].map(v=>`<option value="${v}" ${_wiz.topSecretarias===v?'selected':''}>${'Top '+v}</option>`).join('')}
+          </select>
+        </div>
+        <div class="wiz-cfg-item">
+          <div class="wiz-field-label">Nível de detalhe</div>
+          <div class="wiz-pill-row" id="wizNivelGroup">
+            ${[['executivo','Executivo'],['completo','Completo']].map(([v,l])=>`<label class="wiz-pill-toggle wiz-pill-neutral ${_wiz.nivel===v?'active':''}"><input type="radio" name="wiz-nivel" value="${v}" ${_wiz.nivel===v?'checked':''} style="display:none"/>${l}</label>`).join('')}
           </div>
         </div>
-        <div>
-          <div class="wiz-section-title" style="margin-bottom:8px">Orientação</div>
-          <div style="display:flex;gap:8px">
-            ${[['retrato','Retrato'],['paisagem','Paisagem']].map(([v,l])=>`<label class="wiz-check-inline"><input type="radio" name="wiz-orientacao" value="${v}" ${_wiz.orientacao===v?'checked':''}/> <span>${l}</span></label>`).join('')}
+        <div class="wiz-cfg-item">
+          <div class="wiz-field-label">Orientação de página</div>
+          <div class="wiz-pill-row" id="wizOrientGroup">
+            ${[['retrato','Retrato'],['paisagem','Paisagem']].map(([v,l])=>`<label class="wiz-pill-toggle wiz-pill-neutral ${_wiz.orientacao===v?'active':''}"><input type="radio" name="wiz-orientacao" value="${v}" ${_wiz.orientacao===v?'checked':''} style="display:none"/>${l}</label>`).join('')}
+          </div>
+        </div>
+        <div class="wiz-cfg-item">
+          <div class="wiz-field-label">Tema do relatório</div>
+          <div class="wiz-pill-row" id="wizTemaGroup">
+            <label class="wiz-pill-toggle wiz-pill-neutral ${_wiz.temaRelatorio==='claro'?'active':''}">
+              <input type="radio" name="wiz-tema" value="claro" ${_wiz.temaRelatorio==='claro'?'checked':''} style="display:none"/>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+              Claro
+            </label>
+            <label class="wiz-pill-toggle wiz-pill-neutral ${_wiz.temaRelatorio==='escuro'?'active':''}">
+              <input type="radio" name="wiz-tema" value="escuro" ${_wiz.temaRelatorio==='escuro'?'checked':''} style="display:none"/>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              Escuro
+            </label>
           </div>
         </div>
       </div>
+
     </div>`;
   }
 
@@ -803,23 +947,118 @@ const Exportacao = (() => {
       });
     });
 
+    // Tipo de frota (pills radio)
+    document.querySelectorAll('[name="wiz-tipofrota"]').forEach(r=>{
+      r.addEventListener('change',()=>{
+        _wiz.tipoFrota=r.value;
+        document.querySelectorAll('#wizTipoFrotaGroup .wiz-pill-toggle').forEach(p=>p.classList.remove('active'));
+        r.closest('.wiz-pill-toggle')?.classList.add('active');
+        _updatePreview(rawData);
+      });
+    });
+
+    // Tipo de despesa (pills toggle)
+    $('wizChkComb')?.addEventListener('change',e=>{
+      const i=_wiz.despesas.indexOf('comb');
+      if(e.target.checked&&i<0) _wiz.despesas.push('comb');
+      else if(!e.target.checked&&i>=0) _wiz.despesas.splice(i,1);
+      e.target.closest('.wiz-pill-toggle')?.classList.toggle('active',e.target.checked);
+      const errEl=$('wizDespesaError');
+      if(errEl&&_wiz.despesas.length>0) errEl.style.display='none';
+      _updatePreview(rawData);
+    });
+    $('wizChkManut')?.addEventListener('change',e=>{
+      const i=_wiz.despesas.indexOf('manut');
+      if(e.target.checked&&i<0) _wiz.despesas.push('manut');
+      else if(!e.target.checked&&i>=0) _wiz.despesas.splice(i,1);
+      e.target.closest('.wiz-pill-toggle')?.classList.toggle('active',e.target.checked);
+      const errEl=$('wizDespesaError');
+      if(errEl&&_wiz.despesas.length>0) errEl.style.display='none';
+      _updatePreview(rawData);
+    });
+
+    // Páginas do documento
+    document.querySelectorAll('[name="wiz-pagina"]').forEach(c=>c.addEventListener('change',()=>{
+      _wiz.paginas[c.value]=c.checked;
+      c.closest('.wiz-pagina-item')?.classList.toggle('active',c.checked);
+    }));
+    document.querySelectorAll('.wiz-pagina-item').forEach(card=>{
+      card.addEventListener('click',e=>{
+        if(e.target.tagName==='INPUT') return;
+        const chk=card.querySelector('input');
+        if(chk){ chk.checked=!chk.checked; _wiz.paginas[chk.value]=chk.checked; card.classList.toggle('active',chk.checked); }
+      });
+    });
+
+    // Blocos extras
+    document.querySelectorAll('[name="wiz-extra"]').forEach(c=>c.addEventListener('change',()=>{
+      _wiz.extras[c.value]=c.checked;
+      c.closest('.wiz-pagina-item')?.classList.toggle('active',c.checked);
+    }));
+
+    // Selecionar / Limpar todas as seções
+    $('wizSelAllSecoes')?.addEventListener('click',()=>{
+      document.querySelectorAll('[name="wiz-secao"]').forEach(c=>{ c.checked=true; _wiz.secoes[c.value]=true; c.closest('.wiz-secao-card')?.classList.add('wiz-secao-active'); });
+      _updateSecCount();
+    });
+    $('wizClrSecoes')?.addEventListener('click',()=>{
+      document.querySelectorAll('[name="wiz-secao"]').forEach(c=>{ c.checked=false; _wiz.secoes[c.value]=false; c.closest('.wiz-secao-card')?.classList.remove('wiz-secao-active'); });
+      _updateSecCount();
+    });
+
     // Seções
     document.querySelectorAll('[name="wiz-secao"]').forEach(c=>c.addEventListener('change',()=>{
       _wiz.secoes[c.value]=c.checked;
       c.closest('.wiz-secao-card')?.classList.toggle('wiz-secao-active',c.checked);
+      _updateSecCount();
     }));
     document.querySelectorAll('.wiz-secao-card').forEach(card=>{
       card.addEventListener('click',e=>{
         if(e.target.tagName==='INPUT') return;
         const chk=card.querySelector('input');
-        if(chk){ chk.checked=!chk.checked; _wiz.secoes[chk.value]=chk.checked; card.classList.toggle('wiz-secao-active',chk.checked); }
+        if(chk){ chk.checked=!chk.checked; _wiz.secoes[chk.value]=chk.checked; card.classList.toggle('wiz-secao-active',chk.checked); _updateSecCount(); }
       });
     });
 
-    // Top N e Nível
+    function _updateSecCount() {
+      const cnt=$('wizSecCount');
+      if(cnt){
+        const total=Object.keys(_wiz.secoes).length;
+        const ativas=Object.values(_wiz.secoes).filter(Boolean).length;
+        cnt.textContent=`${ativas}/${total}`;
+      }
+    }
+
+    // Top N veículos, Top secretarias
     $('wizTopN')?.addEventListener('change',e=>_wiz.topN=e.target.value);
-    document.querySelectorAll('[name="wiz-nivel"]').forEach(r=>r.addEventListener('change',()=>_wiz.nivel=r.value));
-    document.querySelectorAll('[name="wiz-orientacao"]').forEach(r=>r.addEventListener('change',()=>_wiz.orientacao=r.value));
+    $('wizTopSec')?.addEventListener('change',e=>_wiz.topSecretarias=e.target.value);
+
+    // Nível (pills radio)
+    document.querySelectorAll('[name="wiz-nivel"]').forEach(r=>{
+      r.addEventListener('change',()=>{
+        _wiz.nivel=r.value;
+        document.querySelectorAll('#wizNivelGroup .wiz-pill-toggle').forEach(p=>p.classList.remove('active'));
+        r.closest('.wiz-pill-toggle')?.classList.add('active');
+      });
+    });
+
+    // Orientação (pills radio)
+    document.querySelectorAll('[name="wiz-orientacao"]').forEach(r=>{
+      r.addEventListener('change',()=>{
+        _wiz.orientacao=r.value;
+        document.querySelectorAll('#wizOrientGroup .wiz-pill-toggle').forEach(p=>p.classList.remove('active'));
+        r.closest('.wiz-pill-toggle')?.classList.add('active');
+      });
+    });
+
+    // Tema do relatório (pills radio)
+    document.querySelectorAll('[name="wiz-tema"]').forEach(r=>{
+      r.addEventListener('change',()=>{
+        _wiz.temaRelatorio=r.value;
+        document.querySelectorAll('#wizTemaGroup .wiz-pill-toggle').forEach(p=>p.classList.remove('active'));
+        r.closest('.wiz-pill-toggle')?.classList.add('active');
+      });
+    });
 
     _updatePreview(rawData);
   }
@@ -845,6 +1084,7 @@ const Exportacao = (() => {
       _wiz.classificacoesSel = Array.from(document.querySelectorAll('[name="wiz-classif"]:checked')).map(e=>e.value);
       const dc=document.getElementById('wizChkComb'), dm=document.getElementById('wizChkManut');
       _wiz.despesas=[]; if(dc?.checked) _wiz.despesas.push('comb'); if(dm?.checked) _wiz.despesas.push('manut');
+      _wiz.tipoFrota = document.querySelector('[name="wiz-tipofrota"]:checked')?.value||'todos';
     }
     if(n===2) {
       const mi=document.getElementById('wizMesInicio'), ai=document.getElementById('wizAnoInicio');
@@ -856,9 +1096,13 @@ const Exportacao = (() => {
     }
     if(n===3) {
       document.querySelectorAll('[name="wiz-secao"]').forEach(c=>{ _wiz.secoes[c.value]=c.checked; });
+      document.querySelectorAll('[name="wiz-pagina"]').forEach(c=>{ _wiz.paginas[c.value]=c.checked; });
+      document.querySelectorAll('[name="wiz-extra"]').forEach(c=>{ _wiz.extras[c.value]=c.checked; });
       _wiz.topN=document.getElementById('wizTopN')?.value||'20';
+      _wiz.topSecretarias=document.getElementById('wizTopSec')?.value||'10';
       _wiz.nivel=document.querySelector('[name="wiz-nivel"]:checked')?.value||'executivo';
       _wiz.orientacao=document.querySelector('[name="wiz-orientacao"]:checked')?.value||'retrato';
+      _wiz.temaRelatorio=document.querySelector('[name="wiz-tema"]:checked')?.value||'claro';
     }
   }
 
@@ -956,11 +1200,12 @@ const Exportacao = (() => {
       : _wiz.despesas.includes('comb') ? 'Combustível' : 'Manutenção';
 
     const orient = _wiz.orientacao==='paisagem' ? 'landscape' : 'portrait';
+    const isEscuro = _wiz.temaRelatorio==='escuro';
 
     // ── HTML do relatório ────────────────────────────────────────────────────
 
     const html = `<!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR"${isEscuro?' data-tema="escuro"':''}>
 <head>
 <meta charset="UTF-8">
 <title>Relatório de Despesas — Gastos RV</title>
@@ -973,7 +1218,70 @@ const Exportacao = (() => {
   .avoid-break{page-break-inside:avoid;}
   body{print-color-adjust:exact;-webkit-print-color-adjust:exact;}
 }
-body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:11pt;color:#1a1f36;background:#fff;line-height:1.55;}
+/* ─── Tema base ─── */
+body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:11pt;background:${isEscuro?'#111827':'#fff'};color:${isEscuro?'#f3f4f6':'#1a1f36'};line-height:1.55;}
+/* ─── Substituições para tema escuro ─── */
+${isEscuro?`
+table{color:#f3f4f6!important;}
+tbody td{color:#d1d5db!important;border-bottom-color:#374151!important;}
+tbody tr:nth-child(even){background:#1f2937!important;}
+thead th{background:#1e3a5f!important;}
+.kpi-card{background:#1f2937!important;border-color:#374151!important;}
+.kpi-label{color:#9ca3af!important;}
+.kpi-val{color:#60a5fa!important;}
+.kpi-val.manut{color:#f97316!important;}
+.kpi-val.neutral{color:#f3f4f6!important;}
+.kpi-sub{color:#6b7280!important;}
+.secao{border-bottom-color:#374151!important;}
+.secao-header{background:#1e3a5f!important;}
+.secao-header-titulo{color:#f3f4f6!important;}
+.secao-desc{color:#9ca3af!important;}
+.orientacao-box{background:#1f2937!important;border-color:#374151!important;}
+.orientacao-texto{color:#d1d5db!important;}
+.callout-blue{background:#1e3a5f!important;border-color:#1e40af!important;}
+.callout-amber{background:#1c1208!important;border-color:#92400e!important;}
+.callout-green{background:#052e16!important;border-color:#166534!important;}
+.callout-text{color:#d1d5db!important;}
+.glossario{background:#1f2937!important;border-color:#374151!important;}
+.glossario-term{color:#f3f4f6!important;}
+.glossario-def{color:#9ca3af!important;}
+.glossario-titulo{color:#60a5fa!important;}
+.nota{color:#6b7280!important;}
+.exec-box{background:#1e3a5f!important;border-color:#1e40af!important;}
+.exec-intro{color:#d1d5db!important;}
+.exec-list li{color:#d1d5db!important;}
+.tr-total td{background:#1e3a5f!important;color:#f3f4f6!important;}
+.asec-body,.adesp-body,.loc-body{background:#111827!important;}
+.asec-kpi,.adesp-kpi,.loc-kpi{background:#1f2937!important;border-color:#374151!important;}
+.asec-kpi-label,.adesp-kpi-label,.loc-kpi-label{color:#9ca3af!important;}
+.ponto-item.cor-blue{background:#1e3a5f!important;border-color:#1e40af!important;}
+.ponto-item.cor-amber{background:#1c1208!important;border-color:#92400e!important;}
+.ponto-item.cor-green{background:#052e16!important;border-color:#166534!important;}
+.ponto-texto{color:#d1d5db!important;}
+.capa-aviso{background:#1f2937!important;border-color:#92400e!important;color:#d1d5db!important;}
+.capa-meta-grid{background:#1f2937!important;border-color:#374151!important;}
+.capa-meta-label{color:#9ca3af!important;}
+.capa-meta-val{color:#f3f4f6!important;}
+.indice-page{background:#111827!important;}
+.indice-pre{color:#60a5fa!important;}
+.indice-titulo{color:#f3f4f6!important;}
+.indice-nome{color:#d1d5db!important;}
+.indice-dots{border-bottom-color:#374151!important;}
+.siglas-page{background:#111827!important;}
+.siglas-titulo{color:#f3f4f6!important;}
+.sigla-cod{color:#60a5fa!important;}
+.sigla-nome{color:#d1d5db!important;}
+.intro-titulo{color:#f3f4f6!important;}
+.intro-corpo{color:#d1d5db!important;}
+.obj-texto{color:#d1d5db!important;}
+.metod-box{background:#1e3a5f!important;color:#d1d5db!important;}
+.vei-card{background:#1f2937!important;border-color:#374151!important;}
+.vei-header{background:#1f2937!important;}
+.vei-modelo{color:#f3f4f6!important;}
+.vei-total-sub{color:#9ca3af!important;}
+.vei-leg-item{color:#d1d5db!important;}
+`:''}
+</style>
 /* ─── Capa redesenhada ─── */
 .capa{min-height:97vh;display:flex;flex-direction:column;background:#fff;}
 .capa-band{background:linear-gradient(135deg,#0c3d70 0%,#185FA5 55%,#2176c7 100%);padding:42px 48px 36px;color:#fff;}
@@ -1218,7 +1526,7 @@ tbody tr:nth-child(even){background:#f8f9fc;}
 </button>
 
 <!-- ═══ CAPA ═══ -->
-<div class="capa">
+${_wiz.paginas.capa ? `<div class="capa">
   <div class="capa-band">
     <div class="capa-band-top">
       <div class="capa-logo-row">
@@ -1272,10 +1580,10 @@ tbody tr:nth-child(even){background:#f8f9fc;}
     <span>Gastos RV v${CONFIG.VERSAO||'1.x'} — Prefeitura Municipal de Rio Verde</span>
     <span>Emitido em ${dtStr} às ${dtHora}</span>
   </div>
-</div>
+</div>` : ''}
 
 <!-- ═══ ÍNDICE ═══ -->
-<div class="indice-page page-break">
+${_wiz.paginas.sumario ? `<div class="indice-page page-break">
   <div class="indice-header">
     <div class="indice-pre">Gastos RV · Relatório de Frota</div>
     <div class="indice-titulo">Sumário</div>
@@ -1286,24 +1594,24 @@ tbody tr:nth-child(even){background:#f8f9fc;}
   <div class="indice-item"><span class="indice-num">3.</span><span class="indice-nome">Objetivos do Relatório</span><span class="indice-dots"></span></div>
   <div class="indice-item"><span class="indice-num">4.</span><span class="indice-nome">Como Interpretar este Relatório</span><span class="indice-dots"></span></div>
   <div class="indice-categoria">Visão Geral</div>
-  <div class="indice-item"><span class="indice-num">5.</span><span class="indice-nome">Resumo Executivo — Principais Achados</span><span class="indice-dots"></span></div>
+  ${_wiz.extras.execSummary?`<div class="indice-item"><span class="indice-num">5.</span><span class="indice-nome">Resumo Executivo — Principais Achados</span><span class="indice-dots"></span></div>`:''}
   <div class="indice-item"><span class="indice-num">6.</span><span class="indice-nome">Indicadores Gerais (KPIs)</span><span class="indice-dots"></span></div>
   <div class="indice-item"><span class="indice-num">7.</span><span class="indice-nome">Evolução Mensal de Despesas</span><span class="indice-dots"></span></div>
   <div class="indice-categoria">Análises Detalhadas</div>
   <div class="indice-item"><span class="indice-num">8.</span><span class="indice-nome">Resumo por Secretaria / Unidade</span><span class="indice-dots"></span></div>
-  ${_wiz.secoes.analiseSec?`<div class="indice-item"><span class="indice-num">9.</span><span class="indice-nome">Análise Detalhada por Secretaria</span><span class="indice-dots"></span><span class="indice-tag">Top ${Math.min(10,bySigla.length)}</span></div>`:''}
+  ${_wiz.secoes.analiseSec?`<div class="indice-item"><span class="indice-num">9.</span><span class="indice-nome">Análise Detalhada por Secretaria</span><span class="indice-dots"></span><span class="indice-tag">Top ${Math.min(parseInt(_wiz.topSecretarias)||10,bySigla.length)}</span></div>`:''}
   ${_wiz.secoes.analiseDesp?`<div class="indice-item"><span class="indice-num">10.</span><span class="indice-nome">Análise Detalhada por Tipo de Despesa</span><span class="indice-dots"></span><span class="indice-tag">Comb · Manut</span></div>`:''}
   ${_wiz.secoes.analiseLocacao?`<div class="indice-item"><span class="indice-num">11.</span><span class="indice-nome">Análise de Locação e Contratos</span><span class="indice-dots"></span><span class="indice-tag">Locado · Próprio · Indefinido</span></div>`:''}
   ${_wiz.secoes.classificacao?`<div class="indice-item"><span class="indice-num">12.</span><span class="indice-nome">Por Classificação de Serviço</span><span class="indice-dots"></span></div>`:''}
   ${_wiz.secoes.ranking?`<div class="indice-item"><span class="indice-num">13.</span><span class="indice-nome">Ranking de Gastos por Veículo</span><span class="indice-dots"></span><span class="indice-tag">${_wiz.topN==='todos'?'Todos':'Top '+_wiz.topN}</span></div>`:''}
   ${_wiz.secoes.detalhe?`<div class="indice-item"><span class="indice-num">14.</span><span class="indice-nome">Detalhamento Individual por Veículo</span><span class="indice-dots"></span></div>`:''}
   <div class="indice-categoria">Observações e Referências</div>
-  <div class="indice-item"><span class="indice-num">15.</span><span class="indice-nome">Pontos de Atenção</span><span class="indice-dots"></span></div>
-  <div class="indice-item"><span class="indice-num">16.</span><span class="indice-nome">Glossário de Termos e Legenda de Cores</span><span class="indice-dots"></span></div>
-</div>
+  ${_wiz.extras.pontosAtencao?`<div class="indice-item"><span class="indice-num">15.</span><span class="indice-nome">Pontos de Atenção</span><span class="indice-dots"></span></div>`:''}
+  ${_wiz.extras.glossario?`<div class="indice-item"><span class="indice-num">16.</span><span class="indice-nome">Glossário de Termos e Legenda de Cores</span><span class="indice-dots"></span></div>`:''}
+</div>` : ''}
 
 <!-- ═══ ÍNDICE DE SIGLAS ═══ -->
-<div class="siglas-page page-break">
+${_wiz.paginas.siglas ? `<div class="siglas-page page-break">
   <div class="siglas-header">
     <div class="siglas-pre">Referência</div>
     <div class="siglas-titulo">Índice de Siglas</div>
@@ -1347,7 +1655,6 @@ tbody tr:nth-child(even){background:#f8f9fc;}
         'SMPG':'Sec. Mun. de Planejamento e Gestão',
         'SMTUR':'Secretaria Municipal de Turismo',
       };
-      // Incluir siglas presentes nos dados mas não no dicionário
       const siglasDados = [...new Set(data.map(r=>r.Sigla||'').filter(Boolean))].sort();
       siglasDados.forEach(s=>{ if(!NOMES_REF[s]) NOMES_REF[s]='Unidade não catalogada'; });
       const todas = Object.keys(NOMES_REF).sort();
@@ -1355,10 +1662,10 @@ tbody tr:nth-child(even){background:#f8f9fc;}
     })()}
   </div>
   <p class="siglas-nota">* Siglas não identificadas automaticamente no sistema estão marcadas como "Unidade não catalogada". Para atualizar o dicionário de siglas, edite o arquivo filters.js.</p>
-</div>
+</div>` : ''}
 
 <!-- ═══ INTRODUÇÃO + OBJETIVOS ═══ -->
-<div class="intro-sec page-break">
+${_wiz.paginas.intro ? `<div class="intro-sec page-break">
   <div class="intro-pre">Seção 1 — Contextualização</div>
   <div class="intro-titulo">Introdução e Contexto</div>
   <div class="intro-corpo">
@@ -1384,12 +1691,12 @@ tbody tr:nth-child(even){background:#f8f9fc;}
   <div class="metod-box">
     <strong>Nota metodológica:</strong> Os valores apresentados são brutos (empenhados), exceto onde indicado como "liquidado". Cada registro corresponde a um lançamento de cartão frota — abastecimento ou ordem de serviço — independente do número de parcelas. Veículos com Contrato = <strong>"PRÓPRIO"</strong> são unidades pertencentes ao patrimônio municipal sem contrato de locação. Contrato com código identificado (ex: CT-001) indica veículo locado. Contrato = <strong>"INDEFINIDO"</strong> indica máquinas cujo vínculo não foi possível determinar com certeza — tratadas como categoria separada nas análises. A coluna "Classificação" reflete o tipo de serviço ou insumo conforme registrado pelo prestador.
   </div>
-</div>
+</div>` : ''}
 
 <div style="padding:0 48px">
 
 <!-- ═══ COMO INTERPRETAR ═══ -->
-<div style="padding-top:28px">
+${_wiz.paginas.intro ? `<div style="padding-top:28px">
   <div class="orientacao-box">
     <div class="orientacao-titulo">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -1422,8 +1729,8 @@ tbody tr:nth-child(even){background:#f8f9fc;}
       </div>
     </div>
   </div>
-</div>
-${insights.length ? `
+</div>` : ''}
+${insights.length && _wiz.extras.execSummary ? `
 <div class="secao avoid-break" style="padding-top:32px">
   <div class="exec-box">
     <div class="exec-titulo">
@@ -1594,7 +1901,7 @@ ${_wiz.secoes.analiseSec && bySigla.length ? `
     </div>
     <p class="secao-desc">Perfil individual das ${Math.min(10,bySigla.length)} unidades com maior volume de despesas. Cada card apresenta: indicadores por tipo de despesa (Combustível, Manutenção, Locação), pizza de composição, evolução mensal e top‑10 veículos por tipo de gasto.</p>
   </div>
-  ${bySigla.slice(0,10).map((s,si)=>{
+  ${bySigla.slice(0, parseInt(_wiz.topSecretarias)||10).map((s,si)=>{
     const sRec      = data.filter(r=>r.Sigla===s.sigla);
     const sMes      = _aggByMes(sRec);
     const sPlacas   = _aggByPlaca(sRec);
@@ -2207,7 +2514,7 @@ ${_wiz.secoes.detalhe && byPlaca.length ? `
 </div>` : ''}
 
 <!-- ═══ PONTOS DE ATENÇÃO ═══ -->
-${pontosAtencao.length ? `
+${pontosAtencao.length && _wiz.extras.pontosAtencao ? `
 <div class="secao avoid-break">
   <div class="secao-header-wrap">
     <div class="secao-header" style="border-left-color:#d97706;background:#fffbeb;">
@@ -2225,7 +2532,7 @@ ${pontosAtencao.length ? `
 </div>` : ''}
 
 <!-- ═══ GLOSSÁRIO E LEGENDA ═══ -->
-<div class="secao avoid-break">
+${_wiz.extras.glossario ? `<div class="secao avoid-break">
   <div class="glossario">
     <div class="glossario-titulo">Glossário de Termos e Legenda de Cores</div>
     <div class="legenda-cores" style="margin-bottom:16px">
@@ -2240,19 +2547,19 @@ ${pontosAtencao.length ? `
       <div class="glossario-item"><span class="glossario-term">Combustível</span><span class="glossario-def">Despesas com abastecimento (gasolina, diesel, etanol, GNV) lançadas no cartão frota municipal em postos credenciados.</span></div>
       <div class="glossario-item"><span class="glossario-term">Manutenção</span><span class="glossario-def">Despesas com reparos, peças, mão de obra e serviços mecânicos realizados em oficinas credenciadas pela administração.</span></div>
       <div class="glossario-item"><span class="glossario-term">Valor (empenhado)</span><span class="glossario-def">Valor bruto da despesa conforme registrado no sistema, antes da aplicação dos descontos contratuais de liquidação.</span></div>
-      <div class="glossario-item"><span class="glossario-term">Liquidado</span><span class="glossario-def">Valor efetivamente pago após os descontos contratuais: <strong>5,01%</strong> sobre Combustível e <strong>4,32%</strong> sobre Manutenção. Ambas as categorias possuem desconto de liquidação.</span></div>
+      <div class="glossario-item"><span class="glossario-term">Liquidado</span><span class="glossario-def">Valor efetivamente pago após os descontos contratuais: <strong>5,01%</strong> sobre Combustível e <strong>4,32%</strong> sobre Manutenção.</span></div>
       <div class="glossario-item"><span class="glossario-term">Economia de liquidação</span><span class="glossario-def">Diferença entre o valor empenhado e o valor liquidado, gerada pela aplicação dos descontos contratuais (5,01% comb. + 4,32% manut.).</span></div>
-      <div class="glossario-item"><span class="glossario-term">Ticket médio por veículo</span><span class="glossario-def">Total empenhado dividido pelo número de veículos/máquinas com ao menos 1 registro no período — representa o custo médio por unidade.</span></div>
-      <div class="glossario-item"><span class="glossario-term">Sigla / Unidade</span><span class="glossario-def">Abreviação da secretaria ou fundo municipal responsável pelo veículo (ex: SMIDU, FMS, FMAS, GCM, SMIR).</span></div>
+      <div class="glossario-item"><span class="glossario-term">Ticket médio por veículo</span><span class="glossario-def">Total empenhado dividido pelo número de veículos/máquinas com ao menos 1 registro no período.</span></div>
+      <div class="glossario-item"><span class="glossario-term">Sigla / Unidade</span><span class="glossario-def">Abreviação da secretaria ou fundo municipal (ex: SMIDU, FMS, FMAS, GCM, SMIR).</span></div>
       <div class="glossario-item"><span class="glossario-term">Classificação</span><span class="glossario-def">Tipo de serviço ou insumo registrado na despesa (ex: Combustível Diesel S10, Troca de Pneus, Mão de Obra Mecânica).</span></div>
-      <div class="glossario-item"><span class="glossario-term">Var.% (Variação mensal)</span><span class="glossario-def">Diferença percentual do total em relação ao mês imediatamente anterior. ▲ = aumento · ▼ = redução. Valores acima de 20% são sinalizados nos Pontos de Atenção.</span></div>
-      <div class="glossario-item"><span class="glossario-term">Evolução mensal (sparkline)</span><span class="glossario-def">Miniatura gráfica do histórico mês a mês de cada veículo. O eixo Y é proporcional ao histórico da própria unidade — não comparável entre veículos.</span></div>
+      <div class="glossario-item"><span class="glossario-term">Var.% (Variação mensal)</span><span class="glossario-def">Diferença percentual do total em relação ao mês imediatamente anterior. ▲ = aumento · ▼ = redução.</span></div>
+      <div class="glossario-item"><span class="glossario-term">Evolução mensal (sparkline)</span><span class="glossario-def">Miniatura gráfica do histórico mês a mês de cada veículo. Eixo Y proporcional ao próprio histórico da unidade.</span></div>
     </div>
     <div class="fonte-nota">
       Dados extraídos do Sistema de Análise de Despesas de Frota — Gastos RV v${CONFIG.VERSAO||'1.x'} · Prefeitura Municipal de Rio Verde — GO · Emitido em ${dtStr} às ${dtHora}
     </div>
   </div>
-</div>
+</div>` : ''}
 
 </div><!-- /padding -->
 </body>
