@@ -872,7 +872,8 @@ canvas.chart-ready{opacity:1;transition:opacity .3s ease;}
 .wiz-stepper{display:flex;align-items:center;justify-content:center;gap:0;padding:18px 24px 14px;border-bottom:1px solid var(--border-dim);flex-shrink:0;}
 .wiz-step{display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0;}
 .wiz-step-line{flex:1;height:1.5px;background:var(--border-dim);margin:0 8px;align-self:flex-start;margin-top:13px;min-width:24px;transition:background .3s;}
-.wiz-step-active ~ .wiz-step-line,.wiz-step-done ~ .wiz-step-line{background:var(--accent);}
+/* Fix: apenas steps CONCLUÍDOS colorem a linha seguinte — step ativo não deve colorir a linha para frente */
+.wiz-step-done ~ .wiz-step-line{background:var(--accent);}
 .wiz-step-num{width:26px;height:26px;border-radius:50%;border:2px solid var(--border-dim);background:var(--surface2);color:var(--text-muted);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:all .25s cubic-bezier(.4,0,.2,1);}
 .wiz-step-active .wiz-step-num{border-color:var(--accent);background:var(--accent);color:#fff;box-shadow:0 0 0 4px var(--accent-soft);}
 .wiz-step-done .wiz-step-num{border-color:var(--accent);background:var(--accent);color:#fff;}
@@ -940,12 +941,13 @@ canvas.chart-ready{opacity:1;transition:opacity .3s ease;}
 /* ── Seções do relatório ─────────────────────────────── */
 .wiz-secoes-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;}
 @media(max-width:480px){.wiz-secoes-grid{grid-template-columns:1fr;}}
-.wiz-secao-card{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:9px;border:1.5px solid var(--border-dim);background:var(--surface2);cursor:pointer;transition:all .16s;position:relative;user-select:none;}
+.wiz-secao-card{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:9px;border:1.5px solid var(--border-dim);background:var(--surface2);cursor:pointer;transition:all .16s;position:relative;user-select:none;}
 .wiz-secao-card input{position:absolute;opacity:0;width:0;height:0;}
 .wiz-secao-card:hover{border-color:var(--accent);}
 .wiz-secao-active{border-color:var(--accent)!important;background:var(--accent-soft)!important;}
 .wiz-secao-label{font-size:12px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.wiz-secao-sub{font-size:10.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* Fix: permitir quebra de linha para que a descrição completa seja legível */
+.wiz-secao-sub{font-size:10px;color:var(--text-muted);line-height:1.4;}
 
 /* ── Botões do wizard ────────────────────────────────── */
 .wiz-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:10px;font-family:var(--font-ui);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .18s cubic-bezier(.4,0,.2,1);border:1.5px solid transparent;}
