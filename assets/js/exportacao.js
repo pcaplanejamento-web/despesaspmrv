@@ -804,7 +804,25 @@ const Exportacao = (() => {
     if (mesMaior&&mesMaior.total>0&&byMes.length>1) insights.push(`O mês de <strong>maior gasto foi ${esc(mesMaior.label)}</strong> (${fmtBRL(mesMaior.total)}), ${desvioMaior>0?desvioMaior.toFixed(0)+'% acima':'no nível'} da média mensal de ${fmtBRL(avgMensal)}.`);
     if (bySigla.length>0) insights.push(`A unidade com maior volume foi <strong>${esc(secMaior.sigla)}</strong>, responsável por ${pctSecMaior.toFixed(1).replace('.',',')}% do total (${fmtBRL(secMaior.total)}). As 3 principais unidades respondem por ${top3Pct.toFixed(0)}% das despesas.`);
     if (varUltimo!==null) insights.push(`Em relação ao período anterior, o último mês registrado (<strong>${esc(lastMes.label)}</strong>) apresentou <strong>${varUltimo>=0?'aumento de +':'redução de '}${Math.abs(varUltimo).toFixed(1).replace('.',',')}%</strong> nas despesas.`);
-    if (byPlaca.length>=5) insights.push(`Os 5 veículos com maiores gastos concentram <strong>${top5PlacaPct.toFixed(0)}%</strong> do total de despesas — atenção especial recomendada a essas unidades.`);
+    if (byPlaca.length>=5) insights.push(`Os 5 veículos com maiores gastos concentram <strong>${top5PlacaPct.toFixed(0)}%</strong> do total de despesas — acompanhamento individualizado dessas unidades é recomendado.`);
+
+    // Liquidado (descontos contratuais: 5,01% Combustível · 4,32% Manutenção)
+    const totalLiquidadoC = totalC * (1 - 0.0501);
+    const totalLiquidadoM = totalM * (1 - 0.0432);
+    const totalLiquidado  = totalLiquidadoC + totalLiquidadoM;
+    const economiaComb    = totalC - totalLiquidadoC;
+    const economiaManut   = totalM - totalLiquidadoM;
+    const economiaTotal   = economiaComb + economiaManut;
+
+    // Pontos de atenção auto-gerados
+    const pontosAtencao = [];
+    const veicAltaManut = byPlaca.filter(v=>v.total>0&&(v.manu/v.total)>0.70);
+    if (veicAltaManut.length>0) pontosAtencao.push({cor:'amber',txt:`<strong>${veicAltaManut.length} veículo(s)</strong> com mais de 70% das despesas em Manutenção no período: ${veicAltaManut.slice(0,3).map(v=>`<strong>${esc(v.placa)}</strong> (${(v.manu/v.total*100).toFixed(0)}%)`).join(', ')}${veicAltaManut.length>3?` e outros ${veicAltaManut.length-3}`:''} — estado de conservação merece verificação.`});
+    if (pctSecMaior>50) pontosAtencao.push({cor:'blue',txt:`<strong>Concentração elevada:</strong> a unidade <strong>${esc(secMaior.sigla)}</strong> responde por ${pctSecMaior.toFixed(1).replace('.',',')}% do total do período — mais da metade de todas as despesas de frota.`});
+    if (varUltimo!==null&&Math.abs(varUltimo)>20) pontosAtencao.push({cor:varUltimo>0?'amber':'green',txt:`<strong>Variação expressiva no último período:</strong> ${esc(lastMes&&lastMes.label||'--')} registrou ${varUltimo>0?'crescimento de +':'queda de '}${Math.abs(varUltimo).toFixed(1).replace('.',',')}% em relação ao mês anterior — variação superior a 20%.`});
+    if (economiaTotal>0) pontosAtencao.push({cor:'green',txt:`<strong>Desconto de liquidação aplicado:</strong> os descontos contratuais de 5,01% (Combustível) e 4,32% (Manutenção) geraram uma economia de <strong>${fmtBRL(economiaTotal)}</strong> no período — valor liquidado total: <strong>${fmtBRL(totalLiquidado)}</strong>.`});
+    if (byPlaca.length>=5&&top5PlacaPct>60) pontosAtencao.push({cor:'blue',txt:`<strong>Concentração de frota:</strong> os 5 veículos de maior despesa respondem por ${top5PlacaPct.toFixed(0)}% do total. Acompanhamento individualizado dessas unidades é recomendado.`});
+    if (mesMaior&&desvioMaior>30) pontosAtencao.push({cor:'amber',txt:`<strong>Pico de gastos:</strong> ${esc(mesMaior.label)} registrou valor ${desvioMaior.toFixed(0)}% acima da média mensal do período — variação acima do padrão habitual de 20%.`});
 
     // Escopo texto
     const escopoTexto = _wiz.escopo==='geral' ? 'Todas as secretarias e frotas'
@@ -952,6 +970,30 @@ tbody tr:nth-child(even){background:#f8f9fc;}
 .glossario-term{font-size:8.5pt;font-weight:700;color:#1a1f36;}
 .glossario-def{font-size:8pt;color:#6b7280;line-height:1.45;}
 .fonte-nota{font-size:8pt;color:#9ca3af;margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb;text-align:center;}
+/* ─── Caixa "Como interpretar" ─── */
+.orientacao-box{background:#f8f9fc;border:1.5px solid #e5e7eb;border-radius:10px;padding:16px 20px;margin-bottom:24px;}
+.orientacao-titulo{font-size:9pt;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#6b7280;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.orientacao-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 20px;}
+.orientacao-item{display:flex;gap:9px;align-items:flex-start;}
+.orientacao-icone{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.orientacao-texto{font-size:8.5pt;color:#374151;line-height:1.45;}
+.orientacao-texto strong{color:#1a1f36;display:block;margin-bottom:1px;}
+/* ─── KPI liquidado ─── */
+.kpi-card.kpi-liq::before{background:linear-gradient(90deg,#059669,#047857);}
+.kpi-val.liq{color:#047857;}
+.kpi-badge-green{background:#dcfce7;color:#15803d;}
+/* ─── Pontos de Atenção ─── */
+.pontos-titulo{font-size:9pt;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#1a1f36;margin-bottom:12px;display:flex;align-items:center;gap:7px;}
+.ponto-item{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:8px;margin-bottom:8px;font-size:9pt;line-height:1.55;}
+.ponto-item:last-child{margin-bottom:0;}
+.ponto-item.cor-amber{background:#fffbeb;border:1px solid #fcd34d;}
+.ponto-item.cor-blue{background:#eff5ff;border:1px solid #bdd3fb;}
+.ponto-item.cor-green{background:#f0fdf4;border:1px solid #86efac;}
+.ponto-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8pt;font-weight:800;color:#fff;flex-shrink:0;margin-top:1px;}
+.cor-amber .ponto-num{background:#d97706;}
+.cor-blue .ponto-num{background:#185FA5;}
+.cor-green .ponto-num{background:#059669;}
+.ponto-texto{color:#374151;flex:1;}
 /* ─── Botão de impressão ─── */
 .print-btn{position:fixed;top:16px;right:16px;background:#185FA5;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 4px 16px rgba(24,95,165,.3);z-index:99;}
 .print-btn:hover{background:#0c447c;}
@@ -1002,7 +1044,41 @@ tbody tr:nth-child(even){background:#f8f9fc;}
 
 <div style="padding:0 48px">
 
-<!-- ═══ RESUMO EXECUTIVO ═══ -->
+<!-- ═══ COMO INTERPRETAR ═══ -->
+<div style="padding-top:28px">
+  <div class="orientacao-box">
+    <div class="orientacao-titulo">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Como interpretar este relatório
+    </div>
+    <div class="orientacao-grid">
+      <div class="orientacao-item">
+        <div class="orientacao-icone" style="background:#e8eeff"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2.5" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+        <div class="orientacao-texto"><strong>Fonte dos dados</strong>Registros de cartão frota do município — abastecimentos e serviços em oficinas credenciadas. Os dados são consolidados mensalmente na planilha GERAL.</div>
+      </div>
+      <div class="orientacao-item">
+        <div class="orientacao-icone" style="background:#e8eeff"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l2.5 2.5L16 9"/></svg></div>
+        <div class="orientacao-texto"><strong>Valor × Liquidado</strong>O "Valor" é o montante empenhado. O "Liquidado" é o valor efetivamente pago após descontos: 5,01% sobre Combustível e 4,32% sobre Manutenção.</div>
+      </div>
+      <div class="orientacao-item">
+        <div class="orientacao-icone" style="background:#e8eeff"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2.5" stroke-linecap="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div>
+        <div class="orientacao-texto"><strong>Gráficos de barras</strong>Azul = Combustível · Laranja = Manutenção · Linha tracejada amarela = média mensal do período. Os valores nas barras são formatados em R$k (milhares).</div>
+      </div>
+      <div class="orientacao-item">
+        <div class="orientacao-icone" style="background:#fff3e0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+        <div class="orientacao-texto"><strong>Sigla / Unidade</strong>Cada secretaria ou fundo é identificado por sua sigla (ex: SMIDU, FMS, FMAS). A coluna "% do Total" mostra a participação de cada unidade no gasto geral.</div>
+      </div>
+      <div class="orientacao-item">
+        <div class="orientacao-icone" style="background:#fff3e0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <div class="orientacao-texto"><strong>Variação (Var.%)</strong>▲ indica aumento em relação ao mês anterior · ▼ indica redução. Variações acima de 20% são sinalizadas como pontos de atenção.</div>
+      </div>
+      <div class="orientacao-item">
+        <div class="orientacao-icone" style="background:#fff3e0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <div class="orientacao-texto"><strong>Ticket médio</strong>Total de despesas dividido pelo número de veículos e máquinas com ao menos 1 registro no período — representa o custo médio por unidade.</div>
+      </div>
+    </div>
+  </div>
+</div>
 ${insights.length ? `
 <div class="secao avoid-break" style="padding-top:32px">
   <div class="exec-box">
@@ -1064,8 +1140,14 @@ ${_wiz.secoes.kpis ? `
       <div class="kpi-sub">${byClassif.length} classificações de serviço</div>
       <span class="kpi-badge kpi-badge-gray">${placasN} veíc./máquinas</span>
     </div>
+    <div class="kpi-card kpi-liq">
+      <div class="kpi-label">Total liquidado</div>
+      <div class="kpi-val liq">${fmtBRL(totalLiquidado)}</div>
+      <div class="kpi-sub">Valor após descontos contratuais</div>
+      <span class="kpi-badge kpi-badge-green">Economia: ${fmtBRL(economiaTotal)}</span>
+    </div>
   </div>
-  <p class="nota">* Ticket médio = total de despesas ÷ número de veículos/máquinas com ao menos 1 registro no período. Liquidado = valor com desconto de 5,01% (aplicável apenas ao Combustível).</p>
+  <p class="nota">* Ticket médio = total empenhado ÷ nº de veículos/máquinas com ao menos 1 registro. Liquidado = valor efetivamente pago: desconto de 5,01% sobre Combustível e 4,32% sobre Manutenção. Economia = diferença entre valor empenhado e valor liquidado.</p>
 </div>` : ''}
 
 <!-- ═══ EVOLUÇÃO MENSAL ═══ -->
@@ -1311,31 +1393,50 @@ ${_wiz.secoes.detalhe && byPlaca.length ? `
   }).join('')}
 </div>` : ''}
 
+<!-- ═══ PONTOS DE ATENÇÃO ═══ -->
+${pontosAtencao.length ? `
+<div class="secao avoid-break">
+  <div class="secao-header-wrap">
+    <div class="secao-header" style="border-left-color:#d97706;background:#fffbeb;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span class="secao-header-titulo" style="color:#92400e">Pontos de Atenção</span>
+    </div>
+    <p class="secao-desc">Observações identificadas automaticamente a partir dos dados do período. Cada item destaca um aspecto relevante para acompanhamento e gestão da frota municipal.</p>
+  </div>
+  <div>
+    ${pontosAtencao.map((p,i)=>`<div class="ponto-item cor-${p.cor}">
+      <span class="ponto-num">${i+1}</span>
+      <span class="ponto-texto">${p.txt}</span>
+    </div>`).join('')}
+  </div>
+</div>` : ''}
+
 <!-- ═══ GLOSSÁRIO E LEGENDA ═══ -->
 <div class="secao avoid-break">
   <div class="glossario">
-    <div class="glossario-titulo">
-      Glossário de Termos e Legenda de Cores
-    </div>
+    <div class="glossario-titulo">Glossário de Termos e Legenda de Cores</div>
     <div class="legenda-cores" style="margin-bottom:16px">
       <span class="leg-item"><span class="leg-dot" style="background:#185FA5"></span>Combustível (azul)</span>
       <span class="leg-item"><span class="leg-dot" style="background:#D85A30"></span>Manutenção (laranja)</span>
+      <span class="leg-item"><span class="leg-dot" style="background:#059669"></span>Liquidado / Economia (verde)</span>
       <span class="leg-item"><span class="leg-line"></span>Média mensal do período</span>
       <span class="leg-item"><span class="leg-dot" style="background:#e8eeff;border:1.5px solid #185FA5"></span>Veículo</span>
       <span class="leg-item"><span class="leg-dot" style="background:#fff3e0;border:1.5px solid #b45309"></span>Máquina/Equipamento</span>
     </div>
     <div class="glossario-grid">
-      <div class="glossario-item"><span class="glossario-term">Combustível</span><span class="glossario-def">Despesas com abastecimento de combustível (gasolina, diesel, etanol, GNV) registradas no cartão frota.</span></div>
-      <div class="glossario-item"><span class="glossario-term">Manutenção</span><span class="glossario-def">Despesas com reparos, peças, mão de obra e serviços mecânicos realizados em oficinas credenciadas.</span></div>
-      <div class="glossario-item"><span class="glossario-term">Liquidado</span><span class="glossario-def">Valor efetivamente pago após desconto de 5,01% sobre o combustível. Manutenção não possui liquidado.</span></div>
-      <div class="glossario-item"><span class="glossario-term">Ticket médio por veículo</span><span class="glossario-def">Total de despesas dividido pelo número de veículos/máquinas com ao menos 1 registro no período.</span></div>
-      <div class="glossario-item"><span class="glossario-term">Sigla / Unidade</span><span class="glossario-def">Abreviação da secretaria ou fundo municipal responsável pelo veículo (ex: SMIDU, FMS, FMAS, GCM).</span></div>
-      <div class="glossario-item"><span class="glossario-term">Classificação</span><span class="glossario-def">Tipo de serviço ou insumo registrado na despesa (ex: Combustível Diesel S10, Troca de Pneus, Revisão).</span></div>
-      <div class="glossario-item"><span class="glossario-term">Var.% (Variação)</span><span class="glossario-def">Diferença percentual do total em relação ao mês imediatamente anterior. ▲ = aumento · ▼ = redução.</span></div>
-      <div class="glossario-item"><span class="glossario-term">Evolução Mensal</span><span class="glossario-def">Miniatura do histórico mês a mês do veículo. O eixo Y é proporcional ao próprio histórico da unidade.</span></div>
+      <div class="glossario-item"><span class="glossario-term">Combustível</span><span class="glossario-def">Despesas com abastecimento (gasolina, diesel, etanol, GNV) lançadas no cartão frota municipal em postos credenciados.</span></div>
+      <div class="glossario-item"><span class="glossario-term">Manutenção</span><span class="glossario-def">Despesas com reparos, peças, mão de obra e serviços mecânicos realizados em oficinas credenciadas pela administração.</span></div>
+      <div class="glossario-item"><span class="glossario-term">Valor (empenhado)</span><span class="glossario-def">Valor bruto da despesa conforme registrado no sistema, antes da aplicação dos descontos contratuais de liquidação.</span></div>
+      <div class="glossario-item"><span class="glossario-term">Liquidado</span><span class="glossario-def">Valor efetivamente pago após os descontos contratuais: <strong>5,01%</strong> sobre Combustível e <strong>4,32%</strong> sobre Manutenção. Ambas as categorias possuem desconto de liquidação.</span></div>
+      <div class="glossario-item"><span class="glossario-term">Economia de liquidação</span><span class="glossario-def">Diferença entre o valor empenhado e o valor liquidado, gerada pela aplicação dos descontos contratuais (5,01% comb. + 4,32% manut.).</span></div>
+      <div class="glossario-item"><span class="glossario-term">Ticket médio por veículo</span><span class="glossario-def">Total empenhado dividido pelo número de veículos/máquinas com ao menos 1 registro no período — representa o custo médio por unidade.</span></div>
+      <div class="glossario-item"><span class="glossario-term">Sigla / Unidade</span><span class="glossario-def">Abreviação da secretaria ou fundo municipal responsável pelo veículo (ex: SMIDU, FMS, FMAS, GCM, SMIR).</span></div>
+      <div class="glossario-item"><span class="glossario-term">Classificação</span><span class="glossario-def">Tipo de serviço ou insumo registrado na despesa (ex: Combustível Diesel S10, Troca de Pneus, Mão de Obra Mecânica).</span></div>
+      <div class="glossario-item"><span class="glossario-term">Var.% (Variação mensal)</span><span class="glossario-def">Diferença percentual do total em relação ao mês imediatamente anterior. ▲ = aumento · ▼ = redução. Valores acima de 20% são sinalizados nos Pontos de Atenção.</span></div>
+      <div class="glossario-item"><span class="glossario-term">Evolução mensal (sparkline)</span><span class="glossario-def">Miniatura gráfica do histórico mês a mês de cada veículo. O eixo Y é proporcional ao histórico da própria unidade — não comparável entre veículos.</span></div>
     </div>
     <div class="fonte-nota">
-      Dados extraídos do Sistema de Análise de Despesas de Frota — Gastos RV v${CONFIG.VERSAO||'1.x'} · Prefeitura Municipal de Rio Verde (GO) · Emitido em ${dtStr} às ${dtHora}
+      Dados extraídos do Sistema de Análise de Despesas de Frota — Gastos RV v${CONFIG.VERSAO||'1.x'} · Prefeitura Municipal de Rio Verde — GO · Emitido em ${dtStr} às ${dtHora}
     </div>
   </div>
 </div>
