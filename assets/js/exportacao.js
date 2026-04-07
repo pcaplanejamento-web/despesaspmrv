@@ -529,23 +529,33 @@ const Exportacao = (() => {
       </div>
 
       <div class="wiz-section-title" style="margin-top:18px">Tipo de despesa</div>
-      <div style="display:flex;gap:12px">
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
         <label class="wiz-check-inline"><input type="checkbox" id="wizChkComb" ${_wiz.despesas.includes('comb')?'checked':''}/> <span>Combustível</span></label>
         <label class="wiz-check-inline"><input type="checkbox" id="wizChkManut" ${_wiz.despesas.includes('manut')?'checked':''}/> <span>Manutenção</span></label>
+      </div>
+      <div id="wizDespesaError" style="display:none;margin-top:8px;font-size:12px;color:#e11d48;font-weight:600;display:flex;align-items:center;gap:5px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Selecione ao menos um tipo de despesa para continuar.
       </div>
     </div>`;
   }
 
   function _buildStep2(periodos) {
     const atalhos = [['todos','Todos os dados'],['ano','Ano atual'],['tri','Último trimestre'],['sem','Último semestre'],['personalizado','Personalizado']];
-    const mesOpts = Array.from({length:12},(_,i)=>`<option value="${i+1}">${fmtMes(i+1)}</option>`).join('');
-    const anoOpts = [...new Set(periodos.map(p=>p.ano))].sort((a,b)=>a-b).map(a=>`<option value="${a}">${a}</option>`).join('');
+    const anos = [...new Set(periodos.map(p=>p.ano))].sort((a,b)=>a-b);
+    // Cada select tem selected baseado no estado atual de _wiz
+    const mesOpts    = Array.from({length:12},(_,i)=>`<option value="${i+1}" ${_wiz.mesInicio===i+1?'selected':''}>${fmtMes(i+1)}</option>`).join('');
+    const mesFimOpts = Array.from({length:12},(_,i)=>`<option value="${i+1}" ${_wiz.mesFim===i+1?'selected':''}>${fmtMes(i+1)}</option>`).join('');
+    const anoOpts    = anos.map(a=>`<option value="${a}" ${_wiz.anoInicio===a?'selected':''}>${a}</option>`).join('');
+    const anoFimOpts = anos.map(a=>`<option value="${a}" ${_wiz.anoFim===a?'selected':''}>${a}</option>`).join('');
+    // periodoTipo atual — pode ser 'todos', 'personalizado' (inclui atalhos aplicados)
+    const showCustom = _wiz.periodoTipo==='personalizado';
     return `<div class="wiz-pane" id="wizPane2" style="display:none">
       <div class="wiz-section-title">Período de análise</div>
       <div class="wiz-atalhos-grid" id="wizAtalhos">
         ${atalhos.map(([v,l])=>`<button class="wiz-atalho ${_wiz.periodoTipo===v?'wiz-atalho-active':''}" data-atalho="${v}">${l}</button>`).join('')}
       </div>
-      <div id="wizPeriodoCustom" style="${_wiz.periodoTipo==='personalizado'?'margin-top:14px':'display:none;margin-top:14px'}">
+      <div id="wizPeriodoCustom" style="${showCustom?'margin-top:14px':'display:none;margin-top:14px'}">
         <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center">
           <div>
             <div class="wiz-field-label">Mês/Ano inicial</div>
@@ -558,8 +568,8 @@ const Exportacao = (() => {
           <div>
             <div class="wiz-field-label">Mês/Ano final</div>
             <div style="display:flex;gap:6px">
-              <select class="wiz-select" id="wizMesFim">${mesOpts}</select>
-              <select class="wiz-select" id="wizAnoFim">${anoOpts}</select>
+              <select class="wiz-select" id="wizMesFim">${mesFimOpts}</select>
+              <select class="wiz-select" id="wizAnoFim">${anoFimOpts}</select>
             </div>
           </div>
         </div>
@@ -653,10 +663,49 @@ const Exportacao = (() => {
       if(pp) pp.textContent = `${filtered.length.toLocaleString('pt-BR')} registros encontrados neste período`;
     }
 
-    // Navegação
-    $('wizBtnProximo')?.addEventListener('click',()=>{ _readStep(_wiz.step); _goStep(_wiz.step+1); });
+    // ── Helpers internos ──────────────────────────────────────────────────────
+    // Sincroniza os selects DOM com os valores de _wiz após _applyAtalho
+    function _syncPeriodSelects() {
+      if(_wiz.mesInicio){ const el=$('wizMesInicio'); if(el) el.value=_wiz.mesInicio; }
+      if(_wiz.mesFim)   { const el=$('wizMesFim');    if(el) el.value=_wiz.mesFim; }
+      if(_wiz.anoInicio){ const el=$('wizAnoInicio'); if(el) el.value=_wiz.anoInicio; }
+      if(_wiz.anoFim)   { const el=$('wizAnoFim');    if(el) el.value=_wiz.anoFim; }
+    }
+
+    // Navegação com validação no step 1
+    $('wizBtnProximo')?.addEventListener('click',()=>{
+      _readStep(_wiz.step);
+      // Validação step 1: ao menos um tipo de despesa deve estar selecionado
+      if(_wiz.step===1) {
+        const errEl=$('wizDespesaError');
+        if(_wiz.despesas.length===0) {
+          if(errEl) errEl.style.display='flex';
+          return;
+        }
+        if(errEl) errEl.style.display='none';
+      }
+      _goStep(_wiz.step+1);
+    });
     $('wizBtnAnterior')?.addEventListener('click',()=>_goStep(_wiz.step-1));
     $('wizBtnGerar')?.addEventListener('click',()=>{ _readStep(3); Modal.close(); _gerarRelatorio(); });
+
+    // Ocultar erro de despesa ao mudar os checkboxes
+    $('wizChkComb')?.addEventListener('change',e=>{
+      const i=_wiz.despesas.indexOf('comb');
+      if(e.target.checked&&i<0) _wiz.despesas.push('comb');
+      else if(!e.target.checked&&i>=0) _wiz.despesas.splice(i,1);
+      const errEl=$('wizDespesaError');
+      if(errEl&&_wiz.despesas.length>0) errEl.style.display='none';
+      _updatePreview(rawData);
+    });
+    $('wizChkManut')?.addEventListener('change',e=>{
+      const i=_wiz.despesas.indexOf('manut');
+      if(e.target.checked&&i<0) _wiz.despesas.push('manut');
+      else if(!e.target.checked&&i>=0) _wiz.despesas.splice(i,1);
+      const errEl=$('wizDespesaError');
+      if(errEl&&_wiz.despesas.length>0) errEl.style.display='none';
+      _updatePreview(rawData);
+    });
 
     // Escopo radios
     document.querySelectorAll('[name="wiz-escopo"]').forEach(r=>{
@@ -729,18 +778,17 @@ const Exportacao = (() => {
       _updatePreview(rawData);
     }));
 
-    // Despesas
-    $('wizChkComb')?.addEventListener('change',e=>{ const i=_wiz.despesas.indexOf('comb'); if(e.target.checked&&i<0) _wiz.despesas.push('comb'); else if(!e.target.checked&&i>=0) _wiz.despesas.splice(i,1); _updatePreview(rawData); });
-    $('wizChkManut')?.addEventListener('change',e=>{ const i=_wiz.despesas.indexOf('manut'); if(e.target.checked&&i<0) _wiz.despesas.push('manut'); else if(!e.target.checked&&i>=0) _wiz.despesas.splice(i,1); _updatePreview(rawData); });
-
-    // Atalhos de período
+    // Atalhos de período — _applyAtalho é chamado ANTES de atualizar o DOM
+    // para que periodoTipo final (pode virar 'personalizado') controle o painel
     document.querySelectorAll('[data-atalho]').forEach(btn=>btn.addEventListener('click',()=>{
       _wiz.periodoTipo=btn.dataset.atalho;
       document.querySelectorAll('[data-atalho]').forEach(b=>b.classList.remove('wiz-atalho-active'));
       btn.classList.add('wiz-atalho-active');
+      _applyAtalho(periodos); // pode alterar periodoTipo para 'personalizado'
       const custom=$('wizPeriodoCustom');
+      // Mostra/oculta painel personalizado com base no periodoTipo FINAL
       if(custom) custom.style.display=_wiz.periodoTipo==='personalizado'?'':'none';
-      _applyAtalho(periodos);
+      _syncPeriodSelects(); // sincroniza selects DOM com valores calculados
       _updatePreview(rawData);
     }));
 
