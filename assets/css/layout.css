@@ -9,8 +9,9 @@ header.hdr-compact{height:46px;padding:0 12px;backdrop-filter:blur(var(--lg-blur
 
 /* Brand */
 .header-brand{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:800;color:var(--text);letter-spacing:-.3px;transition:gap .28s ease;min-width:0;flex-shrink:0;}
-.header-brand-icon{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;transition:width .32s,height .32s;}
-header.hdr-compact .header-brand-icon{width:28px;height:28px;}
+.header-brand-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;transition:width .32s,height .32s,border-radius .32s;overflow:hidden;}
+.header-brand-icon.header-brand-logo{background:transparent;border-radius:8px;padding:1px;box-shadow:0 1px 4px rgba(0,0,0,.12);}
+header.hdr-compact .header-brand-icon{width:30px;height:30px;}
 .header-brand-text{display:flex;flex-direction:column;gap:1px;}
 .header-brand-name{font-size:14px;font-weight:800;letter-spacing:-.3px;line-height:1;}
 .header-brand-sub{font-size:11px;font-weight:500;color:var(--text-muted);letter-spacing:.1px;transition:opacity .24s,max-height .28s;overflow:hidden;}
@@ -42,7 +43,8 @@ header.hdr-compact .hamburger-btn{width:34px;height:34px;}
 /* Side menu header */
 .side-menu-header{display:flex;align-items:center;justify-content:space-between;padding:22px 18px 16px;border-bottom:1px solid rgba(255,255,255,.07);background:linear-gradient(180deg,rgba(255,255,255,.045) 0%,transparent 100%);flex-shrink:0;gap:10px;}
 .side-menu-header .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;color:rgba(255,255,255,.92);letter-spacing:-.2px;}
-.side-menu-header .brand-icon{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;}
+.side-menu-header .brand-icon{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;overflow:hidden;}
+.side-menu-header .brand-icon.brand-logo{background:transparent;border-radius:8px;padding:1px;box-shadow:0 1px 6px rgba(0,0,0,.22);}
 .side-menu-close{width:32px;height:32px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:10px;cursor:pointer;color:rgba(255,255,255,.55);display:flex;align-items:center;justify-content:center;transition:background .18s,color .18s,transform .20s;flex-shrink:0;}
 .side-menu-close:hover{background:rgba(255,255,255,.14);color:#fff;transform:rotate(90deg);}
 
