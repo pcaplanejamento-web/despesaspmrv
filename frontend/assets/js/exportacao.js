@@ -292,7 +292,7 @@ const Exportacao = (() => {
     const map={};
     records.forEach(r=>{
       const k=r.Placa||'--';
-      if(!map[k]) map[k]={placa:k,modelo:r.Modelo||'--',tipo:r.Tipo||'--',total:0,comb:0,manu:0,qtde:0,siglas:new Set(),entries:[]};
+      if(!map[k]) map[k]={placa:k,modelo:r.Modelo||'--',tipo:r.Tipo||'--',contrato:r.Contrato||'--',total:0,comb:0,manu:0,qtde:0,siglas:new Set(),entries:[]};
       map[k].total+=r.Valor||0; map[k].qtde++;
       if(r.Sigla) map[k].siglas.add(r.Sigla);
       if(isComb(r)) map[k].comb+=r.Valor||0;
@@ -301,6 +301,41 @@ const Exportacao = (() => {
     });
     return Object.values(map).sort((a,b)=>b.total-a.total).map(r=>({...r,siglas:[...r.siglas]}));
   }
+
+  /**
+   * _aggByContrato — agrupa registros por código de contrato de locação
+   * Exclui PRÓPRIO; separa INDEFINIDO para tratamento especial
+   */
+  function _aggByContrato(records) {
+    const map={};
+    records.forEach(r=>{
+      const c=(r.Contrato||'').trim()||'--';
+      if(!map[c]) map[c]={contrato:c,total:0,comb:0,manu:0,qtde:0,placas:new Set(),siglas:new Set(),entries:[]};
+      map[c].total+=r.Valor||0; map[c].qtde++;
+      if(r.Placa) map[c].placas.add(r.Placa);
+      if(r.Sigla) map[c].siglas.add(r.Sigla);
+      if(isComb(r)) map[c].comb+=r.Valor||0;
+      if(isManut(r)) map[c].manu+=r.Valor||0;
+      map[c].entries.push(r);
+    });
+    return Object.values(map).sort((a,b)=>b.total-a.total).map(r=>({...r,placas:r.placas.size,siglas:[...r.siglas]}));
+  }
+
+  /**
+   * _estimarAnual — projeta gasto anual com base nos últimos meses do dataset
+   * Usa média dos últimos 3 meses × 12 como estimativa
+   */
+  function _estimarAnual(byMes) {
+    if (!byMes.length) return 0;
+    const ultimos = byMes.slice(-3);
+    const media = ultimos.reduce((s,m)=>s+m.total,0) / ultimos.length;
+    return media * 12;
+  }
+
+  /** Classifica registros por tipo de contrato */
+  function _isProprio(r) { return /^pr[oó]prio$/i.test((r.Contrato||'').trim()); }
+  function _isIndefinido(r) { return /^indefinido$/i.test((r.Contrato||'').trim()); }
+  function _isLocado(r) { return !_isProprio(r) && !_isIndefinido(r) && (r.Contrato||'').trim()!=='' && (r.Contrato||'').trim()!=='--'; }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // WIZARD STATE
@@ -318,7 +353,7 @@ const Exportacao = (() => {
     anoFim: null, mesFim: null,
     secoes: {
       kpis: true, evolucao: true, secretaria: true,
-      analiseSec: true, analiseDesp: true,
+      analiseSec: true, analiseDesp: true, analiseLocacao: true,
       classificacao: false, ranking: true, detalhe: false, historico: false,
     },
     topN: '20',
@@ -540,6 +575,7 @@ const Exportacao = (() => {
       ['secretaria','Resumo por Secretaria','Gráfico horizontal + tabela comparativa com % de cada unidade no total.'],
       ['analiseSec','Análise por Secretaria','Cards das 5 principais unidades: KPIs, pizza de composição e top veículos.'],
       ['analiseDesp','Análise por Despesa','Seções separadas para Combustível e Manutenção com pizza, tendência e ranking.'],
+      ['analiseLocacao','Análise de Locação','Contratos, frota própria e indefinida: KPIs, evolução, estimativa anual e tabelas.'],
       ['classificacao','Por Classificação','Tabela de tipos de serviço com barras de proporção e participação no total.'],
       ['ranking','Ranking de Veículos','Top N veículos ordenados por gasto, com alerta para alta % de manutenção.'],
       ['detalhe','Detalhamento por Veículo','Card individual de cada veículo com barra de composição e tabela de registros.'],
@@ -1089,7 +1125,27 @@ tbody tr:nth-child(even){background:#f8f9fc;}
 .cor-blue .ponto-num{background:#185FA5;}
 .cor-green .ponto-num{background:#059669;}
 .ponto-texto{color:#374151;flex:1;}
-/* ─── Botão de impressão ─── */
+/* ─── Análise de Locação ─── */
+.loc-header{background:linear-gradient(135deg,#1a3a1a,#166534);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.loc-tipo-label{font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:rgba(255,255,255,.65);margin-bottom:4px;}
+.loc-titulo{font-size:14pt;font-weight:800;color:#fff;letter-spacing:-.3px;}
+.loc-total{font-size:13pt;font-weight:800;color:#fff;flex-shrink:0;font-variant-numeric:tabular-nums;}
+.loc-bloco{border-radius:10px;border:1.5px solid #e5e7eb;margin-bottom:24px;overflow:hidden;page-break-inside:avoid;}
+.loc-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.loc-kpi{background:#f8f9fc;border-radius:8px;padding:9px 11px;border:1px solid #e5e7eb;}
+.loc-kpi-label{font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.loc-kpi-val{font-size:10.5pt;font-weight:800;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.loc-kpi-val.verde{color:#166534;}.loc-kpi-val.cinza{color:#1a1f36;}.loc-kpi-val.laranja{color:#92400e;}
+.loc-body{padding:14px 16px;}
+.loc-contrato-card{border:1px solid #e5e7eb;border-left:4px solid #166534;border-radius:0 8px 8px 0;margin-bottom:12px;overflow:hidden;page-break-inside:avoid;}
+.loc-contrato-header{background:#f0fdf4;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.loc-contrato-cod{font-family:monospace;font-size:11pt;font-weight:800;color:#166534;background:#dcfce7;padding:3px 8px;border-radius:5px;white-space:nowrap;flex-shrink:0;}
+.loc-contrato-info{font-size:9pt;color:#374151;flex:1;min-width:0;}
+.loc-contrato-total{font-size:11pt;font-weight:800;color:#166534;flex-shrink:0;font-variant-numeric:tabular-nums;}
+.loc-contrato-body{padding:10px 14px;}
+.badge-proprio{font-size:8pt;font-weight:700;background:#dcfce7;color:#166534;padding:2px 7px;border-radius:10px;white-space:nowrap;}
+.badge-locado{font-size:8pt;font-weight:700;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:10px;white-space:nowrap;}
+.badge-indef{font-size:8pt;font-weight:700;background:#f1f5f9;color:#64748b;padding:2px 7px;border-radius:10px;white-space:nowrap;}
 .print-btn{position:fixed;top:16px;right:16px;background:#185FA5;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 4px 16px rgba(24,95,165,.3);z-index:99;}
 .print-btn:hover{background:#0c447c;}
 </style>
@@ -1176,12 +1232,13 @@ tbody tr:nth-child(even){background:#f8f9fc;}
   <div class="indice-item"><span class="indice-num">7.</span><span class="indice-nome">Resumo por Secretaria / Unidade</span><span class="indice-dots"></span></div>
   ${_wiz.secoes.analiseSec?`<div class="indice-item"><span class="indice-num">8.</span><span class="indice-nome">Análise Detalhada por Secretaria</span><span class="indice-dots"></span><span class="indice-tag">Top ${Math.min(5,bySigla.length)}</span></div>`:''}
   ${_wiz.secoes.analiseDesp?`<div class="indice-item"><span class="indice-num">9.</span><span class="indice-nome">Análise Detalhada por Tipo de Despesa</span><span class="indice-dots"></span><span class="indice-tag">Comb · Manut</span></div>`:''}
-  ${_wiz.secoes.classificacao?`<div class="indice-item"><span class="indice-num">10.</span><span class="indice-nome">Por Classificação de Serviço</span><span class="indice-dots"></span></div>`:''}
-  ${_wiz.secoes.ranking?`<div class="indice-item"><span class="indice-num">11.</span><span class="indice-nome">Ranking de Gastos por Veículo</span><span class="indice-dots"></span><span class="indice-tag">${_wiz.topN==='todos'?'Todos':'Top '+_wiz.topN}</span></div>`:''}
-  ${_wiz.secoes.detalhe?`<div class="indice-item"><span class="indice-num">12.</span><span class="indice-nome">Detalhamento Individual por Veículo</span><span class="indice-dots"></span></div>`:''}
+  ${_wiz.secoes.analiseLocacao?`<div class="indice-item"><span class="indice-num">10.</span><span class="indice-nome">Análise de Locação e Contratos</span><span class="indice-dots"></span><span class="indice-tag">Locado · Próprio · Indefinido</span></div>`:''}
+  ${_wiz.secoes.classificacao?`<div class="indice-item"><span class="indice-num">11.</span><span class="indice-nome">Por Classificação de Serviço</span><span class="indice-dots"></span></div>`:''}
+  ${_wiz.secoes.ranking?`<div class="indice-item"><span class="indice-num">12.</span><span class="indice-nome">Ranking de Gastos por Veículo</span><span class="indice-dots"></span><span class="indice-tag">${_wiz.topN==='todos'?'Todos':'Top '+_wiz.topN}</span></div>`:''}
+  ${_wiz.secoes.detalhe?`<div class="indice-item"><span class="indice-num">13.</span><span class="indice-nome">Detalhamento Individual por Veículo</span><span class="indice-dots"></span></div>`:''}
   <div class="indice-categoria">Observações e Referências</div>
-  <div class="indice-item"><span class="indice-num">13.</span><span class="indice-nome">Pontos de Atenção</span><span class="indice-dots"></span></div>
-  <div class="indice-item"><span class="indice-num">14.</span><span class="indice-nome">Glossário de Termos e Legenda de Cores</span><span class="indice-dots"></span></div>
+  <div class="indice-item"><span class="indice-num">14.</span><span class="indice-nome">Pontos de Atenção</span><span class="indice-dots"></span></div>
+  <div class="indice-item"><span class="indice-num">15.</span><span class="indice-nome">Glossário de Termos e Legenda de Cores</span><span class="indice-dots"></span></div>
 </div>
 
 <!-- ═══ INTRODUÇÃO + OBJETIVOS ═══ -->
@@ -1209,7 +1266,7 @@ tbody tr:nth-child(even){background:#f8f9fc;}
   </div>
 
   <div class="metod-box">
-    <strong>Nota metodológica:</strong> Os valores apresentados são brutos (empenhados), exceto onde indicado como "liquidado". Cada registro corresponde a um lançamento de cartão frota — abastecimento ou ordem de serviço — independente do número de parcelas. Veículos com Contrato = "PRÓPRIO" são unidades pertencentes ao patrimônio municipal; os demais possuem contrato de locação vigente. A coluna "Classificação" reflete o tipo de serviço ou insumo conforme registrado pelo prestador.
+    <strong>Nota metodológica:</strong> Os valores apresentados são brutos (empenhados), exceto onde indicado como "liquidado". Cada registro corresponde a um lançamento de cartão frota — abastecimento ou ordem de serviço — independente do número de parcelas. Veículos com Contrato = <strong>"PRÓPRIO"</strong> são unidades pertencentes ao patrimônio municipal sem contrato de locação. Contrato com código identificado (ex: CT-001) indica veículo locado. Contrato = <strong>"INDEFINIDO"</strong> indica máquinas cujo vínculo não foi possível determinar com certeza — tratadas como categoria separada nas análises. A coluna "Classificação" reflete o tipo de serviço ou insumo conforme registrado pelo prestador.
   </div>
 </div>
 
@@ -1601,6 +1658,218 @@ ${_wiz.secoes.analiseDesp ? `
     </div>`;
   })() : ''}
 </div>` : ''}
+
+<!-- ═══ ANÁLISE DE LOCAÇÃO E CONTRATOS ═══ -->
+${_wiz.secoes.analiseLocacao ? (() => {
+  // Separar registros por tipo de contrato
+  const locRecs   = data.filter(r=>_isLocado(r));
+  const propRecs  = data.filter(r=>_isProprio(r));
+  const indefRecs = data.filter(r=>_isIndefinido(r));
+
+  const totalLoc   = locRecs.reduce((s,r)=>s+(r.Valor||0),0);
+  const totalProp  = propRecs.reduce((s,r)=>s+(r.Valor||0),0);
+  const totalIndef = indefRecs.reduce((s,r)=>s+(r.Valor||0),0);
+
+  const placasLoc   = new Set(locRecs.map(r=>r.Placa).filter(Boolean)).size;
+  const placasProp  = new Set(propRecs.map(r=>r.Placa).filter(Boolean)).size;
+  const placasIndef = new Set(indefRecs.map(r=>r.Placa).filter(Boolean)).size;
+  const placasTotal = placasLoc + placasProp + placasIndef;
+
+  const byContrato = _aggByContrato(locRecs);
+  const locMes     = _aggByMes(locRecs);
+  const propMes    = _aggByMes(propRecs);
+  const estimAnual = _estimarAnual(locMes);
+
+  const locColors = ['#166534','#15803d','#16a34a','#22c55e','#4ade80','#86efac'];
+
+  // Pizza: gastos por tipo de frota
+  const pizzaFrota = buildSVGPie([
+    {label:'Locada',   value:totalLoc,   color:'#166534'},
+    {label:'Própria',  value:totalProp,  color:'#185FA5'},
+    {label:'Indefinida',value:totalIndef,color:'#9ca3af'},
+  ], {size:120, centerLabel:fmtBRLk(total), centerSub:'total', showLegend:true});
+
+  // Pizza: veículos por tipo
+  const pizzaVeic = buildSVGPie([
+    {label:`Locados (${placasLoc})`,    value:placasLoc,   color:'#166534'},
+    {label:`Próprios (${placasProp})`,  value:placasProp,  color:'#185FA5'},
+    {label:`Indefinidos (${placasIndef})`,value:placasIndef,color:'#9ca3af'},
+  ], {size:110, centerLabel:String(placasTotal), centerSub:'unidades', showLegend:true});
+
+  // Pizza de contratos ativos (top 6)
+  const pizzaContratos = byContrato.length>1 ? buildSVGPie(
+    byContrato.slice(0,6).map((c,i)=>({label:esc(c.contrato), value:c.total, color:locColors[i]||'#aaa'})),
+    {size:120, centerLabel:fmtBRLk(totalLoc), centerSub:'locação', showLegend:true}
+  ) : '';
+
+  return `<div class="secao page-break">
+  <div class="secao-header-wrap">
+    <div class="secao-header" style="background:#f0fdf4;border-left-color:#166534;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <span class="secao-header-titulo" style="color:#166534">Análise de Locação e Contratos</span>
+    </div>
+    <p class="secao-desc">Visão consolidada da frota por tipo de contrato: veículos locados (com contrato identificado), frota própria (patrimônio municipal) e máquinas com status indefinido. Inclui evolução mensal, estimativa anual e análise individual por contrato.</p>
+  </div>
+
+  <!-- Bloco principal: KPIs + Pizzas -->
+  <div class="loc-bloco">
+    <div class="loc-header">
+      <div><div class="loc-tipo-label">Visão geral</div><div class="loc-titulo">Composição da Frota por Contrato</div></div>
+      <div class="loc-total">${fmtBRL(total)}</div>
+    </div>
+    <div class="loc-body">
+      <div class="loc-kpi-row">
+        <div class="loc-kpi"><div class="loc-kpi-label">Frota locada</div><div class="loc-kpi-val verde">${fmtBRL(totalLoc)}</div><div style="font-size:7.5pt;color:#9ca3af">${placasLoc} veículo(s) · ${byContrato.length} contrato(s)</div></div>
+        <div class="loc-kpi"><div class="loc-kpi-label">Frota própria</div><div class="loc-kpi-val cinza">${fmtBRL(totalProp)}</div><div style="font-size:7.5pt;color:#9ca3af">${placasProp} veículo(s) PMRV</div></div>
+        <div class="loc-kpi"><div class="loc-kpi-label">Status indefinido</div><div class="loc-kpi-val cinza">${fmtBRL(totalIndef)}</div><div style="font-size:7.5pt;color:#9ca3af">${placasIndef} máquina(s)</div></div>
+        <div class="loc-kpi"><div class="loc-kpi-label">Estimativa anual locação</div><div class="loc-kpi-val laranja">${fmtBRL(estimAnual)}</div><div style="font-size:7.5pt;color:#9ca3af">base: média últ. 3 meses × 12</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:14px;">
+        <div>
+          <div style="font-size:8pt;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Gastos por tipo de frota</div>
+          ${pizzaFrota}
+        </div>
+        <div>
+          <div style="font-size:8pt;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Unidades por tipo de frota</div>
+          ${pizzaVeic}
+        </div>
+      </div>
+      ${locMes.length>0?`
+      <div style="font-size:8pt;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Evolução mensal — frota locada</div>
+      <div class="legenda-cores"><span class="leg-item"><span class="leg-dot" style="background:#166534"></span>Locação mensal</span><span class="leg-item"><span class="leg-line"></span>Média mensal</span></div>
+      ${buildSVGBar(locMes.map(m=>({label:fmtMes(m.mes).substring(0,3)+'/'+String(m.ano).slice(2),total:m.total})),{showValues:locMes.length<=14,colorA:'#166534'})}
+      <table style="font-size:8.5pt;margin-top:10px">
+        <thead><tr><th>Mês / Ano</th><th class="tr">Locação</th><th class="tr">Combustível</th><th class="tr">Manutenção</th><th class="tr">Registros</th><th class="tr">Var.%</th></tr></thead>
+        <tbody>${locMes.map((m,i)=>{const prev=i>0?locMes[i-1]:null;const vp=prev&&prev.total>0?((m.total-prev.total)/prev.total*100):null;return `<tr><td><strong>${esc(m.label)}</strong></td><td class="tr" style="color:#166534;font-weight:700">${fmtBRL(m.total)}</td><td class="tr">${fmtBRL(m.comb)}</td><td class="tr manut">${fmtBRL(m.manu)}</td><td class="tr small">${m.qtde}</td><td class="tr">${vp!==null?`<span style="color:${vp>=0?'#dc2626':'#059669'}">${vp>=0?'▲ +':'▼ '}${vp.toFixed(1).replace('.',',')}%</span>`:'—'}</td></tr>`;}).join('')}</tbody>
+        <tfoot><tr class="tr-total"><td><strong>TOTAL LOCAÇÃO</strong></td><td class="tr" style="color:#166534">${fmtBRL(totalLoc)}</td><td class="tr">${fmtBRL(locRecs.filter(isComb).reduce((s,r)=>s+r.Valor,0))}</td><td class="tr">${fmtBRL(locRecs.filter(isManut).reduce((s,r)=>s+r.Valor,0))}</td><td class="tr small">${locRecs.length}</td><td class="tr">—</td></tr></tfoot>
+      </table>
+      <p class="nota">Estimativa anual = média dos últimos 3 meses × 12 = ${fmtBRL(estimAnual)}</p>`:''}
+    </div>
+  </div>
+
+  <!-- Tabela resumo de contratos -->
+  ${byContrato.length>0?`
+  <div style="margin-bottom:20px;">
+    <div style="display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;margin-bottom:12px;">
+      <div>
+        <div style="font-size:8pt;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Contratos de locação identificados</div>
+        <p style="font-size:9pt;color:#374151;">${byContrato.length} contrato(s) ativo(s) no período, com ${placasLoc} veículo(s) locado(s) ao total.</p>
+      </div>
+      <div>${pizzaContratos}</div>
+    </div>
+    <table>
+      <thead><tr><th>Contrato</th><th class="tr">Veículos</th><th class="tr">Registros</th><th class="tr">Total</th><th class="tr">Combustível</th><th class="tr">Manutenção</th><th>% da Locação</th><th class="tr">Est. Anual</th></tr></thead>
+      <tbody>
+        ${byContrato.map(c=>{
+          const pct=totalLoc>0?(c.total/totalLoc*100):0;
+          const cMes=_aggByMes(c.entries);
+          const estAnual=_estimarAnual(cMes);
+          return `<tr>
+            <td><span class="loc-contrato-cod" style="font-size:9pt;padding:2px 7px">${esc(c.contrato)}</span></td>
+            <td class="tr small">${c.placas}</td>
+            <td class="tr small">${c.qtde}</td>
+            <td class="tr" style="font-weight:700;color:#166534">${fmtBRL(c.total)}</td>
+            <td class="tr">${fmtBRL(c.comb)}</td>
+            <td class="tr manut">${fmtBRL(c.manu)}</td>
+            <td style="min-width:100px"><div class="pct-bar-wrap"><div class="pct-bar-track"><div class="pct-bar-fill" style="width:${Math.min(100,pct).toFixed(1)}%;background:#166534"></div></div><span class="pct-label">${pct.toFixed(1).replace('.',',')}%</span></div></td>
+            <td class="tr small">${fmtBRLk(estAnual)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+      <tfoot><tr class="tr-total"><td><strong>TOTAL LOCAÇÃO</strong></td><td class="tr small">${placasLoc}</td><td class="tr small">${locRecs.length}</td><td class="tr" style="color:#166534">${fmtBRL(totalLoc)}</td><td class="tr">${fmtBRL(locRecs.filter(isComb).reduce((s,r)=>s+r.Valor,0))}</td><td class="tr">${fmtBRL(locRecs.filter(isManut).reduce((s,r)=>s+r.Valor,0))}</td><td></td><td class="tr small">${fmtBRLk(estimAnual)}</td></tr></tfoot>
+    </table>
+  </div>`:''}
+
+  <!-- Cards por contrato -->
+  ${byContrato.slice(0, _wiz.nivel==='executivo'?3:byContrato.length).map(c=>{
+    const cRecs  = c.entries;
+    const cPlacas= _aggByPlaca(cRecs);
+    const cMes   = _aggByMes(cRecs);
+    const cEst   = _estimarAnual(cMes);
+    const cPctC  = c.total>0?(c.comb/c.total*100):0;
+    const cPie   = buildSVGPie([
+      {label:'Combustível',value:c.comb,color:'#185FA5'},
+      {label:'Manutenção', value:c.manu,color:'#D85A30'},
+    ],{size:100,centerLabel:fmtBRLk(c.total),centerSub:'total',showLegend:true});
+    return `<div class="loc-contrato-card avoid-break">
+      <div class="loc-contrato-header">
+        <span class="loc-contrato-cod">${esc(c.contrato)}</span>
+        <span class="loc-contrato-info">${c.placas} veículo(s) · ${c.siglas.map(s=>esc(s)).join(', ')||'–'}</span>
+        <span class="loc-contrato-total">${fmtBRL(c.total)}</span>
+      </div>
+      <div class="loc-contrato-body">
+        <div class="loc-kpi-row" style="margin-bottom:10px">
+          <div class="loc-kpi"><div class="loc-kpi-label">Combustível</div><div class="loc-kpi-val cinza">${fmtBRL(c.comb)}</div><div style="font-size:7.5pt;color:#9ca3af">${cPctC.toFixed(1).replace('.',',')}%</div></div>
+          <div class="loc-kpi"><div class="loc-kpi-label">Manutenção</div><div class="loc-kpi-val laranja">${fmtBRL(c.manu)}</div><div style="font-size:7.5pt;color:#9ca3af">${(100-cPctC).toFixed(1).replace('.',',')}%</div></div>
+          <div class="loc-kpi"><div class="loc-kpi-label">Média mensal</div><div class="loc-kpi-val verde">${fmtBRL(cMes.length>0?c.total/cMes.length:0)}</div></div>
+          <div class="loc-kpi"><div class="loc-kpi-label">Est. anual</div><div class="loc-kpi-val laranja">${fmtBRL(cEst)}</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start">
+          <div>${cPie}</div>
+          <div>
+            <div style="font-size:8pt;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Veículos neste contrato</div>
+            <table style="font-size:8.5pt">
+              <thead><tr><th>#</th><th>Placa</th><th>Modelo</th><th>Tipo</th><th>Unidade</th><th class="tr">Total</th><th>Evolução</th></tr></thead>
+              <tbody>${cPlacas.map((v,vi)=>{const mv=_aggByMes(v.entries).map(m=>m.total);return `<tr><td class="small" style="color:#9ca3af">${vi+1}</td><td><strong style="color:#166534;font-family:monospace">${esc(v.placa)}</strong></td><td style="max-width:100px;overflow:hidden;text-overflow:ellipsis">${esc(v.modelo)}</td><td><span class="${(v.tipo||'').toLowerCase().startsWith('m')?'badge-m':'badge-v'}">${(v.tipo||'').toLowerCase().startsWith('m')?'Máquina':'Veículo'}</span></td><td style="font-size:8pt;color:#6b7280">${v.siglas.slice(0,2).map(s=>esc(s)).join(', ')}</td><td class="tr" style="font-weight:700">${fmtBRL(v.total)}</td><td>${buildSVGSparkline(mv)}</td></tr>`;}).join('')}</tbody>
+            </table>
+          </div>
+        </div>
+        ${cMes.length>1?`<div style="margin-top:10px;font-size:8pt;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Evolução mensal — ${esc(c.contrato)}</div>${buildSVGBar(cMes.map(m=>({label:fmtMes(m.mes).substring(0,3)+'/'+String(m.ano).slice(2),total:m.total})),{height:140,showValues:cMes.length<=12,colorA:'#166534'})}`:'' }
+      </div>
+    </div>`;
+  }).join('')}
+  ${_wiz.nivel==='executivo'&&byContrato.length>3?`<p class="nota">Modo executivo: exibindo os 3 principais contratos. Use nível "Completo" para ver todos os ${byContrato.length} contratos.</p>`:''}
+
+  <!-- Frota Própria -->
+  ${propRecs.length>0?`
+  <div class="loc-bloco" style="border-color:#dbeafe">
+    <div style="background:linear-gradient(135deg,#0c3d70,#185FA5);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div><div style="font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:rgba(255,255,255,.65);margin-bottom:4px">Patrimônio municipal</div><div style="font-size:14pt;font-weight:800;color:#fff">Frota Própria PMRV</div></div>
+      <div style="font-size:13pt;font-weight:800;color:#fff">${fmtBRL(totalProp)}</div>
+    </div>
+    <div class="loc-body">
+      <div class="loc-kpi-row">
+        <div class="loc-kpi"><div class="loc-kpi-label">Total despesas</div><div class="loc-kpi-val cinza">${fmtBRL(totalProp)}</div></div>
+        <div class="loc-kpi"><div class="loc-kpi-label">Combustível</div><div class="loc-kpi-val cinza">${fmtBRL(propRecs.filter(isComb).reduce((s,r)=>s+r.Valor,0))}</div></div>
+        <div class="loc-kpi"><div class="loc-kpi-label">Manutenção</div><div class="loc-kpi-val laranja">${fmtBRL(propRecs.filter(isManut).reduce((s,r)=>s+r.Valor,0))}</div></div>
+        <div class="loc-kpi"><div class="loc-kpi-label">Unidades próprias</div><div class="loc-kpi-val cinza">${placasProp} veículos</div></div>
+      </div>
+      <div style="font-size:8pt;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Top 10 veículos — frota própria</div>
+      <table style="font-size:8.5pt">
+        <thead><tr><th>#</th><th>Placa</th><th>Modelo</th><th>Tipo</th><th>Unidade(s)</th><th class="tr">Total</th><th class="tr">Combustível</th><th class="tr">Manutenção</th><th>Evolução</th></tr></thead>
+        <tbody>${_aggByPlaca(propRecs).slice(0,10).map((v,vi)=>{const mv=_aggByMes(v.entries).map(m=>m.total);const isMaq=(v.tipo||'').toLowerCase().startsWith('m');return `<tr><td class="small" style="color:#9ca3af">${vi+1}</td><td><strong style="color:#185FA5;font-family:monospace">${esc(v.placa)}</strong></td><td style="max-width:100px;overflow:hidden;text-overflow:ellipsis">${esc(v.modelo)}</td><td><span class="${isMaq?'badge-m':'badge-v'}">${isMaq?'Máquina':'Veículo'}</span></td><td style="font-size:8pt;color:#6b7280">${v.siglas.slice(0,2).map(s=>esc(s)).join(', ')}</td><td class="tr" style="font-weight:700">${fmtBRL(v.total)}</td><td class="tr">${fmtBRL(v.comb)}</td><td class="tr manut">${fmtBRL(v.manu)}</td><td>${buildSVGSparkline(mv)}</td></tr>`;}).join('')}</tbody>
+      </table>
+    </div>
+  </div>`:''}
+
+  <!-- INDEFINIDO -->
+  ${indefRecs.length>0?`
+  <div class="loc-bloco" style="border-color:#e2e8f0">
+    <div style="background:linear-gradient(135deg,#374151,#6b7280);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div><div style="font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:rgba(255,255,255,.65);margin-bottom:4px">Vínculo não identificado</div><div style="font-size:14pt;font-weight:800;color:#fff">Máquinas com Status INDEFINIDO</div></div>
+      <div style="font-size:13pt;font-weight:800;color:#fff">${fmtBRL(totalIndef)}</div>
+    </div>
+    <div class="loc-body">
+      <div class="callout callout-amber" style="margin-bottom:12px">
+        <svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span class="callout-text">Estas <strong>${placasIndef} máquina(s)</strong> estão registradas com contrato = "INDEFINIDO" pois não foi possível determinar com certeza se são patrimônio próprio ou equipamentos locados. Recomenda-se regularização no sistema de gestão de frota para correta classificação contábil e patrimonial.</span>
+      </div>
+      <div class="loc-kpi-row">
+        <div class="loc-kpi"><div class="loc-kpi-label">Total despesas</div><div class="loc-kpi-val cinza">${fmtBRL(totalIndef)}</div></div>
+        <div class="loc-kpi"><div class="loc-kpi-label">Combustível</div><div class="loc-kpi-val cinza">${fmtBRL(indefRecs.filter(isComb).reduce((s,r)=>s+r.Valor,0))}</div></div>
+        <div class="loc-kpi"><div class="loc-kpi-label">Manutenção</div><div class="loc-kpi-val laranja">${fmtBRL(indefRecs.filter(isManut).reduce((s,r)=>s+r.Valor,0))}</div></div>
+        <div class="loc-kpi"><div class="loc-kpi-label">Máquinas indefinidas</div><div class="loc-kpi-val cinza">${placasIndef} unidade(s)</div></div>
+      </div>
+      <table style="font-size:8.5pt">
+        <thead><tr><th>#</th><th>Placa</th><th>Modelo</th><th>Tipo</th><th>Unidade(s)</th><th class="tr">Total</th><th class="tr">Combustível</th><th class="tr">Manutenção</th></tr></thead>
+        <tbody>${_aggByPlaca(indefRecs).map((v,vi)=>{const isMaq=(v.tipo||'').toLowerCase().startsWith('m');return `<tr><td class="small" style="color:#9ca3af">${vi+1}</td><td><strong style="color:#6b7280;font-family:monospace">${esc(v.placa)}</strong></td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis">${esc(v.modelo)}</td><td><span class="${isMaq?'badge-m':'badge-v'}">${isMaq?'Máquina':'Veículo'}</span></td><td style="font-size:8pt;color:#6b7280">${v.siglas.slice(0,2).map(s=>esc(s)).join(', ')}</td><td class="tr">${fmtBRL(v.total)}</td><td class="tr">${fmtBRL(v.comb)}</td><td class="tr manut">${fmtBRL(v.manu)}</td></tr>`;}).join('')}</tbody>
+        <tfoot><tr class="tr-total"><td colspan="5"><strong>TOTAL INDEFINIDO</strong></td><td class="tr">${fmtBRL(totalIndef)}</td><td class="tr">${fmtBRL(indefRecs.filter(isComb).reduce((s,r)=>s+r.Valor,0))}</td><td class="tr">${fmtBRL(indefRecs.filter(isManut).reduce((s,r)=>s+r.Valor,0))}</td></tr></tfoot>
+      </table>
+      <p class="nota">Status INDEFINIDO = não foi possível identificar se a máquina é própria ou locada. Recomenda-se verificação junto à área de patrimônio e contratos.</p>
+    </div>
+  </div>`:''}
+</div>`;
+})() : ''}
 
 <!-- ═══ POR CLASSIFICAÇÃO ═══ -->
 ${_wiz.secoes.classificacao && byClassif.length ? `

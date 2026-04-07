@@ -1,6 +1,34 @@
 # Changelog
 
-## v3.3.0 — Capa, Índice, Introdução, Análise por Secretaria e por Despesa — 2026-04-07
+## v3.4.0 — Análise de Locação e Contratos — 2026-04-07
+
+### Adicionado
+- **`_aggByContrato(records)`** — nova função de agregação que agrupa registros por código de contrato: total, combustível, manutenção, qtde, placas únicas, siglas, entries
+- **`_estimarAnual(byMes)`** — projeta gasto anual usando média dos últimos 3 meses × 12
+- **`_isProprio(r)`** / **`_isLocado(r)`** / **`_isIndefinido(r)`** — classificadores de vínculo contratual por registro
+- **Seção "Análise de Locação e Contratos"** (`analiseLocacao: true`) com:
+  - 4 KPIs gerais: total locado, total próprio, total indefinido, estimativa anual da locação
+  - 2 pizzas lado a lado: gastos por tipo de frota (locado/próprio/indefinido) e unidades por tipo
+  - Evolução mensal da frota locada com gráfico de barras + tabela de variação
+  - Tabela resumo de contratos: código, veículos, registros, total, comb, manut, % da locação, estimativa anual
+  - Pizza de distribuição entre contratos (top 6)
+  - Cards individuais por contrato (top 3 em modo executivo, todos em modo completo): KPIs, pizza comb/manut, lista de veículos com sparkline, evolução mensal
+  - Bloco "Frota Própria PMRV": KPIs + tabela top-10 veículos com sparkline
+  - Bloco "Máquinas INDEFINIDO": callout de alerta explicativo + tabela completa de máquinas com vínculo não identificado
+- **`_aggByPlaca`** — campo `contrato` adicionado ao mapa de agregação
+- **CSS** — novos seletores: `.loc-*` (15 seletores), `.badge-proprio`, `.badge-locado`, `.badge-indef`
+- **Nota metodológica** — atualizada para explicar os três status (PRÓPRIO, código de contrato, INDEFINIDO)
+- **Índice** — entrada 10 adicionada para a seção de Locação; demais numerações ajustadas (11–15)
+- **Wizard Step 3** — nova opção `analiseLocacao` com descrição clara
+- **Memória registrada**: máquinas com status INDEFINIDO não tiveram seu vínculo identificado e são tratadas como categoria separada nas análises
+
+### Corrigido
+- Verificação de sintaxe confirmada via `node --check`: ✅ zero erros
+
+### Documentação
+- `changelog.md` atualizado
+
+
 
 ### Adicionado
 - **`buildSVGPie()`** — nova função SVG de pizza/donut multi-fatias com legenda lateral inline, reutilizável em qualquer seção; parâmetros: slices[], size, centerLabel, centerSub, showLegend
