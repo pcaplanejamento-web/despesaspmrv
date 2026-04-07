@@ -1,6 +1,27 @@
 # Changelog
 
-## v3.2.0 — Relatórios: Liquidado, Pontos de Atenção, Como Interpretar — 2026-04-07
+## v3.3.0 — Capa, Índice, Introdução, Análise por Secretaria e por Despesa — 2026-04-07
+
+### Adicionado
+- **`buildSVGPie()`** — nova função SVG de pizza/donut multi-fatias com legenda lateral inline, reutilizável em qualquer seção; parâmetros: slices[], size, centerLabel, centerSub, showLegend
+- **Capa redesenhada** — faixa em gradiente azul escuro com logo, título, subtítulo + período; 3 cards de destaque (Total, Combustível, Manutenção); meta-grid 3×2; caixa de aviso metodológico; rodapé institucional
+- **Índice / Sumário** — página separada com 14 seções numeradas, linha pontilhada decorativa, tags de contexto (Top N, Comb · Manut), categorias separadoras
+- **Introdução e Contexto** — bloco com 2 parágrafos de contextualização com dados reais do período (registros, veículos, unidades, totais)
+- **Objetivos do Relatório** — 6 objetivos numerados com bullets coloridos
+- **Nota metodológica** — explicação sobre Valor vs Liquidado, veículos PRÓPRIO vs locados, coluna Classificação
+- **Análise Detalhada por Secretaria** (seção `analiseSec`) — cards individuais das top-5 unidades, cada um com: 4 KPIs (Combustível, Manutenção, Ticket médio, Liquidado estimado), pizza de composição via `buildSVGPie`, tabela top-5 veículos da unidade
+- **Análise Detalhada por Despesa: Combustível** (seção `analiseDesp`) — 4 KPIs (total, liquidado, registros, ticket médio), callout do mês de pico, pizza de classificações, tabela top-8 veículos com mini-barra %, evolução mensal isolada com tabela de variação
+- **Análise Detalhada por Despesa: Manutenção** (seção `analiseDesp`) — 4 KPIs (total, liquidado, registros, veículos com alta manutenção), callout de alerta, pizza de tipos de manutenção, tabela top-8 com ⚠ alert, evolução mensal isolada
+
+### Alterado
+- **Wizard state** — adicionados `analiseSec: true` e `analiseDesp: true` ao objeto `_wiz.secoes`
+- **`_buildStep3()`** — adicionadas as 2 novas seções com descrições claras; total de 9 opções de seção
+- **CSS do relatório** — removida a `.capa` simples; adicionados: `.capa-band`, `.capa-band-top`, `.capa-logo-row`, `.capa-badge`, `.capa-stats-grid`, `.capa-stat-card`, `.capa-body`, `.capa-aviso`, `.indice-*` (8 seletores), `.intro-sec`, `.obj-*` (5 seletores), `.metod-box`, `.asec-*` (8 seletores), `.adesp-*` (10 seletores)
+
+### Documentação
+- `changelog.md` atualizado
+
+
 
 ### Corrigido
 - **Liquidado**: corrigida a definição em toda a documentação — Combustível: 5,01% de desconto; Manutenção: 4,32% de desconto. Ambas as categorias possuem desconto de liquidação (anteriormente estava incorreto: "Manutenção não possui liquidado")
