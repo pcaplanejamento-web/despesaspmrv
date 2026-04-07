@@ -1,6 +1,29 @@
 # Changelog
 
-## v3.4.0 — Análise de Locação e Contratos — 2026-04-07
+## v3.5.0 — Índice de Siglas, Resumo por Secretaria com Locação, Análise Detalhada Expandida — 2026-04-07
+
+### Adicionado
+- **Página "Índice de Siglas"** — aparece após o Sumário; grid 2 colunas com todas as 34 siglas do dicionário + quaisquer siglas extras presentes nos dados; exibe código monospace (azul) + nome por extenso; siglas não mapeadas marcadas como "Unidade não catalogada"; entrada adicionada ao Sumário como item 1
+- **CSS** — `.siglas-page`, `.siglas-header`, `.siglas-pre`, `.siglas-titulo`, `.siglas-sub`, `.siglas-grid`, `.sigla-item`, `.sigla-cod`, `.sigla-nome`, `.siglas-nota`
+
+### Alterado
+- **Resumo por Secretaria** — coluna "Secretaria / Fundo" removida; adicionadas colunas: `Locação`, `Veíc. Próprios`, `Veíc. Locados`; rodapé ajustado (colspan 2→1); nota de rodapé explicando critérios de locação
+- **Análise Detalhada por Secretaria** — expandida de top-5 para **top-10** unidades; para cada card:
+  - KPI adicional de Locação (quando houver veículos locados na unidade): valor, %, nº de veículos — grid 5 colunas dinâmico (4 sem locação, 5 com)
+  - Pizza de composição agora inclui 3 fatias: Combustível / Manutenção / Locação
+  - Gráfico de evolução mensal por unidade (barras empilhadas Comb/Manut) com legenda de cores
+  - Tabela "Top 10 veículos — Combustível" com coluna Contrato (badge Próprio/Locado/Indefinido) + sparkline de evolução
+  - Tabela "Top 10 veículos — Manutenção" com mesma estrutura + mini-barra de %
+  - Tabela "Veículos locados" exibida apenas quando a unidade tiver registros locados: placa, modelo, contrato, total, comb, manut, sparkline
+- **Sumário** — numeração reajustada (1–16); tag do item Análise Detalhada atualizada para "Top 10"
+
+### Verificação
+- `node --check`: ✅ zero erros de sintaxe
+
+### Documentação
+- `changelog.md` atualizado
+
+
 
 ### Adicionado
 - **`_aggByContrato(records)`** — nova função de agregação que agrupa registros por código de contrato: total, combustível, manutenção, qtde, placas únicas, siglas, entries
