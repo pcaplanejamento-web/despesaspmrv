@@ -216,8 +216,40 @@ const Exportacao = (() => {
     return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg"><polyline points="${pts}" fill="none" stroke="#185FA5" stroke-width="1.5" stroke-linejoin="round"/><circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="2.5" fill="#185FA5"/></svg>`;
   }
 
+  /**
+   * buildSVGPie — pizza / donut multi-fatias com legenda lateral
+   * @param {Array<{label,value,color}>} slices
+   * @param {{ size, centerLabel, centerSub, showLegend }} opts
+   */
+  function buildSVGPie(slices, opts={}) {
+    const active = slices.filter(s=>s.value>0);
+    if (!active.length) return '';
+    const total = active.reduce((s,sl)=>s+sl.value,0);
+    const size = opts.size||160;
+    const cx=size/2, cy=size/2, r=size*0.42, ri=size*0.26;
+    let angle = -Math.PI/2;
+    const paths = active.map(sl=>{
+      const pct = sl.value/total;
+      const sa = angle, ea = angle + pct*2*Math.PI;
+      angle = ea;
+      if (pct>=0.9999) return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${sl.color}"/><circle cx="${cx}" cy="${cy}" r="${ri}" fill="#fff"/>`;
+      const x1=(cx+r*Math.cos(sa)).toFixed(2), y1=(cy+r*Math.sin(sa)).toFixed(2);
+      const x2=(cx+r*Math.cos(ea)).toFixed(2), y2=(cy+r*Math.sin(ea)).toFixed(2);
+      const xi1=(cx+ri*Math.cos(sa)).toFixed(2), yi1=(cy+ri*Math.sin(sa)).toFixed(2);
+      const xi2=(cx+ri*Math.cos(ea)).toFixed(2), yi2=(cy+ri*Math.sin(ea)).toFixed(2);
+      const lg = pct>0.5?1:0;
+      return `<path d="M ${x1} ${y1} A ${r} ${r} 0 ${lg} 1 ${x2} ${y2} L ${xi2} ${yi2} A ${ri} ${ri} 0 ${lg} 0 ${xi1} ${yi1} Z" fill="${sl.color}"/>`;
+    }).join('');
+    const cl = opts.centerLabel||'';
+    const cs = opts.centerSub||'';
+    const centerTxt = cl ? `<text x="${cx}" y="${cy-(cs?4:0)}" text-anchor="middle" font-size="${size*0.09}" font-weight="700" fill="#1a1f36">${esc(cl)}</text>${cs?`<text x="${cx}" y="${cy+size*0.085}" text-anchor="middle" font-size="${size*0.065}" fill="#6b7280">${esc(cs)}</text>`:''}`:'';
+    const svgStr = `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">${paths}${centerTxt}</svg>`;
+    if (!opts.showLegend) return svgStr;
+    const legItems = active.map(sl=>`<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;min-width:0"><span style="width:10px;height:10px;border-radius:2px;background:${sl.color};flex-shrink:0"></span><span style="font-size:8pt;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(sl.label)}</span><span style="margin-left:auto;font-size:8pt;font-weight:700;color:#1a1f36;white-space:nowrap;padding-left:6px">${((sl.value/total)*100).toFixed(1).replace('.',',')}%</span></div>`).join('');
+    return `<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">${svgStr}<div style="flex:1;min-width:100px">${legItems}</div></div>`;
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
-  // AGGREGATION HELPERS
   // ═══════════════════════════════════════════════════════════════════════════
 
   function _aggByMes(records) {
@@ -276,16 +308,17 @@ const Exportacao = (() => {
 
   let _wiz = {
     step: 1,
-    escopo: 'geral',          // 'geral'|'secretaria'|'frota'|'classificacao'
+    escopo: 'geral',
     secretarias: [],
     placasSel: [],
     classificacoesSel: [],
     despesas: ['comb','manut'],
-    periodoTipo: 'todos',     // 'todos'|'personalizado'
+    periodoTipo: 'todos',
     anoInicio: null, mesInicio: null,
     anoFim: null, mesFim: null,
     secoes: {
       kpis: true, evolucao: true, secretaria: true,
+      analiseSec: true, analiseDesp: true,
       classificacao: false, ranking: true, detalhe: false, historico: false,
     },
     topN: '20',
@@ -504,12 +537,46 @@ const Exportacao = (() => {
     const secoes = [
       ['kpis','Indicadores Gerais','Totais, proporções (%), ticket médio e mês de pico — visão numérica rápida do período.'],
       ['evolucao','Evolução Mensal','Gráfico de barras mês a mês + tabela com variação percentual entre períodos.'],
-      ['secretaria','Por Secretaria / Unidade','Gráfico horizontal + tabela comparativa com % de cada unidade no total.'],
+      ['secretaria','Resumo por Secretaria','Gráfico horizontal + tabela comparativa com % de cada unidade no total.'],
+      ['analiseSec','Análise por Secretaria','Cards das 5 principais unidades: KPIs, pizza de composição e top veículos.'],
+      ['analiseDesp','Análise por Despesa','Seções separadas para Combustível e Manutenção com pizza, tendência e ranking.'],
       ['classificacao','Por Classificação','Tabela de tipos de serviço com barras de proporção e participação no total.'],
       ['ranking','Ranking de Veículos','Top N veículos ordenados por gasto, com alerta para alta % de manutenção.'],
       ['detalhe','Detalhamento por Veículo','Card individual de cada veículo com barra de composição e tabela de registros.'],
       ['historico','Histórico de Secretarias','Trajetória do veículo entre secretarias ao longo do período (requer Detalhamento).'],
     ];
+    return `<div class="wiz-pane" id="wizPane3" style="display:none">
+      <div class="wiz-section-title">Seções do relatório</div>
+      <div class="wiz-secoes-grid">
+        ${secoes.map(([k,l,s])=>`<label class="wiz-secao-card ${_wiz.secoes[k]?'wiz-secao-active':''}">
+          <input type="checkbox" name="wiz-secao" value="${k}" ${_wiz.secoes[k]?'checked':''}/>
+          <div class="wiz-secao-label">${l}</div>
+          <div class="wiz-secao-sub">${s}</div>
+        </label>`).join('')}
+      </div>
+
+      <div style="display:flex;gap:24px;margin-top:18px;flex-wrap:wrap">
+        <div>
+          <div class="wiz-section-title" style="margin-bottom:8px">Top N veículos (ranking)</div>
+          <select class="wiz-select" id="wizTopN">
+            ${['10','20','50','100','todos'].map(v=>`<option value="${v}" ${_wiz.topN===v?'selected':''}>${v==='todos'?'Todos os veículos':'Top '+v}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <div class="wiz-section-title" style="margin-bottom:8px">Nível de detalhe</div>
+          <div style="display:flex;gap:8px">
+            ${[['executivo','Executivo'],['completo','Completo']].map(([v,l])=>`<label class="wiz-check-inline"><input type="radio" name="wiz-nivel" value="${v}" ${_wiz.nivel===v?'checked':''}/> <span>${l}</span></label>`).join('')}
+          </div>
+        </div>
+        <div>
+          <div class="wiz-section-title" style="margin-bottom:8px">Orientação</div>
+          <div style="display:flex;gap:8px">
+            ${[['retrato','Retrato'],['paisagem','Paisagem']].map(([v,l])=>`<label class="wiz-check-inline"><input type="radio" name="wiz-orientacao" value="${v}" ${_wiz.orientacao===v?'checked':''}/> <span>${l}</span></label>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
     return `<div class="wiz-pane" id="wizPane3" style="display:none">
       <div class="wiz-section-title">Seções do relatório</div>
       <div class="wiz-secoes-grid">
@@ -855,21 +922,81 @@ const Exportacao = (() => {
   body{print-color-adjust:exact;-webkit-print-color-adjust:exact;}
 }
 body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:11pt;color:#1a1f36;background:#fff;line-height:1.55;}
-/* ─── Capa ─── */
-.capa{min-height:97vh;display:flex;flex-direction:column;justify-content:space-between;border-top:6px solid #185FA5;padding:48px;}
-.capa-header{display:flex;align-items:center;gap:14px;margin-bottom:48px;}
-.capa-logo-box{width:48px;height:48px;background:#185FA5;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+/* ─── Capa redesenhada ─── */
+.capa{min-height:97vh;display:flex;flex-direction:column;background:#fff;}
+.capa-band{background:linear-gradient(135deg,#0c3d70 0%,#185FA5 55%,#2176c7 100%);padding:42px 48px 36px;color:#fff;}
+.capa-band-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:44px;flex-wrap:wrap;gap:12px;}
+.capa-logo-row{display:flex;align-items:center;gap:14px;}
+.capa-logo-box{width:46px;height:46px;background:rgba(255,255,255,.18);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(255,255,255,.28);}
 .capa-logo-box svg{stroke:#fff;}
-.capa-logo-nome{font-size:18px;font-weight:700;color:#185FA5;letter-spacing:-.2px;}
-.capa-logo-sub{font-size:11px;color:#6b7280;}
-.capa-title{font-size:28pt;font-weight:800;color:#1a1f36;letter-spacing:-.5px;line-height:1.1;margin-bottom:12px;}
-.capa-subtitle{font-size:13pt;color:#6b7280;margin-bottom:36px;}
-.capa-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;margin-bottom:36px;}
+.capa-logo-nome{font-size:17px;font-weight:700;color:#fff;letter-spacing:-.2px;}
+.capa-logo-sub{font-size:10px;color:rgba(255,255,255,.68);letter-spacing:.1px;}
+.capa-badge{font-size:8.5pt;font-weight:700;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:#fff;padding:5px 14px;border-radius:20px;white-space:nowrap;}
+.capa-title{font-size:28pt;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1.08;margin-bottom:10px;}
+.capa-subtitle{font-size:12.5pt;color:rgba(255,255,255,.78);margin-bottom:30px;}
+.capa-stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.capa-stat-card{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:14px 16px;}
+.capa-stat-label{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:rgba(255,255,255,.60);margin-bottom:5px;}
+.capa-stat-val{font-size:15pt;font-weight:800;color:#fff;letter-spacing:-.3px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.capa-stat-sub{font-size:7.5pt;color:rgba(255,255,255,.50);margin-top:3px;}
+.capa-body{flex:1;padding:30px 48px;display:flex;flex-direction:column;gap:20px;}
+.capa-meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 24px;padding:18px 20px;background:#f8f9fc;border-radius:10px;border:1px solid #e5e7eb;}
 .capa-meta-item{display:flex;flex-direction:column;gap:3px;}
-.capa-meta-label{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;}
-.capa-meta-val{font-size:11pt;font-weight:600;color:#1a1f36;}
-.capa-divider{height:1px;background:#e5e7eb;margin:24px 0;}
-.capa-footer{font-size:9pt;color:#9ca3af;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+.capa-meta-label{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;}
+.capa-meta-val{font-size:10pt;font-weight:600;color:#1a1f36;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.capa-aviso{font-size:8.5pt;color:#6b7280;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;line-height:1.5;}
+.capa-footer{padding:18px 48px;font-size:8.5pt;color:#9ca3af;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;border-top:1px solid #f1f5f9;}
+/* ─── Índice ─── */
+.indice-page{min-height:97vh;padding:52px;display:flex;flex-direction:column;border-top:4px solid #185FA5;}
+.indice-header{margin-bottom:32px;}
+.indice-pre{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#185FA5;margin-bottom:6px;}
+.indice-titulo{font-size:24pt;font-weight:800;color:#1a1f36;letter-spacing:-.4px;}
+.indice-categoria{font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:#9ca3af;margin:16px 0 4px;padding-left:30px;}
+.indice-item{display:flex;align-items:baseline;padding:7px 0;border-bottom:1px solid #f8f9fc;}
+.indice-item:last-child{border-bottom:none;}
+.indice-num{font-size:9pt;font-weight:800;color:#185FA5;min-width:30px;flex-shrink:0;}
+.indice-nome{font-size:10pt;color:#374151;font-weight:500;}
+.indice-dots{flex:1;border-bottom:1.5px dotted #d1d5db;margin:0 10px;min-width:20px;align-self:center;}
+.indice-tag{font-size:7.5pt;font-weight:700;background:#e8eeff;color:#185FA5;padding:2px 7px;border-radius:8px;margin-right:8px;white-space:nowrap;}
+/* ─── Introdução + Objetivos ─── */
+.intro-sec{padding:40px 48px;border-top:3px solid #185FA5;}
+.intro-pre{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#185FA5;margin-bottom:8px;}
+.intro-titulo{font-size:20pt;font-weight:800;color:#1a1f36;letter-spacing:-.3px;margin-bottom:18px;}
+.intro-corpo{font-size:10.5pt;color:#374151;line-height:1.72;margin-bottom:22px;}
+.obj-bloco-titulo{font-size:9pt;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#185FA5;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.obj-list{display:flex;flex-direction:column;gap:8px;margin-bottom:22px;}
+.obj-item{display:flex;gap:10px;align-items:flex-start;}
+.obj-bullet{width:22px;height:22px;border-radius:6px;background:#185FA5;color:#fff;display:flex;align-items:center;justify-content:center;font-size:8pt;font-weight:800;flex-shrink:0;margin-top:1px;}
+.obj-texto{font-size:10pt;color:#374151;line-height:1.5;}
+.metod-box{background:#f0f5ff;border-left:4px solid #185FA5;border-radius:0 8px 8px 0;padding:14px 18px;font-size:9pt;color:#374151;line-height:1.6;}
+/* ─── Análise Detalhada por Secretaria ─── */
+.asec-card{border:1.5px solid #e5e7eb;border-radius:10px;margin-bottom:18px;overflow:hidden;page-break-inside:avoid;}
+.asec-header{background:linear-gradient(135deg,#0f3a6e,#185FA5);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.asec-sigla{font-family:monospace;font-size:13pt;font-weight:800;color:#fff;background:rgba(255,255,255,.18);padding:3px 10px;border-radius:6px;flex-shrink:0;border:1px solid rgba(255,255,255,.25);}
+.asec-nome{font-size:9pt;font-weight:500;color:rgba(255,255,255,.88);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 8px;}
+.asec-total{font-size:12.5pt;font-weight:800;color:#fff;flex-shrink:0;font-variant-numeric:tabular-nums;}
+.asec-body{padding:14px 16px;}
+.asec-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.asec-kpi{background:#f8f9fc;border-radius:8px;padding:9px 11px;border:1px solid #e5e7eb;}
+.asec-kpi-label{font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.asec-kpi-val{font-size:10.5pt;font-weight:800;color:#185FA5;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.asec-kpi-val.manut{color:#D85A30;}.asec-kpi-val.neutral{color:#1a1f36;}
+.asec-charts-row{display:grid;grid-template-columns:auto 1fr;gap:16px;margin-bottom:14px;align-items:start;}
+/* ─── Análise Detalhada por Despesa ─── */
+.adesp-bloco{border-radius:10px;border:1.5px solid #e5e7eb;margin-bottom:24px;overflow:hidden;page-break-inside:avoid;}
+.adesp-header{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.adesp-header.comb{background:linear-gradient(135deg,#0c3d70,#185FA5);}
+.adesp-header.manut{background:linear-gradient(135deg,#7c2d0a,#D85A30);}
+.adesp-tipo-label{font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:rgba(255,255,255,.65);margin-bottom:4px;}
+.adesp-titulo{font-size:14pt;font-weight:800;color:#fff;letter-spacing:-.3px;}
+.adesp-total{font-size:13pt;font-weight:800;color:#fff;flex-shrink:0;font-variant-numeric:tabular-nums;}
+.adesp-body{padding:14px 16px;}
+.adesp-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.adesp-kpi{background:#f8f9fc;border-radius:8px;padding:9px 11px;border:1px solid #e5e7eb;}
+.adesp-kpi-label{font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.adesp-kpi-val{font-size:10.5pt;font-weight:800;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.adesp-kpi-val.comb{color:#185FA5;}.adesp-kpi-val.manut{color:#D85A30;}.adesp-kpi-val.neutral{color:#1a1f36;}
+.adesp-charts-row{display:grid;grid-template-columns:auto 1fr;gap:16px;margin-bottom:14px;align-items:start;}
 /* ─── Resumo Executivo ─── */
 .exec-box{background:linear-gradient(135deg,#f0f5ff 0%,#fafbff 100%);border:1.5px solid #c7d7f8;border-radius:12px;padding:22px 26px;margin-bottom:28px;}
 .exec-titulo{font-size:10pt;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#185FA5;margin-bottom:14px;display:flex;align-items:center;gap:7px;}
@@ -1008,37 +1135,113 @@ tbody tr:nth-child(even){background:#f8f9fc;}
 
 <!-- ═══ CAPA ═══ -->
 <div class="capa">
-  <div>
-    <div class="capa-header">
-      <div class="capa-logo-box">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round">
-          <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
-          <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-        </svg>
+  <div class="capa-band">
+    <div class="capa-band-top">
+      <div class="capa-logo-row">
+        <div class="capa-logo-box">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round">
+            <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+            <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+          </svg>
+        </div>
+        <div>
+          <div class="capa-logo-nome">Gastos RV</div>
+          <div class="capa-logo-sub">Sistema de Análise de Despesas de Frota</div>
+        </div>
       </div>
-      <div>
-        <div class="capa-logo-nome">Gastos RV</div>
-        <div class="capa-logo-sub">Prefeitura Municipal de Rio Verde — PMRV</div>
-      </div>
+      <span class="capa-badge">Prefeitura Municipal de Rio Verde — GO</span>
     </div>
-    <h1 class="capa-title">Relatório de Despesas de Frota</h1>
-    <p class="capa-subtitle">${esc(despTexto)}</p>
-    <div class="capa-divider"></div>
-    <div class="capa-meta-grid">
-      <div class="capa-meta-item"><span class="capa-meta-label">Escopo</span><span class="capa-meta-val">${esc(escopoTexto)}</span></div>
-      <div class="capa-meta-item"><span class="capa-meta-label">Período</span><span class="capa-meta-val">${esc(periodoTexto)}</span></div>
-      <div class="capa-meta-item"><span class="capa-meta-label">Registros analisados</span><span class="capa-meta-val">${qtde.toLocaleString('pt-BR')}</span></div>
-      <div class="capa-meta-item"><span class="capa-meta-label">Veículos / Máquinas</span><span class="capa-meta-val">${placasN.toLocaleString('pt-BR')}</span></div>
-      <div class="capa-meta-item"><span class="capa-meta-label">Total de despesas</span><span class="capa-meta-val">${fmtBRL(total)}</span></div>
-      <div class="capa-meta-item"><span class="capa-meta-label">Nível</span><span class="capa-meta-val" style="text-transform:capitalize">${esc(_wiz.nivel)}</span></div>
+    <h1 class="capa-title">Relatório de<br>Despesas de Frota</h1>
+    <p class="capa-subtitle">${esc(despTexto)} · ${esc(periodoTexto)}</p>
+    <div class="capa-stats-grid">
+      <div class="capa-stat-card">
+        <div class="capa-stat-label">Total de despesas</div>
+        <div class="capa-stat-val">${fmtBRL(total)}</div>
+        <div class="capa-stat-sub">${qtde.toLocaleString('pt-BR')} registros</div>
+      </div>
+      <div class="capa-stat-card">
+        <div class="capa-stat-label">Combustível</div>
+        <div class="capa-stat-val">${fmtBRL(totalC)}</div>
+        <div class="capa-stat-sub">${pctComb.toFixed(1).replace('.',',')}% do total</div>
+      </div>
+      <div class="capa-stat-card">
+        <div class="capa-stat-label">Manutenção</div>
+        <div class="capa-stat-val">${fmtBRL(totalM)}</div>
+        <div class="capa-stat-sub">${pctManut.toFixed(1).replace('.',',')}% do total</div>
+      </div>
     </div>
   </div>
-  <div>
-    <div class="capa-divider"></div>
-    <div class="capa-footer">
-      <span>Gastos RV v${CONFIG.VERSAO||'1.x'} — Sistema de Análise de Despesas de Frota</span>
-      <span>Emitido em ${dtStr} às ${dtHora}</span>
+  <div class="capa-body">
+    <div class="capa-meta-grid">
+      <div class="capa-meta-item"><span class="capa-meta-label">Escopo</span><span class="capa-meta-val" title="${esc(escopoTexto)}">${esc(escopoTexto)}</span></div>
+      <div class="capa-meta-item"><span class="capa-meta-label">Período de referência</span><span class="capa-meta-val">${esc(periodoTexto)}</span></div>
+      <div class="capa-meta-item"><span class="capa-meta-label">Veículos / Máquinas</span><span class="capa-meta-val">${placasN.toLocaleString('pt-BR')} unidades ativas</span></div>
+      <div class="capa-meta-item"><span class="capa-meta-label">Unidades envolvidas</span><span class="capa-meta-val">${bySigla.length} secretarias / fundos</span></div>
+      <div class="capa-meta-item"><span class="capa-meta-label">Total liquidado</span><span class="capa-meta-val">${fmtBRL(totalLiquidado)}</span></div>
+      <div class="capa-meta-item"><span class="capa-meta-label">Nível do relatório</span><span class="capa-meta-val" style="text-transform:capitalize">${esc(_wiz.nivel)}</span></div>
     </div>
+    <div class="capa-aviso">
+      <strong>Documento de uso administrativo interno.</strong> Os valores de Combustível consideram desconto de liquidação de 5,01% e os de Manutenção, 4,32%. Dados extraídos do cartão frota municipal — consolidados na planilha GERAL.
+    </div>
+  </div>
+  <div class="capa-footer">
+    <span>Gastos RV v${CONFIG.VERSAO||'1.x'} — Prefeitura Municipal de Rio Verde</span>
+    <span>Emitido em ${dtStr} às ${dtHora}</span>
+  </div>
+</div>
+
+<!-- ═══ ÍNDICE ═══ -->
+<div class="indice-page page-break">
+  <div class="indice-header">
+    <div class="indice-pre">Gastos RV · Relatório de Frota</div>
+    <div class="indice-titulo">Sumário</div>
+  </div>
+  <div class="indice-categoria">Contextualização</div>
+  <div class="indice-item"><span class="indice-num">1.</span><span class="indice-nome">Introdução e Contexto</span><span class="indice-dots"></span></div>
+  <div class="indice-item"><span class="indice-num">2.</span><span class="indice-nome">Objetivos do Relatório</span><span class="indice-dots"></span></div>
+  <div class="indice-item"><span class="indice-num">3.</span><span class="indice-nome">Como Interpretar este Relatório</span><span class="indice-dots"></span></div>
+  <div class="indice-categoria">Visão Geral</div>
+  <div class="indice-item"><span class="indice-num">4.</span><span class="indice-nome">Resumo Executivo — Principais Achados</span><span class="indice-dots"></span></div>
+  <div class="indice-item"><span class="indice-num">5.</span><span class="indice-nome">Indicadores Gerais (KPIs)</span><span class="indice-dots"></span></div>
+  <div class="indice-item"><span class="indice-num">6.</span><span class="indice-nome">Evolução Mensal de Despesas</span><span class="indice-dots"></span></div>
+  <div class="indice-categoria">Análises Detalhadas</div>
+  <div class="indice-item"><span class="indice-num">7.</span><span class="indice-nome">Resumo por Secretaria / Unidade</span><span class="indice-dots"></span></div>
+  ${_wiz.secoes.analiseSec?`<div class="indice-item"><span class="indice-num">8.</span><span class="indice-nome">Análise Detalhada por Secretaria</span><span class="indice-dots"></span><span class="indice-tag">Top ${Math.min(5,bySigla.length)}</span></div>`:''}
+  ${_wiz.secoes.analiseDesp?`<div class="indice-item"><span class="indice-num">9.</span><span class="indice-nome">Análise Detalhada por Tipo de Despesa</span><span class="indice-dots"></span><span class="indice-tag">Comb · Manut</span></div>`:''}
+  ${_wiz.secoes.classificacao?`<div class="indice-item"><span class="indice-num">10.</span><span class="indice-nome">Por Classificação de Serviço</span><span class="indice-dots"></span></div>`:''}
+  ${_wiz.secoes.ranking?`<div class="indice-item"><span class="indice-num">11.</span><span class="indice-nome">Ranking de Gastos por Veículo</span><span class="indice-dots"></span><span class="indice-tag">${_wiz.topN==='todos'?'Todos':'Top '+_wiz.topN}</span></div>`:''}
+  ${_wiz.secoes.detalhe?`<div class="indice-item"><span class="indice-num">12.</span><span class="indice-nome">Detalhamento Individual por Veículo</span><span class="indice-dots"></span></div>`:''}
+  <div class="indice-categoria">Observações e Referências</div>
+  <div class="indice-item"><span class="indice-num">13.</span><span class="indice-nome">Pontos de Atenção</span><span class="indice-dots"></span></div>
+  <div class="indice-item"><span class="indice-num">14.</span><span class="indice-nome">Glossário de Termos e Legenda de Cores</span><span class="indice-dots"></span></div>
+</div>
+
+<!-- ═══ INTRODUÇÃO + OBJETIVOS ═══ -->
+<div class="intro-sec page-break">
+  <div class="intro-pre">Seção 1 — Contextualização</div>
+  <div class="intro-titulo">Introdução e Contexto</div>
+  <div class="intro-corpo">
+    Este relatório consolida as despesas realizadas com a frota de veículos e máquinas da Prefeitura Municipal de Rio Verde (GO), abrangendo todas as secretarias, fundos municipais e unidades administrativas que utilizam o cartão frota municipal. Os dados são extraídos mensalmente do sistema de gestão de frotas e consolidados na planilha GERAL, que reúne informações de abastecimento e manutenção de todo o patrimônio móvel municipal.
+  </div>
+  <div class="intro-corpo">
+    O período analisado compreende <strong>${esc(periodoTexto)}</strong>, com escopo definido como <em>${esc(escopoTexto)}</em>. Foram identificados <strong>${qtde.toLocaleString('pt-BR')} registros</strong> envolvendo <strong>${placasN} veículos e/ou máquinas</strong> distribuídos entre <strong>${bySigla.length} unidades</strong> da administração municipal. O total de despesas no período foi de <strong>${fmtBRL(total)}</strong>, sendo ${fmtBRL(totalC)} em Combustível e ${fmtBRL(totalM)} em Manutenção.
+  </div>
+
+  <div class="obj-bloco-titulo">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Seção 2 — Objetivos do Relatório
+  </div>
+  <div class="obj-list">
+    <div class="obj-item"><span class="obj-bullet">1</span><span class="obj-texto">Apresentar de forma consolidada e transparente o total de despesas com frota municipal no período, discriminando Combustível e Manutenção por unidade e por veículo.</span></div>
+    <div class="obj-item"><span class="obj-bullet">2</span><span class="obj-texto">Identificar as secretarias e fundos com maior volume de gastos, permitindo comparação objetiva entre as unidades e identificação de concentrações ou desequilíbrios.</span></div>
+    <div class="obj-item"><span class="obj-bullet">3</span><span class="obj-texto">Analisar a evolução mensal das despesas, sinalizando variações expressivas e tendências que mereçam acompanhamento pela gestão municipal.</span></div>
+    <div class="obj-item"><span class="obj-bullet">4</span><span class="obj-texto">Detalhar o perfil de cada tipo de despesa (Combustível e Manutenção), identificando os principais veículos, classificações de serviço e padrões de consumo.</span></div>
+    <div class="obj-item"><span class="obj-bullet">5</span><span class="obj-texto">Apresentar os valores liquidados após a aplicação dos descontos contratuais (5,01% Combustível · 4,32% Manutenção) e a economia gerada no período.</span></div>
+    <div class="obj-item"><span class="obj-bullet">6</span><span class="obj-texto">Subsidiar decisões de gestão, planejamento e controle interno com dados estruturados, indicadores visuais e pontos de atenção gerados automaticamente.</span></div>
+  </div>
+
+  <div class="metod-box">
+    <strong>Nota metodológica:</strong> Os valores apresentados são brutos (empenhados), exceto onde indicado como "liquidado". Cada registro corresponde a um lançamento de cartão frota — abastecimento ou ordem de serviço — independente do número de parcelas. Veículos com Contrato = "PRÓPRIO" são unidades pertencentes ao patrimônio municipal; os demais possuem contrato de locação vigente. A coluna "Classificação" reflete o tipo de serviço ou insumo conforme registrado pelo prestador.
   </div>
 </div>
 
@@ -1233,6 +1436,202 @@ ${_wiz.secoes.secretaria && bySigla.length ? `
     </tbody>
     <tfoot><tr class="tr-total"><td colspan="2"><strong>TOTAL GERAL</strong></td><td class="tr">${fmtBRL(total)}</td><td><span class="pct-label">100%</span></td><td class="tr">${fmtBRL(totalC)}</td><td class="tr">${fmtBRL(totalM)}</td><td class="tr small">${placasN}</td></tr></tfoot>
   </table>
+</div>` : ''}
+
+<!-- ═══ ANÁLISE DETALHADA POR SECRETARIA ═══ -->
+${_wiz.secoes.analiseSec && bySigla.length ? `
+<div class="secao page-break">
+  <div class="secao-header-wrap">
+    <div class="secao-header">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span class="secao-header-titulo">Análise Detalhada por Secretaria / Unidade</span>
+    </div>
+    <p class="secao-desc">Perfil individual das ${Math.min(5,bySigla.length)} unidades com maior volume de despesas no período. Cada card apresenta indicadores-chave, composição das despesas em gráfico de pizza e os 5 veículos de maior gasto da unidade.</p>
+  </div>
+  ${bySigla.slice(0,5).map((s,si)=>{
+    const sRec = data.filter(r=>r.Sigla===s.sigla);
+    const sMes = _aggByMes(sRec);
+    const sPlacas = _aggByPlaca(sRec);
+    const sPctComb = s.total>0?(s.comb/s.total*100):0;
+    const sPctManut = s.total>0?(s.manu/s.total*100):0;
+    const sTicket = s.placas>0?s.total/s.placas:0;
+    const sLiqC = s.comb*(1-0.0501), sLiqM = s.manu*(1-0.0432);
+    const sPie = buildSVGPie([
+      {label:'Combustível',value:s.comb,color:'#185FA5'},
+      {label:'Manutenção',value:s.manu,color:'#D85A30'}
+    ],{size:110,centerLabel:fmtBRLk(s.total),centerSub:'total',showLegend:true});
+    return `<div class="asec-card">
+      <div class="asec-header">
+        <span class="asec-sigla">${esc(s.sigla)}</span>
+        <span class="asec-nome">${esc(siglaLabel(s.sigla).split('—')[1]?.trim()||siglaLabel(s.sigla))}</span>
+        <span class="asec-total">${fmtBRL(s.total)}</span>
+      </div>
+      <div class="asec-body">
+        <div class="asec-kpi-row">
+          <div class="asec-kpi"><div class="asec-kpi-label">Combustível</div><div class="asec-kpi-val">${fmtBRL(s.comb)}</div><div style="font-size:7.5pt;color:#9ca3af">${sPctComb.toFixed(1).replace('.',',')}%</div></div>
+          <div class="asec-kpi"><div class="asec-kpi-label">Manutenção</div><div class="asec-kpi-val manut">${fmtBRL(s.manu)}</div><div style="font-size:7.5pt;color:#9ca3af">${sPctManut.toFixed(1).replace('.',',')}%</div></div>
+          <div class="asec-kpi"><div class="asec-kpi-label">Ticket médio</div><div class="asec-kpi-val neutral">${fmtBRL(sTicket)}</div><div style="font-size:7.5pt;color:#9ca3af">por veículo</div></div>
+          <div class="asec-kpi"><div class="asec-kpi-label">Liquidado est.</div><div class="asec-kpi-val neutral">${fmtBRL(sLiqC+sLiqM)}</div><div style="font-size:7.5pt;color:#9ca3af">${s.qtde} registros</div></div>
+        </div>
+        <div class="asec-charts-row">
+          <div>${sPie}</div>
+          <div>
+            <div style="font-size:8pt;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Top 5 veículos — ${esc(s.sigla)}</div>
+            <table style="font-size:8.5pt">
+              <thead><tr><th>#</th><th>Placa</th><th>Modelo</th><th class="tr">Total</th><th class="tr">Comb.</th><th class="tr">Manut.</th></tr></thead>
+              <tbody>
+                ${sPlacas.slice(0,5).map((v,vi)=>`<tr>
+                  <td class="small" style="color:#9ca3af">${vi+1}</td>
+                  <td><strong style="color:#185FA5;font-family:monospace">${esc(v.placa)}</strong></td>
+                  <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis">${esc(v.modelo)}</td>
+                  <td class="tr">${fmtBRL(v.total)}</td>
+                  <td class="tr">${fmtBRL(v.comb)}</td>
+                  <td class="tr manut">${fmtBRL(v.manu)}</td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('')}
+</div>` : ''}
+
+<!-- ═══ ANÁLISE DETALHADA POR DESPESA ═══ -->
+${_wiz.secoes.analiseDesp ? `
+<div class="secao page-break">
+  <div class="secao-header-wrap">
+    <div class="secao-header">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      <span class="secao-header-titulo">Análise Detalhada por Tipo de Despesa</span>
+    </div>
+    <p class="secao-desc">Perfil individual de cada categoria de despesa: indicadores, composição por classificação de serviço em gráfico de pizza, evolução mensal e ranking dos principais veículos.</p>
+  </div>
+
+  ${totalC>0 ? (() => {
+    const combRecs = data.filter(isComb);
+    const combMes  = _aggByMes(combRecs);
+    const combPlacas = _aggByPlaca(combRecs);
+    const combClassif = _aggByClassif(combRecs);
+    const combAvg = combMes.length>0 ? totalC/combMes.length : 0;
+    const combMaiorMes = combMes.length>0 ? combMes.reduce((a,b)=>b.total>a.total?b:a) : null;
+    const combTicket = placasN>0 ? totalC/placasN : 0;
+    const combColors = ['#185FA5','#2176c7','#3a8ddb','#5ba4e7','#7dbaf0','#9fcff7'];
+    const combPie = buildSVGPie(
+      combClassif.slice(0,6).map((c,i)=>({label:c.label,value:c.total,color:combColors[i]||'#aaa'})),
+      {size:120, centerLabel:fmtBRLk(totalC), centerSub:'Combustível', showLegend:true}
+    );
+    return `<div class="adesp-bloco">
+      <div class="adesp-header comb">
+        <div><div class="adesp-tipo-label">Tipo de despesa</div><div class="adesp-titulo">Combustível</div></div>
+        <div class="adesp-total">${fmtBRL(totalC)}</div>
+      </div>
+      <div class="adesp-body">
+        <div class="adesp-kpi-row">
+          <div class="adesp-kpi"><div class="adesp-kpi-label">Total empenhado</div><div class="adesp-kpi-val comb">${fmtBRL(totalC)}</div></div>
+          <div class="adesp-kpi"><div class="adesp-kpi-label">Total liquidado</div><div class="adesp-kpi-val neutral">${fmtBRL(totalC*(1-0.0501))}</div></div>
+          <div class="adesp-kpi"><div class="adesp-kpi-label">Registros</div><div class="adesp-kpi-val neutral">${combRecs.length.toLocaleString('pt-BR')}</div></div>
+          <div class="adesp-kpi"><div class="adesp-kpi-label">Ticket médio/veíc.</div><div class="adesp-kpi-val comb">${fmtBRL(combTicket)}</div></div>
+        </div>
+        ${combMaiorMes?`<div class="callout callout-blue" style="margin-bottom:12px"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span class="callout-text">Maior mês de abastecimento: <strong>${esc(combMaiorMes.label)}</strong> com ${fmtBRL(combMaiorMes.total)} (${combMes.length>0?((combMaiorMes.total/combAvg-1)*100).toFixed(0)+'% acima':'—'} da média de ${fmtBRL(combAvg)}). Desconto contratual de 5,01% aplicado sobre todos os lançamentos.</span></div>`:''}
+        <div class="adesp-charts-row">
+          <div>
+            <div style="font-size:8pt;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Classificações de combustível</div>
+            ${combPie}
+          </div>
+          <div>
+            <div style="font-size:8pt;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Top 8 veículos — Combustível</div>
+            <table style="font-size:8.5pt">
+              <thead><tr><th>#</th><th>Placa</th><th>Modelo</th><th>Unidade</th><th class="tr">Combustível</th><th class="tr">% do total</th></tr></thead>
+              <tbody>
+                ${combPlacas.slice(0,8).map((v,vi)=>`<tr>
+                  <td class="small" style="color:#9ca3af">${vi+1}</td>
+                  <td><strong style="color:#185FA5;font-family:monospace">${esc(v.placa)}</strong></td>
+                  <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis">${esc(v.modelo)}</td>
+                  <td style="font-size:8pt;color:#6b7280">${v.siglas.slice(0,2).map(s=>esc(s)).join(', ')}</td>
+                  <td class="tr">${fmtBRL(v.comb)}</td>
+                  <td style="min-width:80px"><div class="pct-bar-wrap"><div class="pct-bar-track"><div class="pct-bar-fill" style="width:${Math.min(100,totalC>0?v.comb/totalC*100:0).toFixed(1)}%"></div></div><span class="pct-label">${totalC>0?(v.comb/totalC*100).toFixed(1).replace('.',','):'0,0'}%</span></div></td>
+                </tr>`).join('')}
+              </tbody>
+              <tfoot><tr class="tr-total"><td colspan="4"><strong>TOTAL COMBUSTÍVEL</strong></td><td class="tr">${fmtBRL(totalC)}</td><td><span class="pct-label">100%</span></td></tr></tfoot>
+            </table>
+            <p class="nota">* Liquidado Combustível = Valor × (1 − 5,01%). Valor liquidado total: ${fmtBRL(totalC*(1-0.0501))}</p>
+          </div>
+        </div>
+        ${combMes.length>1?`<div style="font-size:8pt;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Evolução mensal — Combustível</div>
+        <div class="legenda-cores"><span class="leg-item"><span class="leg-dot" style="background:#185FA5"></span>Combustível mensal</span><span class="leg-item"><span class="leg-line"></span>Média mensal</span></div>
+        ${buildSVGBar(combMes.map(m=>({label:fmtMes(m.mes).substring(0,3)+'/'+String(m.ano).slice(2),total:m.comb||m.total})),{showValues:combMes.length<=14,colorA:'#185FA5'})}
+        <table style="font-size:8.5pt;margin-top:10px">
+          <thead><tr><th>Mês</th><th class="tr">Combustível</th><th class="tr">Liquidado</th><th class="tr">Registros</th><th class="tr">Var.%</th></tr></thead>
+          <tbody>${combMes.map((m,i)=>{const prev=i>0?combMes[i-1]:null;const vp=prev&&prev.total>0?((m.total-prev.total)/prev.total*100):null;return `<tr><td><strong>${esc(m.label)}</strong></td><td class="tr">${fmtBRL(m.total)}</td><td class="tr">${fmtBRL(m.total*(1-0.0501))}</td><td class="tr small">${m.qtde}</td><td class="tr">${vp!==null?`<span style="color:${vp>=0?'#dc2626':'#059669'}">${vp>=0?'▲ +':'▼ '}${vp.toFixed(1).replace('.',',')}%</span>`:'—'}</td></tr>`;}).join('')}</tbody>
+          <tfoot><tr class="tr-total"><td><strong>TOTAL</strong></td><td class="tr">${fmtBRL(totalC)}</td><td class="tr">${fmtBRL(totalC*(1-0.0501))}</td><td class="tr small">${combRecs.length}</td><td class="tr">—</td></tr></tfoot>
+        </table>`:''}
+      </div>
+    </div>`;
+  })() : ''}
+
+  ${totalM>0 ? (() => {
+    const mRecs = data.filter(isManut);
+    const mMes  = _aggByMes(mRecs);
+    const mPlacas = _aggByPlaca(mRecs);
+    const mClassif = _aggByClassif(mRecs);
+    const mAvg = mMes.length>0 ? totalM/mMes.length : 0;
+    const mMaiorMes = mMes.length>0 ? mMes.reduce((a,b)=>b.total>a.total?b:a) : null;
+    const mTicket = placasN>0 ? totalM/placasN : 0;
+    const mAltaManut = mPlacas.filter(v=>{const orig=byPlaca.find(x=>x.placa===v.placa);return orig&&orig.total>0&&(orig.manu/orig.total)>0.7;});
+    const mColors = ['#D85A30','#e07048','#e88060','#f09078','#f8a090','#ffb0a0'];
+    const mPie = buildSVGPie(
+      mClassif.slice(0,6).map((c,i)=>({label:c.label,value:c.total,color:mColors[i]||'#aaa'})),
+      {size:120, centerLabel:fmtBRLk(totalM), centerSub:'Manutenção', showLegend:true}
+    );
+    return `<div class="adesp-bloco">
+      <div class="adesp-header manut">
+        <div><div class="adesp-tipo-label">Tipo de despesa</div><div class="adesp-titulo">Manutenção</div></div>
+        <div class="adesp-total">${fmtBRL(totalM)}</div>
+      </div>
+      <div class="adesp-body">
+        <div class="adesp-kpi-row">
+          <div class="adesp-kpi"><div class="adesp-kpi-label">Total empenhado</div><div class="adesp-kpi-val manut">${fmtBRL(totalM)}</div></div>
+          <div class="adesp-kpi"><div class="adesp-kpi-label">Total liquidado</div><div class="adesp-kpi-val neutral">${fmtBRL(totalM*(1-0.0432))}</div></div>
+          <div class="adesp-kpi"><div class="adesp-kpi-label">Registros</div><div class="adesp-kpi-val neutral">${mRecs.length.toLocaleString('pt-BR')}</div></div>
+          <div class="adesp-kpi"><div class="adesp-kpi-label">Veíc. c/ alta manut.</div><div class="adesp-kpi-val manut">${mAltaManut.length} veículo(s)</div></div>
+        </div>
+        ${mMaiorMes?`<div class="callout callout-amber" style="margin-bottom:12px"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span class="callout-text">Maior mês de manutenção: <strong>${esc(mMaiorMes.label)}</strong> com ${fmtBRL(mMaiorMes.total)}. ${mAltaManut.length>0?`<strong>${mAltaManut.length} veículo(s)</strong> com mais de 70% das despesas em manutenção merecem avaliação prioritária.`:''} Desconto contratual de 4,32% aplicado.</span></div>`:''}
+        <div class="adesp-charts-row">
+          <div>
+            <div style="font-size:8pt;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Tipos de manutenção</div>
+            ${mPie}
+          </div>
+          <div>
+            <div style="font-size:8pt;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Top 8 veículos — Manutenção</div>
+            <table style="font-size:8.5pt">
+              <thead><tr><th>#</th><th>Placa</th><th>Modelo</th><th>Unidade</th><th class="tr">Manutenção</th><th class="tr">% total</th></tr></thead>
+              <tbody>
+                ${mPlacas.slice(0,8).map((v,vi)=>{const isAlert=mAltaManut.some(a=>a.placa===v.placa);return `<tr${isAlert?' style="background:#fff8f6"':''}>
+                  <td class="small" style="color:#9ca3af">${vi+1}</td>
+                  <td><strong style="color:#D85A30;font-family:monospace">${esc(v.placa)}</strong>${isAlert?' <span style="font-size:7.5pt;color:#c2410c">⚠</span>':''}</td>
+                  <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis">${esc(v.modelo)}</td>
+                  <td style="font-size:8pt;color:#6b7280">${v.siglas.slice(0,2).map(s=>esc(s)).join(', ')}</td>
+                  <td class="tr manut">${fmtBRL(v.manu)}</td>
+                  <td style="min-width:80px"><div class="pct-bar-wrap"><div class="pct-bar-track"><div class="pct-bar-fill" style="width:${Math.min(100,totalM>0?v.manu/totalM*100:0).toFixed(1)}%;background:#D85A30"></div></div><span class="pct-label">${totalM>0?(v.manu/totalM*100).toFixed(1).replace('.',','):'0,0'}%</span></div></td>
+                </tr>`;}).join('')}
+              </tbody>
+              <tfoot><tr class="tr-total"><td colspan="4"><strong>TOTAL MANUTENÇÃO</strong></td><td class="tr">${fmtBRL(totalM)}</td><td><span class="pct-label">100%</span></td></tr></tfoot>
+            </table>
+            <p class="nota">⚠ = veículo com >70% dos gastos em manutenção · Liquidado = Valor × (1 − 4,32%) = ${fmtBRL(totalM*(1-0.0432))}</p>
+          </div>
+        </div>
+        ${mMes.length>1?`<div style="font-size:8pt;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Evolução mensal — Manutenção</div>
+        <div class="legenda-cores"><span class="leg-item"><span class="leg-dot" style="background:#D85A30"></span>Manutenção mensal</span><span class="leg-item"><span class="leg-line"></span>Média mensal</span></div>
+        ${buildSVGBar(mMes.map(m=>({label:fmtMes(m.mes).substring(0,3)+'/'+String(m.ano).slice(2),total:m.manu||m.total})),{showValues:mMes.length<=14,colorA:'#D85A30'})}
+        <table style="font-size:8.5pt;margin-top:10px">
+          <thead><tr><th>Mês</th><th class="tr">Manutenção</th><th class="tr">Liquidado</th><th class="tr">Registros</th><th class="tr">Var.%</th></tr></thead>
+          <tbody>${mMes.map((m,i)=>{const prev=i>0?mMes[i-1]:null;const vp=prev&&prev.total>0?((m.total-prev.total)/prev.total*100):null;return `<tr><td><strong>${esc(m.label)}</strong></td><td class="tr manut">${fmtBRL(m.total)}</td><td class="tr">${fmtBRL(m.total*(1-0.0432))}</td><td class="tr small">${m.qtde}</td><td class="tr">${vp!==null?`<span style="color:${vp>=0?'#dc2626':'#059669'}">${vp>=0?'▲ +':'▼ '}${vp.toFixed(1).replace('.',',')}%</span>`:'—'}</td></tr>`;}).join('')}</tbody>
+          <tfoot><tr class="tr-total"><td><strong>TOTAL</strong></td><td class="tr">${fmtBRL(totalM)}</td><td class="tr">${fmtBRL(totalM*(1-0.0432))}</td><td class="tr small">${mRecs.length}</td><td class="tr">—</td></tr></tfoot>
+        </table>`:''}
+      </div>
+    </div>`;
+  })() : ''}
 </div>` : ''}
 
 <!-- ═══ POR CLASSIFICAÇÃO ═══ -->
