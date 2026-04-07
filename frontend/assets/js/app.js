@@ -375,46 +375,110 @@ const App = (() => {
     _toastTimer=setTimeout(()=>{toast.classList.remove('show');_toastTimer=null;},dur);
   }
 
-  // ── Loading Banner ────────────────────────────────────────────────────────
-  const STEPS=['lbStep1','lbStep2','lbStep3','lbStep4'];
-  const STEP_LABELS=['Conectando ao Apps Script...','Lendo planilha GERAL...','Normalizando registros...','Renderizando painel...'];
-  let _sIdx=0,_sTimer=null;
+  // ── Loading Overlay — progresso real por etapa ────────────────────────────
+  let _lbTimer = null;
+
+  function _lbEl(id) { return document.getElementById(id); }
+
+  function _lbSetProgress(pct, statusMsg) {
+    const fill = _lbEl('lbProgressFill');
+    const pctEl = _lbEl('lbProgressPct');
+    const wrap  = _lbEl('lbProgressWrap');
+    const p = Math.max(0, Math.min(100, Math.round(pct)));
+    if (fill) { fill.classList.remove('lb-indeterminate'); fill.style.width = p + '%'; }
+    if (pctEl) pctEl.textContent = p + '%';
+    if (wrap)  wrap.setAttribute('aria-valuenow', p);
+    if (statusMsg) { const el = _lbEl('lbStatus'); if (el) el.textContent = statusMsg; }
+  }
+
+  function _lbStepActive(n) {
+    [1,2,3,4].forEach(i => {
+      const el = _lbEl('lbStep' + i);
+      if (!el) return;
+      el.classList.remove('lb-active','lb-done');
+      if (i < n)  el.classList.add('lb-done');
+      if (i === n) el.classList.add('lb-active');
+    });
+  }
 
   function lbShow() {
-    const b=document.getElementById('loadingBanner'); if(!b) return;
-    _sIdx=0;
-    STEPS.forEach((id,i)=>{ const el=document.getElementById(id); if(el) el.className='lb-step'+(i===0?' active':''); });
-    _s('lbTitle','Carregando dados'); _s('lbStatus',STEP_LABELS[0]);
-    const p=document.getElementById('lbProgressFill'); if(p){p.classList.add('indeterminate');p.style.width='';}
-    const w=document.getElementById('lbSpinnerWrap'); if(w) w.className='lb-spinner-wrap';
-    document.getElementById('lbRetry')?.classList.remove('visivel');
-    document.getElementById('lbRecordCount')?.classList.remove('visivel');
-    b.classList.remove('hidden'); b.classList.add('visible');
-    _sTimer=setInterval(()=>{ if(_sIdx<STEPS.length-1){ const pv=document.getElementById(STEPS[_sIdx]); if(pv){pv.classList.remove('active');pv.classList.add('done');} _sIdx++; const nx=document.getElementById(STEPS[_sIdx]); if(nx) nx.classList.add('active'); _s('lbStatus',STEP_LABELS[_sIdx]||''); } },1200);
+    if (_lbTimer) { clearTimeout(_lbTimer); _lbTimer = null; }
+    const b = _lbEl('loadingBanner');
+    if (!b) return;
+
+    // Reset estado
+    const fill = _lbEl('lbProgressFill');
+    if (fill) { fill.classList.add('lb-indeterminate'); fill.style.width = ''; }
+    const pctEl = _lbEl('lbProgressPct');
+    if (pctEl) pctEl.textContent = '0%';
+
+    [1,2,3,4].forEach(i => {
+      const el = _lbEl('lbStep' + i);
+      if (el) el.className = 'lb-step';
+    });
+    _lbStepActive(1);
+
+    const title = _lbEl('lbTitle'); if (title) title.textContent = 'Carregando sistema';
+    const status = _lbEl('lbStatus'); if (status) status.textContent = 'Iniciando conexão…';
+
+    const result = _lbEl('lbResult');
+    if (result) { result.className = 'lb-result'; }
+    const retry = _lbEl('lbRetry');
+    if (retry) retry.className = 'lb-retry';
+
+    b.classList.remove('hidden');
+    b.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function lbSetStep(n, statusMsg, pct) {
+    _lbStepActive(n);
+    _lbSetProgress(pct, statusMsg);
   }
 
   function lbSuccess(n) {
-    const b=document.getElementById('loadingBanner'); if(!b) return;
-    if(_sTimer){clearInterval(_sTimer);_sTimer=null;}
-    STEPS.forEach(id=>{ const el=document.getElementById(id); if(el){el.classList.remove('active');el.classList.add('done');} });
-    _s('lbTitle','Dados carregados'); _s('lbStatus','Painel atualizado');
-    const p=document.getElementById('lbProgressFill'); if(p){p.classList.remove('indeterminate');p.style.width='100%';}
-    const w=document.getElementById('lbSpinnerWrap'); if(w) w.className='lb-spinner-wrap success';
-    const ne=document.getElementById('lbRecordNum'); if(ne) ne.textContent=n.toLocaleString('pt-BR');
-    document.getElementById('lbRecordCount')?.classList.add('visivel');
-    setTimeout(()=>{ b.classList.remove('visible'); b.classList.add('hidden'); },3000);
+    if (_lbTimer) { clearTimeout(_lbTimer); _lbTimer = null; }
+    const b = _lbEl('loadingBanner');
+    if (!b) return;
+
+    _lbStepActive(5); // marca todos como done
+    _lbSetProgress(100, 'Painel pronto');
+    const title = _lbEl('lbTitle'); if (title) title.textContent = 'Carregamento concluído';
+
+    const recNum = _lbEl('lbRecordNum');
+    if (recNum) recNum.textContent = n.toLocaleString('pt-BR');
+    const result = _lbEl('lbResult');
+    if (result) result.className = 'lb-result lb-show lb-success';
+
+    _lbTimer = setTimeout(() => {
+      b.classList.remove('visible');
+      b.classList.add('hidden');
+      document.body.style.overflow = '';
+      _lbTimer = null;
+    }, 1800);
   }
 
   function lbError(msg) {
-    const b=document.getElementById('loadingBanner'); if(!b) return;
-    if(_sTimer){clearInterval(_sTimer);_sTimer=null;}
-    _s('lbTitle','Falha no carregamento'); _s('lbStatus',msg||'Erro de conexão');
-    const p=document.getElementById('lbProgressFill'); if(p){p.classList.remove('indeterminate');p.style.width='0';}
-    const w=document.getElementById('lbSpinnerWrap'); if(w) w.className='lb-spinner-wrap error';
-    document.getElementById('lbRetry')?.classList.add('visivel');
-  }
+    if (_lbTimer) { clearTimeout(_lbTimer); _lbTimer = null; }
+    const b = _lbEl('loadingBanner');
+    if (!b) return;
 
-  function _s(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
+    const title = _lbEl('lbTitle'); if (title) title.textContent = 'Falha no carregamento';
+    const status = _lbEl('lbStatus'); if (status) status.textContent = 'Verifique sua conexão e tente novamente';
+
+    const fill = _lbEl('lbProgressFill');
+    if (fill) { fill.classList.remove('lb-indeterminate'); fill.style.width = '0%'; }
+    const pctEl = _lbEl('lbProgressPct'); if (pctEl) pctEl.textContent = '0%';
+
+    const errMsg = _lbEl('lbErrorMsg');
+    if (errMsg) errMsg.textContent = msg || 'Erro de conexão';
+    const result = _lbEl('lbResult');
+    if (result) result.className = 'lb-result lb-show lb-error';
+
+    const retry = _lbEl('lbRetry');
+    if (retry) retry.className = 'lb-retry lb-show';
+    // Manter overlay visível + scroll bloqueado até retry
+  }
 
   // ── Data ──────────────────────────────────────────────────────────────────
 
@@ -431,9 +495,22 @@ const App = (() => {
     lbShow();
     Charts.showSkeletons();
     try {
+      // Etapa 1 — Conectando (0 → 20%)
+      lbSetStep(1, 'Conectando ao Apps Script…', 5);
       await Api.fetchFromApi(force);
+      lbSetStep(2, 'Dados recebidos — processando…', 40);
+
+      // Etapa 2 → 3 — Populando filtros e aplicando (40 → 70%)
+      await new Promise(r => setTimeout(r, 80)); // yield para UI renderizar
       Filters.populateAll();
+      lbSetStep(3, 'Normalizando e filtrando registros…', 65);
+
+      await new Promise(r => setTimeout(r, 60));
       Filters.applyFilters();
+      lbSetStep(4, 'Renderizando painel…', 82);
+
+      // Etapa 4 — Renderização (82 → 100%)
+      await new Promise(r => setTimeout(r, 80));
       refresh();
       lbSuccess(State.getRawData().length);
       if(force) showToast('success','Dados sincronizados',`${State.getRawData().length.toLocaleString('pt-BR')} registros`,3000);
