@@ -730,29 +730,99 @@
   </button>
 </div>
 
-<!-- ── Loading Banner ────────────────────────────────────────────────────── -->
-<div id="loadingBanner" role="status" aria-live="polite">
-  <div class="lb-progress-bar"><div class="lb-progress-fill indeterminate" id="lbProgressFill"></div></div>
-  <div class="lb-body">
-    <div class="lb-header">
-      <div class="lb-spinner-wrap" id="lbSpinnerWrap">
-        <div class="lb-spinner"></div>
-        <svg class="lb-icon-done" id="lbIconDone" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-        <svg class="lb-icon-error" id="lbIconError" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+<!-- ── Loading Overlay ────────────────────────────────────────────────────── -->
+<div id="loadingBanner" role="dialog" aria-modal="true" aria-label="Carregando sistema" aria-live="polite">
+  <div class="lb-backdrop"></div>
+  <div class="lb-card">
+
+    <!-- Ilustração animada -->
+    <div class="lb-illustration" aria-hidden="true">
+      <svg class="lb-illus-svg" viewBox="0 0 96 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Base / documento -->
+        <rect x="14" y="12" width="52" height="60" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+        <!-- Linhas de dados animadas -->
+        <rect class="lb-bar lb-bar-1" x="22" y="26" height="5" rx="2.5" fill="var(--accent)" opacity="0.85"/>
+        <rect class="lb-bar lb-bar-2" x="22" y="36" height="5" rx="2.5" fill="var(--accent)" opacity="0.65"/>
+        <rect class="lb-bar lb-bar-3" x="22" y="46" height="5" rx="2.5" fill="var(--accent)" opacity="0.45"/>
+        <rect class="lb-bar lb-bar-4" x="22" y="56" height="5" rx="2.5" fill="var(--accent)" opacity="0.25"/>
+        <!-- Ícone veículo -->
+        <g class="lb-car-anim">
+          <rect x="58" y="38" width="22" height="14" rx="3" fill="var(--accent)" opacity="0.9"/>
+          <rect x="61" y="34" width="13" height="8" rx="2" fill="var(--accent)"/>
+          <circle cx="62" cy="52.5" r="3" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"/>
+          <circle cx="76" cy="52.5" r="3" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"/>
+        </g>
+        <!-- Faísca / check animado -->
+        <g class="lb-spark" opacity="0">
+          <polyline points="68,20 72,24 80,16" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+      </svg>
+    </div>
+
+    <!-- Título e status -->
+    <div class="lb-info-block">
+      <div class="lb-title" id="lbTitle">Carregando sistema</div>
+      <div class="lb-status" id="lbStatus">Iniciando conexão…</div>
+    </div>
+
+    <!-- Barra de progresso -->
+    <div class="lb-progress-wrap" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="lbProgressWrap">
+      <div class="lb-progress-track">
+        <div class="lb-progress-fill" id="lbProgressFill"></div>
       </div>
-      <div class="lb-info">
-        <div class="lb-title" id="lbTitle">Carregando dados</div>
-        <div class="lb-status" id="lbStatus">Conectando ao Apps Script...</div>
+      <div class="lb-progress-pct" id="lbProgressPct">0%</div>
+    </div>
+
+    <!-- Etapas -->
+    <div class="lb-steps" aria-label="Etapas de carregamento">
+      <div class="lb-step" id="lbStep1">
+        <div class="lb-step-icon">
+          <div class="lb-step-spinner"></div>
+          <svg class="lb-step-check" viewBox="0 0 12 12" fill="none"><polyline points="2 6 5 9 10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span class="lb-step-label">Conectando ao Apps Script</span>
+      </div>
+      <div class="lb-step" id="lbStep2">
+        <div class="lb-step-icon">
+          <div class="lb-step-spinner"></div>
+          <svg class="lb-step-check" viewBox="0 0 12 12" fill="none"><polyline points="2 6 5 9 10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span class="lb-step-label">Lendo dados da planilha</span>
+      </div>
+      <div class="lb-step" id="lbStep3">
+        <div class="lb-step-icon">
+          <div class="lb-step-spinner"></div>
+          <svg class="lb-step-check" viewBox="0 0 12 12" fill="none"><polyline points="2 6 5 9 10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span class="lb-step-label">Normalizando registros</span>
+      </div>
+      <div class="lb-step" id="lbStep4">
+        <div class="lb-step-icon">
+          <div class="lb-step-spinner"></div>
+          <svg class="lb-step-check" viewBox="0 0 12 12" fill="none"><polyline points="2 6 5 9 10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span class="lb-step-label">Renderizando painel</span>
       </div>
     </div>
-    <div class="lb-steps">
-      <div class="lb-step active" id="lbStep1"><div class="lb-step-dot"></div><span>Conectando ao Apps Script</span></div>
-      <div class="lb-step" id="lbStep2"><div class="lb-step-dot"></div><span>Lendo planilha GERAL</span></div>
-      <div class="lb-step" id="lbStep3"><div class="lb-step-dot"></div><span>Normalizando registros</span></div>
-      <div class="lb-step" id="lbStep4"><div class="lb-step-dot"></div><span>Renderizando painel</span></div>
+
+    <!-- Resultado (sucesso ou erro) -->
+    <div class="lb-result" id="lbResult" aria-live="assertive">
+      <div class="lb-result-success" id="lbResultSuccess">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <span><strong id="lbRecordNum">0</strong> registros carregados com sucesso</span>
+      </div>
+      <div class="lb-result-error" id="lbResultError">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <span id="lbErrorMsg">Erro ao carregar os dados</span>
+      </div>
     </div>
-    <div class="lb-record-count" id="lbRecordCount"><strong id="lbRecordNum">0</strong> registros carregados</div>
-    <button class="lb-retry" id="lbRetry" onclick="App.sync()">Tentar novamente</button>
+
+    <!-- Botão retry -->
+    <button class="lb-retry" id="lbRetry" onclick="App.sync()" aria-label="Tentar carregar novamente">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.4"/></svg>
+      Tentar novamente
+    </button>
+
   </div>
 </div>
 
