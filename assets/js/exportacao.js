@@ -665,7 +665,7 @@ const Exportacao = (() => {
       ['glossario',     'Glossário',           'Definições de termos e legenda de cores'],
     ];
 
-    return `<div class="wiz-pane" id="wizPane3">
+    return `<div class="wiz-pane" id="wizPane3" style="display:none">
 
       <!-- Páginas do documento -->
       <div class="wiz-grupo-header">
@@ -2574,5 +2574,31 @@ ${_wiz.extras.glossario ? `<div class="secao avoid-break">
 
   function gerarPDF() { abrirConfiguradorPDF(); }
 
-  return { exportarXLSX, gerarPDF, abrirConfiguradorPDF };
+  /**
+   * gerarFichaVeiculo — abre o wizard pré-configurado para um veículo específico.
+   * Usado pelo botão "Imprimir Ficha PDF" do modal de veículo (veiculo.js).
+   * Permite ao usuário escolher as seções antes de gerar, mantendo padrão único.
+   */
+  function gerarFichaVeiculo(placa) {
+    // Pré-configura o wizard para escopo de frota com a placa selecionada
+    _wiz.escopo      = 'frota';
+    _wiz.placasSel   = placa ? [String(placa).toUpperCase().trim()] : [];
+    _wiz.tipoFrota   = 'todos';
+    _wiz.despesas    = ['comb','manut'];
+    _wiz.periodoTipo = 'todos';
+    // Seções relevantes para ficha de veículo individual
+    _wiz.secoes = {
+      kpis: true, evolucao: true, secretaria: false,
+      analiseSec: false, analiseDesp: true, analiseLocacao: true,
+      classificacao: true, ranking: false, detalhe: true, historico: true,
+    };
+    _wiz.paginas = { capa: true, sumario: false, siglas: false, intro: false };
+    _wiz.extras  = { execSummary: false, pontosAtencao: true, glossario: false };
+    // Fechar modal de veículo se estiver aberto
+    if (typeof Modal !== 'undefined') Modal.close();
+    // Abrir o wizard com o escopo pré-carregado
+    setTimeout(() => abrirConfiguradorPDF(), 150);
+  }
+
+  return { exportarXLSX, gerarPDF, abrirConfiguradorPDF, gerarFichaVeiculo };
 })();

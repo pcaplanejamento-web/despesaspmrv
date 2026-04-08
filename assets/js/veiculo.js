@@ -416,8 +416,8 @@ const Veiculo = (() => {
       <div class="modal-footer" style="justify-content:space-between;align-items:center">
         <span class="modal-footer-hint">ESC ou clique fora para fechar</span>
         <button id="vFichaPDFBtn" style="display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:1.5px solid var(--accent);background:var(--accent-soft);color:var(--accent);font-family:var(--font-ui);font-size:12.5px;font-weight:700;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap;flex-shrink:0">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          Imprimir Ficha PDF
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="11" y2="17"/></svg>
+          Gerar Relatório PDF
         </button>
       </div>`, 'modal-panel modal-panel-wide');
 
@@ -478,9 +478,14 @@ const Veiculo = (() => {
 
       // Botão PDF — único, no footer
       document.getElementById('vFichaPDFBtn')?.addEventListener('click',()=>{
-        _gerarPDF({ placa,modelo,tipo,empresa,depto,cc,classif,contrato,isProprio,contratoInfo,
-          siglaAtual,siglasList,periodoStr,totalVei,qtde,ticketMedio,mediaFlota,rankingPos,
-          pctMedia,diffMedia,analiseDesp,anosUniq,histSorted });
+        if (typeof Exportacao !== 'undefined' && typeof Exportacao.gerarFichaVeiculo === 'function') {
+          Exportacao.gerarFichaVeiculo(placa);
+        } else {
+          // Fallback: ficha própria (legado)
+          _gerarPDF({ placa,modelo,tipo,empresa,depto,cc,classif,contrato,isProprio,contratoInfo,
+            siglaAtual,siglasList,periodoStr,totalVei,qtde,ticketMedio,mediaFlota,rankingPos,
+            pctMedia,diffMedia,analiseDesp,anosUniq,histSorted });
+        }
       });
     });
   }
