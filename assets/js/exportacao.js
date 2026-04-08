@@ -780,10 +780,6 @@ const Exportacao = (() => {
         if(pane) pane.style.display = i===n?'':'none';
       });
       // Stepper visual
-      document.querySelectorAll('.wiz-step').forEach((el,i)=>{
-        const sn=i/2+1; // 0,1,2 → 1,2,3 (intercalado com linhas)
-        // steps são 0,2,4 e linhas são 1,3
-      });
       const steps=document.querySelectorAll('.wiz-step-num');
       steps.forEach((el,i)=>{
         const sn=i+1;
@@ -1120,12 +1116,6 @@ const Exportacao = (() => {
     const placasN = new Set(data.map(r=>r.Placa)).size;
     if (typeof App!=='undefined') App.showToast('info','Preparando relatório…',`${data.length.toLocaleString('pt-BR')} registros · ${placasN} veículos`);
 
-    const win = window.open('','_blank','width=960,height=800');
-    if (!win) {
-      if (typeof App!=='undefined') App.showToast('warn','Popup bloqueado','Permita popups para este site e tente novamente');
-      return;
-    }
-
     const now = new Date();
     const dtStr = now.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
     const dtHora = now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
@@ -1281,7 +1271,6 @@ thead th{background:#1e3a5f!important;}
 .vei-total-sub{color:#9ca3af!important;}
 .vei-leg-item{color:#d1d5db!important;}
 `:''}
-</style>
 /* ─── Capa redesenhada ─── */
 .capa{min-height:97vh;display:flex;flex-direction:column;background:#fff;}
 .capa-band{background:linear-gradient(135deg,#0c3d70 0%,#185FA5 55%,#2176c7 100%);padding:42px 48px 36px;color:#fff;}
@@ -1403,7 +1392,7 @@ thead th{background:#1e3a5f!important;}
 table{width:100%;border-collapse:collapse;font-size:9.5pt;}
 thead th{background:#185FA5;color:#fff;padding:8px 10px;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.5px;text-align:left;white-space:nowrap;}
 thead th.tr{text-align:right;}
-tbody td{padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#374151;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+tbody td{padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#374151;}
 tbody td.tr{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:#185FA5;}
 tbody td.tr.manut{color:#D85A30;}
 tbody td.small{font-size:8.5pt;color:#6b7280;}
@@ -1696,6 +1685,7 @@ ${_wiz.paginas.intro ? `<div class="intro-sec page-break">
 <div style="padding:0 48px">
 
 <!-- ═══ COMO INTERPRETAR ═══ -->
+${(_wiz.paginas.intro || (_wiz.extras.execSummary && insights.length) || _wiz.secoes.kpis || _wiz.secoes.evolucao) ? '' : ''}
 ${_wiz.paginas.intro ? `<div style="padding-top:28px">
   <div class="orientacao-box">
     <div class="orientacao-titulo">
@@ -2565,9 +2555,22 @@ ${_wiz.extras.glossario ? `<div class="secao avoid-break">
 </body>
 </html>`;
 
-    win.document.write(html);
-    win.document.close();
-    setTimeout(()=>{ if(typeof App!=='undefined') App.showToast('success','Relatório gerado','Use Ctrl+P ou Cmd+P para salvar como PDF'); }, 600);
+    // Entregar via Blob URL — evita bloqueio de popup e document.write (compatível com todos os browsers)
+    const blob = new Blob([html], {type: 'text/html;charset=utf-8'});
+    const url  = URL.createObjectURL(blob);
+    const win  = window.open(url, '_blank');
+    if (!win) {
+      // Fallback: link clicável se popup bloqueado
+      const a = Object.assign(document.createElement('a'), {href: url, target: '_blank'});
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      if (typeof App!=='undefined') App.showToast('info','Relatório gerado','O download foi iniciado automaticamente');
+    } else {
+      if (typeof App!=='undefined') App.showToast('success','Relatório gerado','Use Ctrl+P ou Cmd+P para salvar como PDF');
+    }
+    // Revogar URL após tempo suficiente para carregamento
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
 
   // ── Ponto de entrada público ───────────────────────────────────────────────
