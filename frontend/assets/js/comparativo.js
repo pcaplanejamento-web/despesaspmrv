@@ -5,19 +5,8 @@
  */
 const Comparativo = (() => {
 
-  function fmtBRL(v) { return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
-  function fmtMes(m) { return CONFIG.MESES[m]||String(m||'--'); }
   const PAL = CONFIG.PALETA_GRAFICOS;
   let _chartInst = null;
-
-  function isDark()  { return document.documentElement.getAttribute('data-theme')==='dark'; }
-  function textColor(){ return isDark()?'rgba(232,237,245,.75)':'rgba(26,31,54,.70)'; }
-  function gridColor(){ return isDark()?'rgba(255,255,255,.07)':'rgba(67,97,238,.07)'; }
-  function kFmt(v){
-    if(v>=1e6) return 'R$'+(v/1e6).toFixed(1).replace('.',',')+'M';
-    if(v>=1e3) return 'R$'+(v/1e3).toFixed(0)+'k';
-    return 'R$'+v;
-  }
 
   // ── Filtrar dados por período ─────────────────────────
 

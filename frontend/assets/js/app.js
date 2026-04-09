@@ -8,8 +8,6 @@
 // ── Modal Utility ─────────────────────────────────────────────────────────
 const Modal = (() => {
 
-  function fmtBRL(v) { if(!v&&v!==0) return '--'; return Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
-  function fmtMes(m) { return (typeof CONFIG!=='undefined'?CONFIG.MESES[m]:'')||String(m||'--'); }
   function sl(sigla) { return typeof Filters!=='undefined' ? Filters.siglaLabel(sigla||'') : sigla||'--'; }
 
   let _closeHandler = null;

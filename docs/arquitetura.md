@@ -16,14 +16,19 @@ GitHub Pages (frontend)  ←──fetch──→  Apps Script (backend/API)  ←
 | `assets/css/main.css` | Tokens de design, variáveis CSS, animações globais |
 | `assets/css/layout.css` | Header pill, sidebar drawer, page container, botões |
 | `assets/css/components.css` | KPIs, filtros, multi-select, modal, charts, tabelas, toast, loading banner |
-| `assets/js/config.js` | URL da API, constantes, meses, cores, paleta |
+| `assets/js/config.js` | URL da API, constantes, meses, cores, paleta; utilitários globais de formatação e tema |
 | `assets/js/state.js` | Estado global: filtros multi-select, filtros de coluna, sort, paginação |
 | `assets/js/api.js` | Fetch com timeout, normalização, cache, getFilterOptions |
 | `assets/js/filters.js` | Multi-select component, applyFilters, resumo de filtros ativos |
 | `assets/js/kpis.js` | 4 KPI cards, modal ao clicar em Maior Despesa |
 | `assets/js/charts.js` | Gráficos Chart.js, click-to-expand modal, evolução multi-ano |
-| `assets/js/tables.js` | Tabela detalhada, tabelas resumo (sem paginação), CSV export |
+| `assets/js/tables.js` | Tabela detalhada, tabelas resumo (sem paginação), CSV export, ResumoPainel lateral |
 | `assets/js/app.js` | Modal utility, toast, loading banner, sidebar, tema, bootstrap |
+| `assets/js/alertas.js` | Dashboard de alertas: detecta anomalias (custo elevado, múltiplas manutenções, variação de secretaria, inatividade) |
+| `assets/js/comparativo.js` | Comparativo de dois períodos quaisquer: KPIs lado a lado, gráfico de barras agrupadas, tabela por secretaria |
+| `assets/js/exportacao.js` | Exportação XLSX (3 abas) e geração de Relatório PDF (wizard 3 etapas, SVG builders inline) |
+| `assets/js/urlhash.js` | Persistência dos filtros ativos na URL via hash; suporte a bookmark e compartilhamento |
+| `assets/js/veiculo.js` | Ficha completa do veículo: análise por despesa, YoY, desvio padrão, contratos, histórico de siglas, PDF |
 
 ## Estrutura de Dados (Planilha GERAL)
 
@@ -59,6 +64,8 @@ loadData()
       → Charts.renderAll()        — reconstrói 3 gráficos
       → Tables.renderTable()      — pagina + renderiza tabela detalhada
       → Tables.renderSummaryTables() — 5 tabelas resumo sem paginação
+      → Alertas.renderizar()      — calcula e exibe alertas de anomalia
+      → UrlHash.push()            — sincroniza filtros ativos na URL
 ```
 
 ## Filtros
@@ -79,6 +86,22 @@ Utilitário `Modal` em `app.js`:
 - `Modal.open('detalheRegistro', registro)` — detalhes de qualquer registro
 - `Modal.open('chartDetalhe', {titulo, registros, tipo})` — clique em barra do gráfico
 - `Modal.open('evolucaoDetalhe', {mes, ano, total, registros})` — clique em ponto da linha
+- `Modal.openRaw(html, panelClass)` — modal genérico de conteúdo livre (usado por `comparativo.js` e `charts.js::expandChart`)
+
+Modais próprios do módulo `veiculo.js` (não passam pelo utilitário `Modal`):
+- `Veiculo.abrirBusca()` — modal de busca de placa
+- `Veiculo.abrirFicha(placa)` — ficha completa do veículo com análise, gráficos e PDF
+
+## Dependências entre módulos
+
+```
+config.js   → todos os módulos (globals: fmtBRL, fmtMes, kFmt, isDark, textColor, gridColor, isComb, isManut, escHTML)
+state.js    → api.js, filters.js, kpis.js, charts.js, tables.js, app.js, urlhash.js, veiculo.js, comparativo.js
+api.js      → filters.js, app.js
+filters.js  → tables.js, charts.js, app.js, exportacao.js, veiculo.js, alertas.js, comparativo.js
+exportacao.js → filters.js (siglaLabel)
+veiculo.js  → filters.js (siglaLabel), app.js (Modal, showToast)
+```
 
 ## Responsividade
 

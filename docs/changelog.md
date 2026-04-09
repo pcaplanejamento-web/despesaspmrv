@@ -1,5 +1,48 @@
 # Changelog
 
+## v3.6.0 — Auditoria Técnica Completa — 2026-04-08
+
+### Corrigido
+- **`config.js`** — `VERSAO` atualizado de `'1.2.0'` para `'3.6.0'`; valor exibido na sidebar agora reflete a versão real do sistema
+- **`kpis.js`** — `Math.max(...data.map(...))` substituído por `data.reduce(...)`, eliminando risco de `RangeError` em datasets grandes
+- **`charts.js` — `expandChart`** — removido `JSON.parse(JSON.stringify(source.options))` que destruía todos os callbacks de tooltip; substituído por spread com referência direta a `source.config.options`; adicionado `Chart.getChart(expCanvas)?.destroy()` antes de criar nova instância; removida atribuição `indexAxis='y'` que era no-op
+- **`charts.js` — `renderSiglas` / `renderClassificacao`** — adicionado guard `if(!r.Mes||!r.Ano||!r.Valor) return` para excluir registros com campos nulos das agregações, evitando distorção de dados
+- **`charts.js`** — `layout.padding.right` removido da opção hard-coded com `window.innerWidth` (breakpoint capturado em runtime); substituído por valor fixo `20` gerenciado por CSS
+- **`filters.js`** — removidas 5 chamadas mortas `_msRefs[key]?._refresh?.()` (chave `_refresh` nunca existiu; `.refresh` já cobria o rebuild via loop na linha seguinte)
+- **`filters.js`** — removida variável morta `const opts = Api.getFilterOptions` sem invocação e sem uso
+- **`filters.js`** — placeholder de `msDespesas` corrigido de `'Todos os tipos'` para `'Todas as despesas'`
+- **`filters.js`** — 10 listeners globais de documento (2 por multi-select × 5) consolidados em 2 listeners únicos via `_bindGlobalListeners()`; `close` exposto em cada entrada de `_msRefs`
+- **`tables.js`** — cabeçalho CSV corrigido: `'Classificacao'` → `'Classificação'` (com acento, alinhado ao `mapeamento-colunas.md`)
+- **`alertas.js`** — padrão de invocação dupla `sl()(sigla)` corrigido para `sl(sigla)` após simplificação da função `sl`
+- **`api.js`** — filtro de linha de cabeçalho estendido para formato objeto: agora rejeita registros onde `Empresa === 'Empresa'` mesmo quando a resposta do Apps Script vem como array de objetos
+- **`api.js`** — `console.warn` sanitizado: removida exposição da resposta JSON completa (que incluía a URL do endpoint); mensagem reduzida a `'[API] Nenhum registro normalizado.'`
+- **`apps-script-deploy.md`** — `NOME_ABA` corrigido de `'Página1'` para `'GERAL'`; adicionada nota explicando a correção feita em v1.2.1
+- **`mapeamento-colunas.md`** — campo `Liquidado` corrigido: incluído desconto de 4,32% para Manutenção (anteriormente documentado apenas o de 5,01% para Combustível)
+- **`arquitetura.md`** — adicionados 5 módulos ausentes: `alertas.js`, `comparativo.js`, `exportacao.js`, `urlhash.js`, `veiculo.js`; fluxo de dados atualizado com `Alertas.renderizar()` e `UrlHash.push()`; seção Modais expandida com `Modal.openRaw` e modais próprios de `veiculo.js`; seção de dependências entre módulos adicionada
+
+### Adicionado
+- **`config.js`** — 11 funções utilitárias globais centralizadas: `fmtBRL`, `fmtBRLAbrev`, `kFmt`, `fmtMes`, `isDark`, `textColor`, `gridColor`, `isComb`, `isManut`, `escHTML`; eliminam 7–8 implementações duplicadas espalhadas pelos módulos
+
+### Removido (redundâncias eliminadas)
+- `fmtBRL` local de: `kpis.js`, `tables.js` (Tables + ResumoPainel), `app.js` (Modal), `comparativo.js`, `alertas.js`, `veiculo.js`, `exportacao.js`
+- `fmtMes` local de: `charts.js`, `tables.js` (Tables + ResumoPainel), `app.js` (Modal), `comparativo.js`, `alertas.js`, `veiculo.js`, `exportacao.js`
+- `isDark` / `textColor` / `gridColor` local de: `charts.js`, `comparativo.js`, `veiculo.js`
+- `kFmt` local de: `charts.js`, `comparativo.js`, `veiculo.js`, `exportacao.js` (via alias `fmtBRLk`)
+- `isComb` / `isManut` local de: `exportacao.js`
+- `esc` / `escHTML` local de: `exportacao.js`, `veiculo.js` (via alias)
+
+### Documentação
+- `changelog.md` atualizado
+- `arquitetura.md` atualizado
+- `mapeamento-colunas.md` atualizado
+- `apps-script-deploy.md` atualizado
+
+### Pendente (requer acesso a `index.html`)
+- **FOUC de tema escuro** — adicionar script inline bloqueante no `<head>` antes do primeiro render para aplicar `data-theme="dark"` sem flash visual
+- **Lazy loading de `exportacao.js`** — adicionar atributo `defer` à tag `<script>` do módulo para diferir parse dos 187KB até após o render inicial da página
+
+
+
 ## v3.5.0 — Índice de Siglas, Resumo por Secretaria com Locação, Análise Detalhada Expandida — 2026-04-07
 
 ### Adicionado

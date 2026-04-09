@@ -8,12 +8,6 @@ const Tables = (() => {
 
   // ── Formatação ────────────────────────────────────────────────────────────
 
-  function fmtBRL(v) {
-    if (v === undefined || v === null || v === '') return '--';
-    return Number(v).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
-  }
-  function fmtMes(m) { return CONFIG.MESES[m] || String(m||'--'); }
-
   function tipoBadge(tipo) {
     const t = String(tipo||'').toLowerCase();
     if (t.startsWith('ve')) return `<span class="badge badge-veiculo">Veículo</span>`;
@@ -259,7 +253,7 @@ const Tables = (() => {
     let rows = applySearchAndColFilters(State.getFilteredData());
     rows = applySort(rows);
     if (!rows.length) { typeof App!=='undefined'&&App.showToast('warn','Sem dados para exportar'); return; }
-    const hdrs=['Empresa','Sigla','Centro de Custo','Departamento','Despesa','Modelo','Classificacao','Tipo','Placa','Valor','Liquidado','Mes','Ano','Contrato'];
+    const hdrs=['Empresa','Sigla','Centro de Custo','Departamento','Despesa','Modelo','Classificação','Tipo','Placa','Valor','Liquidado','Mes','Ano','Contrato'];
     const lines=[hdrs.join(';')];
     rows.forEach(r=>lines.push([
       r.Empresa,r.Sigla,r.CentroCusto,r.Departamento,r.Despesa,r.Modelo,r.Classificacao,r.Tipo,r.Placa,
@@ -308,10 +302,6 @@ const ResumoPainel = (() => {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  function fmtBRL(v) {
-    return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-  }
-  function fmtMes(m) { return CONFIG.MESES[m] || String(m||'--'); }
   function sl(sigla) {
     return typeof Filters !== 'undefined' ? Filters.siglaLabel(sigla||'') : (sigla||'--');
   }

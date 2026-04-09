@@ -119,12 +119,17 @@ const Api = (() => {
       const json = await _get(`${CONFIG.API_URL}?rota=dados`);
       const rows = extractRows(json);
       const dataRows = rows.filter(r => {
-        if (!Array.isArray(r)) return true;
-        if (r[0] === 'Empresa' || r[9] === 'Valor') return false;
+        // Remover linha de cabeçalho em formato array
+        if (Array.isArray(r)) {
+          if (r[0] === 'Empresa' || r[9] === 'Valor') return false;
+          return true;
+        }
+        // Remover linha de cabeçalho em formato objeto (ex: {Empresa:'Empresa', Valor:'Valor'})
+        if (String(r.Empresa || r.empresa || '').trim() === 'Empresa') return false;
         return true;
       });
-      const normalized = dataRows.map(normalizeRow);
-      if (!normalized.length) console.warn('[API] Nenhum registro normalizado. Resposta:', json);
+      const normalized = dataRows.map(normalizeRow).filter(r => r.Empresa !== 'Empresa');
+      if (!normalized.length) console.warn('[API] Nenhum registro normalizado.');
       State.setRawData(normalized);
       setStatus('connected', 'Conectado');
       setLastSyncLabel(State.getLastSyncAt());

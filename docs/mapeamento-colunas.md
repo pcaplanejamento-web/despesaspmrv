@@ -19,7 +19,7 @@
 | 8 | Tipo | `Tipo` | enum: Veículo, Máquina |
 | 9 | Placa | `Placa` | string (uppercase) |
 | 10 | Valor | `Valor` | float (R$ → float) |
-| 11 | Liquidado | `Liquidado` | float (desconto 5,01% sobre Combustível) |
+| 11 | Liquidado | `Liquidado` | float (Combustível: desconto 5,01%; Manutenção: desconto 4,32%) |
 | 12 | Mês | `Mes` | integer 1–12 |
 | 13 | Ano | `Ano` | integer |
 | 14 | Contrato | `Contrato` | string |

@@ -14,20 +14,9 @@ const Charts = (() => {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  function isDark()    { return document.documentElement.getAttribute('data-theme') === 'dark'; }
-  function textColor() { return isDark() ? 'rgba(232,237,245,.75)' : 'rgba(26,31,54,.70)'; }
-  function gridColor() { return isDark() ? 'rgba(255,255,255,.07)' : 'rgba(67,97,238,.07)'; }
-
   const PAL = CONFIG.PALETA_GRAFICOS;
 
-  function kFmt(v) {
-    if (v >= 1e6) return 'R$'+(v/1e6).toFixed(1).replace('.',',')+'M';
-    if (v >= 1e3) return 'R$'+(v/1e3).toFixed(0)+'k';
-    return 'R$'+v;
-  }
-  function brl(v) { return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
   function pct(a,b) { if(!b) return '--'; return ((a/b-1)*100).toFixed(1).replace('.',',')+'%'; }
-  function fmtMes(m) { return (typeof CONFIG!=='undefined'?CONFIG.MESES[m]:'')||String(m||'--'); }
 
   const TT = () => ({
     backgroundColor: isDark() ? '#1a1f36' : '#fff',
@@ -87,7 +76,7 @@ const Charts = (() => {
       },
       options: {
         ...BASE, indexAxis:'y',
-        plugins:{ legend:{display:false}, tooltip:{...TT(),callbacks:{label:ctx=>' '+brl(ctx.parsed.x)}} },
+        plugins:{ legend:{display:false}, tooltip:{...TT(),callbacks:{label:ctx=>' '+fmtBRL(ctx.parsed.x)}} },
         scales:{
           x:{grid:{color:gridColor(),drawTicks:false},border:{display:false},ticks:{color:textColor(),font:{size:11},callback:kFmt,maxTicksLimit:5}},
           y:{grid:{display:false},border:{display:false},ticks:{color:textColor(),font:{size:11,weight:'600'},maxTicksLimit:10}},
@@ -127,10 +116,10 @@ const Charts = (() => {
               }
             }
           },
-          tooltip:{...TT(),callbacks:{label:ctx=>` ${brl(ctx.parsed)} (${((ctx.parsed/total)*100).toFixed(1)}%)`}},
+          tooltip:{...TT(),callbacks:{label:ctx=>` ${fmtBRL(ctx.parsed)} (${((ctx.parsed/total)*100).toFixed(1)}%)`}},
         },
         onClick(_,elems){ if(!elems.length) return; onClickFn(elems[0].index); },
-        layout:{ padding:{ right: window.innerWidth<600?0:20 } },
+        layout:{ padding:{ right: 20 } },
       },
     });
   }
@@ -155,7 +144,7 @@ const Charts = (() => {
         ...BASE, cutout:'55%',
         plugins:{
           legend:{ display:false },
-          tooltip:{...TT(),callbacks:{label:ctx=>` ${brl(ctx.parsed)} (${((ctx.parsed/total)*100).toFixed(1)}%)`}},
+          tooltip:{...TT(),callbacks:{label:ctx=>` ${fmtBRL(ctx.parsed)} (${((ctx.parsed/total)*100).toFixed(1)}%)`}},
         },
         onClick(_,elems){ if(!elems.length) return; onClickFn(elems[0].index); },
       },
@@ -192,7 +181,7 @@ const Charts = (() => {
     resetCanvas('chartSiglas'); hideSkeleton('Siglas'); destroy('chartSiglas');
     const canvas = document.getElementById('chartSiglas'); if(!canvas) return;
     const agg={};
-    data.forEach(r=>{ const k=r.Sigla||'--'; agg[k]=(agg[k]||0)+r.Valor; });
+    data.forEach(r=>{ if(!r.Mes||!r.Ano||!r.Valor) return; const k=r.Sigla||'--'; agg[k]=(agg[k]||0)+r.Valor; });
     _siglasData = Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,10);
     if(!_siglasData.length){ noData('chartSiglas'); return; }
     _buildChart('chartSiglas', _siglasData, idx => _openChartModal('local', _siglasData[idx], data));
@@ -207,7 +196,7 @@ const Charts = (() => {
     resetCanvas('chartClassificacao'); hideSkeleton('Classificacao'); destroy('chartClassificacao');
     const canvas = document.getElementById('chartClassificacao'); if(!canvas) return;
     const agg={};
-    data.forEach(r=>{ const k=(r.Classificacao||'--').substring(0,30); agg[k]=(agg[k]||0)+r.Valor; });
+    data.forEach(r=>{ if(!r.Mes||!r.Ano||!r.Valor) return; const k=(r.Classificacao||'--').substring(0,30); agg[k]=(agg[k]||0)+r.Valor; });
     _classifData = Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,8);
     if(!_classifData.length){ noData('chartClassificacao'); return; }
     _buildChart('chartClassificacao', _classifData, idx => _openChartModal('classificacao', _classifData[idx], data));
@@ -322,7 +311,7 @@ const Charts = (() => {
         const up=diff>=0;
         return `<div class="modal-yoy-row">
           <span class="modal-yoy-anos">${prev.ano} → ${d.ano}</span>
-          <span class="modal-yoy-diff ${up?'up':'down'}">${up?'+':''}${brl(diff)} (${up?'+':''}${diffPct})</span>
+          <span class="modal-yoy-diff ${up?'up':'down'}">${up?'+':''}${fmtBRL(diff)} (${up?'+':''}${diffPct})</span>
         </div>`;
       }).join('');
     }
@@ -355,18 +344,23 @@ const Charts = (() => {
         <canvas id="chartExpanded" style="max-height:520px;width:100%;"></canvas>
       </div>`, 'modal-panel modal-panel-wide');
 
-    // Clonar dados do gráfico original e redesenhar no modal
+    // Redesenhar no modal preservando todos os callbacks (sem JSON.parse/stringify)
     setTimeout(() => {
       const expCanvas = document.getElementById('chartExpanded');
       if (!expCanvas) return;
-      const srcData    = source.data;
-      const srcOptions = JSON.parse(JSON.stringify(source.options));
-      // Ajustes para o modal grande
-      if (srcOptions.indexAxis==='y') {
-        srcOptions.indexAxis='y';
-      }
-      srcOptions.animation = { duration:400, easing:'easeOutQuart' };
-      new Chart(expCanvas, { type: source.config.type, data: srcData, options: srcOptions });
+      // Destruir instância anterior no mesmo canvas, se houver
+      Chart.getChart(expCanvas)?.destroy();
+      const srcOpts = source.config.options;
+      new Chart(expCanvas, {
+        type: source.config.type,
+        data: source.data,
+        options: {
+          ...srcOpts,
+          animation: { duration:400, easing:'easeOutQuart' },
+          responsive: true,
+          maintainAspectRatio: false,
+        },
+      });
     }, 60);
   }
 

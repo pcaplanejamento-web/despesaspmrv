@@ -61,10 +61,10 @@ https://docs.google.com/spreadsheets/d/ESTE_É_O_ID/edit
 
 Em `DadosService.gs`, localize:
 ```js
-const NOME_ABA = 'Página1';
+const NOME_ABA = 'GERAL';
 ```
 
-Confirme que é o nome exato da aba na sua planilha.
+> **Atenção**: o nome correto da aba é `'GERAL'` (corrigido em v1.2.1). Versões anteriores deste guia indicavam `'Página1'`, o que causava retorno vazio de dados. Confirme que o nome da aba na planilha corresponde exatamente a `GERAL`.
 
 ### 6. Publicar como Web App
 
