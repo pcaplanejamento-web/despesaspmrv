@@ -22,7 +22,7 @@ const CONFIG = Object.freeze({
   DEFAULT_PAGE_SIZE: 25,
 
   // Versão do sistema
-  VERSAO: '1.2.0',
+  VERSAO: '3.6.0',
 
   // Nome e subtítulo exibidos na interface
   NOME_SISTEMA: 'Gastos — Rio Verde',
@@ -55,3 +55,60 @@ const CONFIG = Object.freeze({
     '#534AB7', '#993556', '#3B6D11', '#73726c',
   ],
 });
+
+// ─── Utilitários globais de formatação ────────────────────────────────────────
+// Fonte canônica única — nenhum módulo deve redefinir estas funções localmente.
+
+/** Formata valor em BRL completo. Retorna '--' para null/undefined/''. */
+function fmtBRL(v) {
+  if (v === undefined || v === null || v === '') return '--';
+  const n = Number(v);
+  if (isNaN(n)) return '--';
+  return n.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+}
+
+/** Formata valor em BRL abreviado para KPI cards (B / M / completo). */
+function fmtBRLAbrev(v) {
+  const n = Number(v || 0);
+  if (n >= 1e9) return 'R$ ' + (n / 1e9).toFixed(1).replace('.', ',') + 'B';
+  if (n >= 1e6) return 'R$ ' + (n / 1e6).toFixed(1).replace('.', ',') + 'M';
+  return n.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+}
+
+/** Formata valor em escala para eixos de gráfico (M / k / inteiro). */
+function kFmt(v) {
+  const n = Number(v || 0);
+  if (n >= 1e6) return 'R$' + (n / 1e6).toFixed(1).replace('.', ',') + 'M';
+  if (n >= 1e3) return 'R$' + (n / 1e3).toFixed(0) + 'k';
+  return 'R$' + n;
+}
+
+/** Retorna nome do mês pelo número (1–12). Fallback para o valor original. */
+function fmtMes(m) {
+  return CONFIG.MESES[m] || String(m || '--');
+}
+
+// ─── Utilitários de tema para gráficos ───────────────────────────────────────
+
+function isDark() {
+  return document.documentElement.getAttribute('data-theme') === 'dark';
+}
+function textColor() {
+  return isDark() ? 'rgba(232,237,245,.75)' : 'rgba(26,31,54,.70)';
+}
+function gridColor() {
+  return isDark() ? 'rgba(255,255,255,.07)' : 'rgba(67,97,238,.07)';
+}
+
+// ─── Utilitários de dados ─────────────────────────────────────────────────────
+
+/** Retorna true se o registro é de Combustível. */
+function isComb(r)  { return (r.Despesa || '').toLowerCase().startsWith('combust'); }
+
+/** Retorna true se o registro é de Manutenção. */
+function isManut(r) { return (r.Despesa || '').toLowerCase().startsWith('manut'); }
+
+/** Escapa caracteres HTML para uso seguro em templates de string. */
+function escHTML(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}

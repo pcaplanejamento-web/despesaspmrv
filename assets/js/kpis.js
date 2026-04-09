@@ -5,13 +5,6 @@
  */
 const Kpis = (() => {
 
-  function fmt(v) {
-    if (!v && v !== 0) return 'R$ 0,00';
-    if (v >= 1e9) return `R$ ${(v/1e9).toFixed(1).replace('.',',')}B`;
-    if (v >= 1e6) return `R$ ${(v/1e6).toFixed(1).replace('.',',')}M`;
-    return v.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
-  }
-
   function set(vid, sid, val, sub) {
     const v = document.getElementById(vid);
     const s = document.getElementById(sid);
@@ -39,7 +32,7 @@ const Kpis = (() => {
     const qtde   = data.length;
     const meses  = new Set(data.map(r => `${r.Ano}-${r.Mes}`));
     const media  = meses.size ? total / meses.size : 0;
-    const maior  = Math.max(...data.map(r => r.Valor));
+    const maior  = data.reduce((m, r) => r.Valor > m ? r.Valor : m, 0);
     _maiorRegistro = data.reduce((acc,r) => (!acc || r.Valor > acc.Valor) ? r : acc, null);
 
     // Variação vs ano anterior (quando 1 ano selecionado)
@@ -55,7 +48,7 @@ const Kpis = (() => {
     }
 
     set('kpiTotalGeralValue', 'kpiTotalGeralSub',
-      fmt(total),
+      fmtBRLAbrev(total),
       `${qtde.toLocaleString('pt-BR')} registros${varLabel}`
     );
     set('kpiQtdeValue', 'kpiQtdeSub',
@@ -63,11 +56,11 @@ const Kpis = (() => {
       `em ${meses.size} mês(es) com dados`
     );
     set('kpiMediaValue', 'kpiMediaSub',
-      fmt(media),
+      fmtBRLAbrev(media),
       `média de ${meses.size} mês(es)`
     );
     set('kpiMaiorValue', 'kpiMaiorSub',
-      fmt(maior),
+      fmtBRLAbrev(maior),
       _maiorRegistro
         ? `${_maiorRegistro.Placa || _maiorRegistro.Modelo || '--'} · ${_maiorRegistro.Sigla||''}`
         : 'item mais caro'
@@ -83,5 +76,5 @@ const Kpis = (() => {
     Modal.open('detalheRegistro', _maiorRegistro);
   }
 
-  return { render, fmt, openMaiorDespesaModal };
+  return { render, openMaiorDespesaModal };
 })();

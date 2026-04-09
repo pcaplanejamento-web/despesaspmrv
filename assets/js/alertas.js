@@ -11,9 +11,7 @@
  */
 const Alertas = (() => {
 
-  function fmtBRL(v) { return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
-  function fmtMes(m) { return CONFIG.MESES[m]||String(m||'--'); }
-  const sl = () => typeof Filters!=='undefined' ? Filters.siglaLabel : s=>s;
+  function sl(sigla) { return typeof Filters!=='undefined' ? Filters.siglaLabel(sigla||'') : (sigla||'--'); }
 
   // ── Calcular todos os alertas ─────────────────────────
 
@@ -44,7 +42,7 @@ const Alertas = (() => {
           nivel:'critico',
           tipo:'veiculo-alto-custo',
           titulo:`Custo elevado: ${placa}`,
-          descricao:`${modelo} da ${sl()(sigla)} gastou ${fmtBRL(total)}, mais de 2× a média da secretaria (${fmtBRL(media)})`,
+          descricao:`${modelo} da ${sl(sigla)} gastou ${fmtBRL(total)}, mais de 2× a média da secretaria (${fmtBRL(media)})`,
           valor:total,
           referencia:media,
           placa, sigla, modelo,
@@ -97,7 +95,7 @@ const Alertas = (() => {
         alertas.push({
           nivel:'alerta',
           tipo:'secretaria-gasto-alto',
-          titulo:`Gasto elevado: ${sl()(sigla)}`,
+          titulo:`Gasto elevado: ${sl(sigla)}`,
           descricao:`Em ${fmtMes(ultimo.mes)}/${ultimo.ano}, gastou ${fmtBRL(ultimo.total)} — 50%+ acima da média histórica de ${fmtBRL(media)}`,
           valor:ultimo.total,
           referencia:media,
@@ -146,7 +144,7 @@ const Alertas = (() => {
           nivel:'info',
           tipo:'sem-manutencao-recente',
           titulo:`Manutenção ausente: ${placa}`,
-          descricao:`${manu.modelo} da ${sl()(manu.sigla)} — última manutenção em ${fmtMes(manu.mes)}/${manu.ano}, mas ainda em uso`,
+          descricao:`${manu.modelo} da ${sl(manu.sigla)} — última manutenção em ${fmtMes(manu.mes)}/${manu.ano}, mas ainda em uso`,
           placa, sigla:manu.sigla, modelo:manu.modelo,
           icone:'alert-circle',
         });

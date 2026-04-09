@@ -51,6 +51,18 @@ const Filters = (() => {
   // Cria dropdown com checkboxes reativo ao estado.
 
   const _msRefs = {};
+  let _globalListenersBound = false;
+
+  function _bindGlobalListeners() {
+    if (_globalListenersBound) return;
+    _globalListenersBound = true;
+    document.addEventListener('click', () => {
+      Object.values(_msRefs).forEach(ref => ref.close?.());
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') Object.values(_msRefs).forEach(ref => ref.close?.());
+    });
+  }
 
   function buildMultiSelect(wrapId, stateKey, placeholder, optionsFn) {
     const wrap = document.getElementById(wrapId);
@@ -125,11 +137,10 @@ const Filters = (() => {
     function toggle(){ dropdown.classList.contains('open') ? close() : open(); }
 
     btn.addEventListener('click', e => { e.stopPropagation(); toggle(); });
-    document.addEventListener('click', e => { if (!wrap.contains(e.target)) close(); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
 
-    // Expõe método de refresh externo
-    _msRefs[wrapId] = { refresh: () => { buildOptions(); updateLabel(); } };
+    // Expõe métodos de refresh e close para os listeners globais consolidados
+    _msRefs[wrapId] = { refresh: () => { buildOptions(); updateLabel(); }, close };
+    _bindGlobalListeners();
     updateLabel();
   }
 
@@ -174,13 +185,6 @@ const Filters = (() => {
   // ─── Populate all ─────────────────────────────────────────────────────────
 
   function populateAll() {
-    const opts = Api.getFilterOptions();
-    _msRefs['msAnos']?._refresh?.();
-    _msRefs['msDespesas']?._refresh?.();
-    _msRefs['msTipos']?._refresh?.();
-    _msRefs['msSecretarias']?._refresh?.();
-    _msRefs['msClassificacoes']?._refresh?.();
-    // Trigger rebuild
     Object.values(_msRefs).forEach(r => r.refresh?.());
     populateColFilterSelects();
     updateRecordCount(State.getFilteredData().length, State.getRawData().length);
@@ -316,10 +320,8 @@ const Filters = (() => {
   // ─── Bootstrap ───────────────────────────────────────────────────────────
 
   function bindEvents() {
-    const opts = Api.getFilterOptions;
-
     buildMultiSelect('msAnos',           'anos',           'Todos os anos',       () => Api.getFilterOptions().anos);
-    buildMultiSelect('msDespesas',       'despesas',       'Todos os tipos',      () => Api.getFilterOptions().despesas);
+    buildMultiSelect('msDespesas',       'despesas',       'Todas as despesas',   () => Api.getFilterOptions().despesas);
     buildMultiSelect('msTipos',          'tipos',          'Todos os tipos',      () => Api.getFilterOptions().tipos);
     buildMultiSelect('msSecretarias',    'secretarias',    'Todas as secretarias',() => Api.getFilterOptions().secretarias);
     buildMultiSelect('msClassificacoes', 'classificacoes', 'Todas as categorias', () => Api.getFilterOptions().classificacoes);

@@ -6,22 +6,13 @@
 const Exportacao = (() => {
 
   // ── Helpers compartilhados ───────────────────────────────────────────────────
+  // fmtBRL, kFmt, fmtMes, isComb, isManut, escHTML são globais (config.js).
+  // Aliases locais preservam os nomes históricos usados em todo o módulo.
 
-  function fmtBRL(v) { return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
-  function fmtBRLk(v) {
-    v = Number(v||0);
-    if (v >= 1e6) return 'R$'+(v/1e6).toFixed(1).replace('.',',')+'M';
-    if (v >= 1e3) return 'R$'+(v/1e3).toFixed(0).replace('.',',')+'k';
-    return 'R$'+v.toFixed(0);
-  }
-  function fmtMes(m) { return CONFIG.MESES[m]||String(m||'--'); }
+  const fmtBRLk   = kFmt;
+  const esc        = escHTML;
   function fmtPct(v, total) { return total>0?((v/total)*100).toFixed(1).replace('.',',')+'%':'0,0%'; }
-  function esc(s) {
-    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
   function siglaLabel(s) { return typeof Filters!=='undefined' ? Filters.siglaLabel(s||'') : (s||'--'); }
-  function isComb(r) { return (r.Despesa||'').toLowerCase().startsWith('combust'); }
-  function isManut(r) { return (r.Despesa||'').toLowerCase().startsWith('manut'); }
 
   // ── Carregar SheetJS dinamicamente ─────────────────────────────────────────
 
@@ -829,6 +820,24 @@ const Exportacao = (() => {
     $('wizBtnAnterior')?.addEventListener('click',()=>_goStep(_wiz.step-1));
     $('wizBtnGerar')?.addEventListener('click',()=>{ _readStep(3); Modal.close(); _gerarRelatorio(); });
 
+    // Ocultar erro de despesa ao mudar os checkboxes
+    $('wizChkComb')?.addEventListener('change',e=>{
+      const i=_wiz.despesas.indexOf('comb');
+      if(e.target.checked&&i<0) _wiz.despesas.push('comb');
+      else if(!e.target.checked&&i>=0) _wiz.despesas.splice(i,1);
+      const errEl=$('wizDespesaError');
+      if(errEl&&_wiz.despesas.length>0) errEl.style.display='none';
+      _updatePreview(rawData);
+    });
+    $('wizChkManut')?.addEventListener('change',e=>{
+      const i=_wiz.despesas.indexOf('manut');
+      if(e.target.checked&&i<0) _wiz.despesas.push('manut');
+      else if(!e.target.checked&&i>=0) _wiz.despesas.splice(i,1);
+      const errEl=$('wizDespesaError');
+      if(errEl&&_wiz.despesas.length>0) errEl.style.display='none';
+      _updatePreview(rawData);
+    });
+
     // Escopo radios
     document.querySelectorAll('[name="wiz-escopo"]').forEach(r=>{
       r.addEventListener('change',()=>{
@@ -1038,9 +1047,6 @@ const Exportacao = (() => {
       });
     });
 
-    // Inicialização: renderizar chips se já há placas selecionadas (ex: gerarFichaVeiculo)
-    if(_wiz.placasSel.length) _renderChips();
-
     _updatePreview(rawData);
   }
 
@@ -1068,18 +1074,12 @@ const Exportacao = (() => {
       _wiz.tipoFrota = document.querySelector('[name="wiz-tipofrota"]:checked')?.value||'todos';
     }
     if(n===2) {
-      // Lê periodoTipo do botão ativo
-      const atalhoAtivo = document.querySelector('[data-atalho].wiz-atalho-active');
-      _wiz.periodoTipo = atalhoAtivo ? atalhoAtivo.dataset.atalho : (_wiz.periodoTipo||'todos');
-      // Se personalizado, lê os selects
-      if(_wiz.periodoTipo==='personalizado') {
-        const mi=document.getElementById('wizMesInicio'), ai=document.getElementById('wizAnoInicio');
-        const mf=document.getElementById('wizMesFim'), af=document.getElementById('wizAnoFim');
-        if(mi) _wiz.mesInicio=parseInt(mi.value)||1;
-        if(ai) _wiz.anoInicio=parseInt(ai.value)||new Date().getFullYear();
-        if(mf) _wiz.mesFim=parseInt(mf.value)||12;
-        if(af) _wiz.anoFim=parseInt(af.value)||new Date().getFullYear();
-      }
+      const mi=document.getElementById('wizMesInicio'), ai=document.getElementById('wizAnoInicio');
+      const mf=document.getElementById('wizMesFim'), af=document.getElementById('wizAnoFim');
+      if(mi) _wiz.mesInicio=parseInt(mi.value)||1;
+      if(ai) _wiz.anoInicio=parseInt(ai.value)||2025;
+      if(mf) _wiz.mesFim=parseInt(mf.value)||12;
+      if(af) _wiz.anoFim=parseInt(af.value)||2026;
     }
     if(n===3) {
       document.querySelectorAll('[name="wiz-secao"]').forEach(c=>{ _wiz.secoes[c.value]=c.checked; });
@@ -1676,6 +1676,7 @@ ${_wiz.paginas.intro ? `<div class="intro-sec page-break">
 <div style="padding:0 48px">
 
 <!-- ═══ COMO INTERPRETAR ═══ -->
+${(_wiz.paginas.intro || (_wiz.extras.execSummary && insights.length) || _wiz.secoes.kpis || _wiz.secoes.evolucao) ? '' : ''}
 ${_wiz.paginas.intro ? `<div style="padding-top:28px">
   <div class="orientacao-box">
     <div class="orientacao-titulo">
