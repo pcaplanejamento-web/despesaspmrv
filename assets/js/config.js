@@ -10,7 +10,7 @@ const CONFIG = Object.freeze({
   API_URL: 'https://script.google.com/macros/s/AKfycbzs3Xz8doXZ8b4mc-u1N4hfVM6NrwGiMffIPtbrZcvHCn3WqNK9ux7EfDpu2FQAwukIpg/exec',
 
   // Timeout máximo para chamadas à API (ms)
-  API_TIMEOUT: 15000,
+  API_TIMEOUT: 30000,
 
   // Cache TTL em milissegundos (5 minutos)
   CACHE_TTL_MS: 5 * 60 * 1000,
@@ -22,7 +22,7 @@ const CONFIG = Object.freeze({
   DEFAULT_PAGE_SIZE: 25,
 
   // Versão do sistema
-  VERSAO: '3.6.0',
+  VERSAO: '3.6.2',
 
   // Nome e subtítulo exibidos na interface
   NOME_SISTEMA: 'Gastos — Rio Verde',
