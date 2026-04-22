@@ -180,6 +180,16 @@ const Filters = (() => {
       opts.anos.forEach(a => { const o = new Option(a,a); as.add(o); });
       if ([...as.options].some(o => o.value === cur)) as.value = cur;
     }
+
+    // Contrato col-filter — dinâmico
+    const cs = document.querySelector('.col-filter-select[data-col="Contrato"]');
+    if (cs) {
+      const cur = cs.value;
+      while (cs.options.length > 1) cs.remove(1);
+      const rawContratos = [...new Set(State.getRawData().map(r => r.Contrato||'').filter(Boolean))].sort();
+      rawContratos.forEach(c => { const o = new Option(c, c); cs.add(o); });
+      if ([...cs.options].some(o => o.value === cur)) cs.value = cur;
+    }
   }
 
   // ─── Populate all ─────────────────────────────────────────────────────────
