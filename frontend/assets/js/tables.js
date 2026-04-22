@@ -60,6 +60,7 @@ const Tables = (() => {
         const min = parseFloat(col.ValorMin.replace(',','.'));
         if (!isNaN(min) && r.Valor < min) return false;
       }
+      if (col.Contrato && (r.Contrato||'') !== col.Contrato) return false;
       return true;
     });
   }

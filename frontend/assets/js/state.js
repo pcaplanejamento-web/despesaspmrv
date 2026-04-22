@@ -18,7 +18,7 @@ const State = (() => {
   // Filtros de coluna independentes (afetam apenas Registros Detalhados)
   let _colFilters = {
     Sigla:'', Departamento:'', Despesa:'', Tipo:'',
-    Placa:'', Modelo:'', Classificacao:'', Mes:'', Ano:'', ValorMin:'',
+    Placa:'', Modelo:'', Classificacao:'', Mes:'', Ano:'', ValorMin:'', Contrato:'',
   };
 
   let _tableSort   = { col: null, dir: 'asc' };
