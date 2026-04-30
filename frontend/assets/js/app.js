@@ -526,6 +526,10 @@ const App = (() => {
       refresh();
       lbSuccess(State.getRawData().length);
       if(force) showToast('success','Dados sincronizados',`${State.getRawData().length.toLocaleString('pt-BR')} registros`,3000);
+      // Carregar dados FIPE em segundo plano — não bloqueia o painel
+      if (typeof Fipe !== 'undefined') {
+        Fipe.carregar().catch(err => console.warn('[FIPE] Pré-carregamento:', err.message));
+      }
     } catch(err) {
       lbError(err.message);
       showToast('error','Erro ao carregar',err.message,5000);

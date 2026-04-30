@@ -22,7 +22,7 @@ const CONFIG = Object.freeze({
   DEFAULT_PAGE_SIZE: 25,
 
   // Versão do sistema
-  VERSAO: '3.6.2',
+  VERSAO: '3.7.0',
 
   // Nome e subtítulo exibidos na interface
   NOME_SISTEMA: 'Gastos — Rio Verde',
