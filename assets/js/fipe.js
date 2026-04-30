@@ -1,15 +1,19 @@
 /**
- * fipe.js — v1.0
- * Consulta Tabela FIPE via Parallelum API (gratuita, sem autenticação).
+ * fipe.js — v1.1
+ * Consulta Tabela FIPE via Parallelum API v2 (gratuita, sem autenticação).
  * Apenas veículos (coluna H: Tipo === 'Veículo') — máquinas são ignoradas.
  * Cache em localStorage com TTL de 7 dias.
  *
- * API base: https://parallelum.com.br/fipe/api/v2/
- * Limite: 500 req/dia sem token (suficiente para frotas municipais com cache ativo).
+ * API base: https://fipe.parallelum.com.br/api/v2
+ * Docs:     https://deividfortuna.github.io/fipe/v2/
+ * Limite:   1000 req/dia sem token.
+ *
+ * Nota: API v2 usa caminhos em inglês (cars/brands/models/years)
+ * e campos em camelCase (code, name, price, brand, model, modelYear, etc.)
  */
 const Fipe = (() => {
 
-  const BASE      = 'https://parallelum.com.br/fipe/api/v2';
+  const BASE      = 'https://fipe.parallelum.com.br/api/v2';
   const CACHE_KEY = 'gastosrv_fipe_v1';
   const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 dias
   const TIMEOUT   = 12000;  // 12s por requisição
@@ -162,54 +166,60 @@ const Fipe = (() => {
 
   // ─── Busca nas listas da API FIPE ─────────────────────────────────────────
 
+  // ── API v2: caminhos em inglês, campos camelCase ──────────────────────
+  // brands: [{code, name}]
+  // models: [{code, name}]   (array direto, sem wrapper)
+  // years:  [{code, name}]   (ex: {code:"2019-1", name:"2019 Gasolina"})
+  // price:  {price, brand, model, modelYear, fuel, codeFipe, referenceMonth, vehicleType}
+
   async function _getMarcas() {
-    if (_mCache.carros) return _mCache.carros;
-    const list = await _req('/carros/marcas');
-    _mCache.carros = Array.isArray(list) ? list : [];
-    return _mCache.carros;
+    if (_mCache.cars) return _mCache.cars;
+    const list = await _req('/cars/brands');
+    _mCache.cars = Array.isArray(list) ? list : [];
+    return _mCache.cars;
   }
 
   function _matchMarca(list, busca) {
     const q = (busca || '').toUpperCase();
     // 1. Igual
-    let m = list.find(b => b.nome.toUpperCase() === q);
+    let m = list.find(b => b.name.toUpperCase() === q);
     if (m) return m;
     // 2. Começa com ou contém
-    m = list.find(b => b.nome.toUpperCase().startsWith(q) || q.startsWith(b.nome.toUpperCase()));
+    m = list.find(b => b.name.toUpperCase().startsWith(q) || q.startsWith(b.name.toUpperCase()));
     if (m) return m;
     // 3. Primeira palavra da marca contida
     const q0 = q.split(' ')[0];
-    return list.find(b => b.nome.toUpperCase().includes(q0) || q0.includes(b.nome.toUpperCase().split(' ')[0])) || null;
+    return list.find(b => b.name.toUpperCase().includes(q0) || q0.includes(b.name.toUpperCase().split(' ')[0])) || null;
   }
 
   async function _getModelos(marcaCod) {
-    const d = await _req(`/carros/marcas/${marcaCod}/modelos`);
-    // API v2 retorna { modelos: [...], anos: [...] } ou direto array
-    return Array.isArray(d) ? d : (Array.isArray(d?.modelos) ? d.modelos : []);
+    // v2 retorna array direto
+    const d = await _req(`/cars/brands/${marcaCod}/models`);
+    return Array.isArray(d) ? d : (Array.isArray(d?.models) ? d.models : []);
   }
 
   function _matchModelo(list, busca) {
     if (!busca || !list.length) return null;
     const q = busca.toUpperCase().replace(/\s+/g, ' ').trim();
     // 1. Igual
-    let m = list.find(b => b.nome.toUpperCase() === q);
+    let m = list.find(b => b.name.toUpperCase() === q);
     if (m) return m;
     // 2. Todas as palavras-chave (> 1 char) presentes
     const words = q.split(' ').filter(w => w.length > 1);
-    m = list.find(b => words.every(w => b.nome.toUpperCase().includes(w)));
+    m = list.find(b => words.every(w => b.name.toUpperCase().includes(w)));
     if (m) return m;
     // 3. Primeira palavra-chave presente
-    if (words[0]) m = list.find(b => b.nome.toUpperCase().includes(words[0]));
+    if (words[0]) m = list.find(b => b.name.toUpperCase().includes(words[0]));
     return m || null;
   }
 
   async function _getAnos(marcaCod, modeloCod) {
-    const d = await _req(`/carros/marcas/${marcaCod}/modelos/${modeloCod}/anos`);
+    const d = await _req(`/cars/brands/${marcaCod}/models/${modeloCod}/years`);
     return Array.isArray(d) ? d : [];
   }
 
   async function _getPreco(marcaCod, modeloCod, anoCod) {
-    return await _req(`/carros/marcas/${marcaCod}/modelos/${modeloCod}/anos/${anoCod}`);
+    return await _req(`/cars/brands/${marcaCod}/models/${modeloCod}/years/${anoCod}`);
   }
 
   // ─── Parser de valor FIPE ("R$ 45.000,00" → 45000) ───────────────────────
@@ -247,27 +257,28 @@ const Fipe = (() => {
       const marca  = _matchMarca(marcas, nomeMarca);
       if (!marca) throw new Error(`Marca "${nomeMarca}" não encontrada na FIPE`);
 
-      const modelos  = await _getModelos(marca.codigo);
+      const modelos  = await _getModelos(marca.code);
       const modeloF  = _matchModelo(modelos, nomeMod || '');
       if (!modeloF) throw new Error(`Modelo "${nomeMod || modelo}" não encontrado na FIPE`);
 
-      const anos = await _getAnos(marca.codigo, modeloF.codigo);
+      const anos = await _getAnos(marca.code, modeloF.code);
       if (!anos.length) throw new Error('Anos não disponíveis');
 
       // Preço do ano mais recente (primeiro da lista)
-      const preco = await _getPreco(marca.codigo, modeloF.codigo, anos[0].codigo);
+      const preco = await _getPreco(marca.code, modeloF.code, anos[0].code);
 
+      // v2 campos: price, brand, model, modelYear, fuel, codeFipe, referenceMonth, vehicleType
       const result = {
         ok:          true,
-        marca:       preco?.Marca        || marca.nome,
-        modelo:      preco?.Modelo       || modeloF.nome,
-        anoModelo:   preco?.AnoModelo    || anos[0].nome,
-        combustivel: preco?.Combustivel  || '--',
-        codigoFipe:  preco?.CodigoFipe   || '--',
-        valor:       preco?.Valor        || '--',
-        valorNum:    _parseVal(preco?.Valor),
-        mesRef:      preco?.MesReferencia || '--',
-        tipoVeiculo: preco?.TipoVeiculo  || '--',
+        marca:       preco?.brand        || marca.name,
+        modelo:      preco?.model        || modeloF.name,
+        anoModelo:   preco?.modelYear    || anos[0].name,
+        combustivel: preco?.fuel         || '--',
+        codigoFipe:  preco?.codeFipe     || '--',
+        valor:       preco?.price        || '--',
+        valorNum:    _parseVal(preco?.price),
+        mesRef:      preco?.referenceMonth || '--',
+        tipoVeiculo: preco?.vehicleType  || '--',
       };
 
       _cache[key] = { data: result, ts: Date.now() };
