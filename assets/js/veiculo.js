@@ -317,6 +317,10 @@ const Veiculo = (() => {
         <span style="font-size:13px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap">${fmtBRL(totalHist)}</span>
       </div>`;
 
+    // ── FIPE — apenas veículos (coluna H) ────────────
+    const mostrarFipe = typeof Fipe !== 'undefined' && !/(m[áa]quina)/i.test(tipo || '');
+    const fipeHTML    = mostrarFipe ? Fipe.getHTML(placa, tipo) : '';
+
     // ── Montar modal (apenas botão PDF no footer) ─────
     Modal.openRaw(`
       <div class="modal-header">
@@ -381,6 +385,8 @@ const Veiculo = (() => {
             <span class="modal-campo-valor mono" style="overflow:hidden;text-overflow:ellipsis">${esc(siglaAtual)}</span>
           </div>
         </div>
+
+        ${mostrarFipe ? `<div id="vFipeSection">${fipeHTML}</div>` : ''}
 
         <div class="modal-secao-titulo" style="margin-top:18px;display:flex;align-items:center;gap:6px">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
@@ -466,6 +472,14 @@ const Veiculo = (() => {
         });
       }
 
+      // Atualização lazy do FIPE (caso ainda não estava no cache ao abrir)
+      if (mostrarFipe && typeof Fipe !== 'undefined' && !Fipe.buscar(placa)) {
+        Fipe.fetchFipe(placa, tipo, modelo).then(() => {
+          const el = document.getElementById('vFipeSection');
+          if (el) el.innerHTML = Fipe.getHTML(placa, tipo);
+        }).catch(() => {});
+      }
+
       // Botão PDF — único, no footer
       document.getElementById('vFichaPDFBtn')?.addEventListener('click',()=>{
         _gerarPDF({ placa,modelo,tipo,empresa,depto,cc,classif,contrato,isProprio,contratoInfo,
@@ -532,9 +546,10 @@ const Veiculo = (() => {
       pctMedia,diffMedia,analiseDesp,anosUniq,histSorted } = p;
 
     // Abrir nova aba — usar Blob URL para evitar bloqueio de popup
-    const now     = new Date();
-    const dtStr   = now.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
-    const corMedia= diffMedia>0?'#dc2626':'#059669';
+    const now       = new Date();
+    const dtStr     = now.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+    const corMedia  = diffMedia>0?'#dc2626':'#059669';
+    const fipePDF   = (typeof Fipe !== 'undefined') ? Fipe.getPDFHTML(placa, tipo) : '';
 
     // Seções de despesa
     const despSecoes = analiseDesp.map(ad=>{
@@ -651,6 +666,8 @@ td{border-bottom:1px solid #f1f5f9;font-size:9pt;}
 
 <div style="font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#9ca3af;margin-bottom:10px">Contrato</div>
 <div style="margin-bottom:20px">${contratoHtmlPDF}</div>
+
+${fipePDF}
 
 <div style="font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#9ca3af;margin-bottom:10px">Dados Cadastrais</div>
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px">
